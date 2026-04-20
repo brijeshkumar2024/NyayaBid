@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/dashboard.css">
+</head>
+<body data-page="dashboard" data-active-nav="overview">
+  <div class="site-shell">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <a class="brand" href="../index.html">
+          <img src="../assets/logo.svg" alt="NyayaBid AI logo" width="120" height="28">
+          <div class="brand-text">
+            <strong>NyayaBid AI</strong>
+            <span>Explainable Tender Evaluation</span>
+          </div>
+        </a>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" data-icon="overview" data-nav="overview" href="dashboard.html">Overview</a>
+          <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
+          <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
+          <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
+          <button id="settings-link" class="sidebar-link" data-icon="settings" data-nav="settings" type="button" onclick="window.NyayaBid?.app?.openSettingsModal?.();">Settings</button>
+        </nav>
+      </div>
+      <div class="version-tag">NyayaBid AI v1.0</div>
+    </aside>
+
+    <main class="main-content">
+      <section class="dashboard-status">● System Online  |  Last sync: <span id="system-sync-date"></span>  |  Audit trail: Active  |  GFR Rule Engine: v2.1  |  CAG Export: Ready</section>
+
+      <section class="page-header">
+        <div class="page-title">
+          <h1>Procurement Overview</h1>
+          <p>Tender: TND-2024-001 | Road Construction Works | Delhi PWD</p>
+        </div>
+      </section>
+
+      <section class="metric-grid dashboard-metrics">
+        <article class="card metric-card"><div class="metric-label">Tenders Evaluated</div><div class="metric-value" data-countup="3">0</div></article>
+        <article class="card metric-card"><div class="metric-label">Eligible Vendors</div><div class="metric-value" data-countup="7">0</div></article>
+        <article class="card metric-card"><div class="metric-label">Flags Raised</div><div class="metric-value" data-countup="4">0</div></article>
+        <article class="card metric-card"><div class="metric-label">Reports Generated</div><div class="metric-value" data-countup="3">0</div></article>
+      </section>
+
+      <section class="quick-actions">
+        <a href="evaluate.html" class="btn btn-primary">New Evaluation</a>
+        <a href="simulation.html" class="btn btn-secondary">Run Simulation</a>
+        <a href="report.html" class="btn btn-secondary">Generate Report</a>
+        <button id="open-audit-trail" type="button" class="btn btn-secondary">View Audit Trail</button>
+      </section>
+
+      <section class="dashboard-split">
+        <article class="card panel">
+          <h3>Recent Evaluations</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tender ID</th><th>Vendor</th><th>Status</th><th>Score</th><th>Action</th></tr></thead>
+              <tbody id="recent-evals-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card panel">
+          <h3>Recent Flags</h3>
+          <div class="flag-list">
+            <div class="flag-item"><span class="flag-dot amber"></span><div><strong>GreenBuild Contractors</strong><p>Cross-document inconsistency in GST certificate chronology.</p></div></div>
+            <div class="flag-item"><span class="flag-dot red"></span><div><strong>Aakash Civil Works</strong><p>Address overlap with Sunrise Tech Solutions indicates collusion risk.</p></div></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card pipeline">
+        <h3>Tender Pipeline</h3>
+        <div class="pipeline-row">TND-2024-001: <span class="pipe-pill done">Uploaded</span> → <span class="pipe-pill done">Extracted</span> → <span class="pipe-pill done">Evaluated</span> → <span class="pipe-pill active">Flagged</span> → <span class="pipe-pill done">Reported ✓</span></div>
+        <div class="pipeline-row">TND-2024-002: <span class="pipe-pill done">Uploaded</span> → <span class="pipe-pill done">Extracted</span> → <span class="pipe-pill done">Evaluated</span> → <span class="pipe-pill active">Pending Review</span></div>
+        <div class="pipeline-row">TND-2024-003: <span class="pipe-pill done">Uploaded</span> → <span class="pipe-pill active">Extracting...</span></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="audit-trail-modal" class="modal-overlay" aria-label="Audit trail log">
+    <div class="modal-card audit-modal-card">
+      <button id="close-audit-trail" class="modal-close" type="button" aria-label="Close">×</button>
+      <h3 class="audit-modal-title">Audit Trail Log</h3>
+      <ul class="audit-log-list">
+        <li class="audit-log-entry"><span class="flag-dot green"></span><div><span class="audit-time">[Today 09:42]</span> Evaluation started — TND-2024-001 — Officer: Rajesh Kumar</div></li>
+        <li class="audit-log-entry"><span class="flag-dot green"></span><div><span class="audit-time">[Today 09:43]</span> Document extraction complete — 5 vendors processed</div></li>
+        <li class="audit-log-entry"><span class="flag-dot green"></span><div><span class="audit-time">[Today 09:44]</span> Rule engine evaluation complete — 3 eligible, 2 rejected</div></li>
+        <li class="audit-log-entry"><span class="flag-dot amber"></span><div><span class="audit-time">[Today 09:44]</span> Flag raised — Cross-doc inconsistency — GreenBuild Contractors</div></li>
+        <li class="audit-log-entry"><span class="flag-dot red"></span><div><span class="audit-time">[Today 09:45]</span> Flag raised — Collusion risk — Aakash Civil Works</div></li>
+        <li class="audit-log-entry"><span class="flag-dot amber"></span><div><span class="audit-time">[Today 09:46]</span> Uncertainty flag — Sunrise Tech Solutions — sent for review</div></li>
+        <li class="audit-log-entry"><span class="flag-dot green"></span><div><span class="audit-time">[Today 09:51]</span> Audit report generated — TND-2024-001</div></li>
+        <li class="audit-log-entry"><span class="flag-dot green"></span><div><span class="audit-time">[Today 09:52]</span> Officer sign-off — Rajesh Kumar, Deputy Director, Delhi PWD</div></li>
+      </ul>
+    </div>
+  </dialog>
+
+  <dialog id="settings-modal" class="modal-overlay" aria-label="System settings">
+    <div class="modal-card settings-modal-card" aria-labelledby="settings-modal-title">
+      <button id="close-settings" class="modal-close" type="button" aria-label="Close settings">×</button>
+      <h3 id="settings-modal-title" class="settings-title">System Settings</h3>
+      <p class="settings-subtitle">NyayaBid AI Configuration — v1.0</p>
+
+      <section class="settings-section">
+        <h4>Evaluation Engine</h4>
+        <div class="form-grid settings-grid">
+          <div class="form-field">
+            <label for="settings-min-bidder-threshold">Min Bidder Threshold (CAG)</label>
+            <input id="settings-min-bidder-threshold" type="number" min="1" step="1" value="3">
+          </div>
+          <div class="form-field">
+            <label for="settings-confidence-threshold">Confidence Threshold for Human Review <span id="settings-confidence-value">70%</span></label>
+            <input id="settings-confidence-threshold" type="range" min="50" max="95" step="1" value="70">
+          </div>
+          <div class="form-field">
+            <label for="settings-collusion-auto-flag">Auto-flag collusion risk</label>
+            <label class="toggle"><input id="settings-collusion-auto-flag" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-crossdoc-auto-flag">Auto-flag cross-doc mismatch</label>
+            <label class="toggle"><input id="settings-crossdoc-auto-flag" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field full">
+            <label for="settings-gfr-version">GFR Rule Version</label>
+            <select id="settings-gfr-version">
+              <option value="GFR 2017 (Current)">GFR 2017 (Current)</option>
+              <option value="GFR 2022 (Draft)">GFR 2022 (Draft)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h4>Report Settings</h4>
+        <div class="form-grid settings-grid">
+          <div class="form-field">
+            <label for="settings-report-header">Report Header</label>
+            <input id="settings-report-header" type="text" value="Government of India">
+          </div>
+          <div class="form-field">
+            <label for="settings-default-authority">Default Issuing Authority</label>
+            <input id="settings-default-authority" type="text" value="Delhi Public Works Department">
+          </div>
+          <div class="form-field">
+            <label for="settings-include-cag-reference">Include CAG Reference in report</label>
+            <label class="toggle"><input id="settings-include-cag-reference" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-report-language">Report Language</label>
+            <select id="settings-report-language">
+              <option value="English">English</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Bilingual">Bilingual</option>
+            </select>
+          </div>
+          <div class="form-field full">
+            <label for="settings-auto-generate-report">Auto-generate Report after evaluation</label>
+            <label class="toggle"><input id="settings-auto-generate-report" type="checkbox"> <span>Enabled</span></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h4>Notification Settings</h4>
+        <div class="form-grid settings-grid">
+          <div class="form-field">
+            <label for="settings-show-uncertainty-alerts">Show uncertainty alerts</label>
+            <label class="toggle"><input id="settings-show-uncertainty-alerts" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-show-cag-warnings">Show CAG risk warnings</label>
+            <label class="toggle"><input id="settings-show-cag-warnings" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-show-collusion-alerts">Show collusion alerts</label>
+            <label class="toggle"><input id="settings-show-collusion-alerts" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-alert-sound">Alert sound</label>
+            <label class="toggle"><input id="settings-alert-sound" type="checkbox"> <span>Enabled</span></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h4>System</h4>
+        <div class="form-grid settings-grid">
+          <div class="form-field">
+            <label for="settings-demo-mode">Demo Mode</label>
+            <label class="toggle"><input id="settings-demo-mode" type="checkbox" checked> <span>Enabled</span></label>
+          </div>
+          <div class="form-field">
+            <label for="settings-audit-retention">Audit Trail Retention</label>
+            <select id="settings-audit-retention">
+              <option value="30 days">30 days</option>
+              <option value="90 days">90 days</option>
+              <option value="1 year">1 year</option>
+              <option value="Permanent">Permanent</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="settings-export-format">Data Export Format</label>
+            <select id="settings-export-format">
+              <option value="PDF">PDF</option>
+              <option value="CSV">CSV</option>
+              <option value="JSON">JSON</option>
+            </select>
+          </div>
+          <div class="form-field settings-danger-wrap">
+            <label for="settings-clear-data">Clear Session Data</label>
+            <button id="settings-clear-data" type="button" class="btn settings-clear-btn">Clear All Data</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="settings-footer">
+        <button id="settings-save" class="btn btn-primary" type="button">Save Settings</button>
+        <button id="settings-reset" class="btn settings-reset-btn" type="button">Reset to Defaults</button>
+        <button id="settings-close-footer" class="btn settings-close-btn" type="button">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="global-toast-root" class="toast-root"></div>
+
+  <script src="../scripts/data.js"></script>
+  <script src="../scripts/evaluation.js"></script>
+  <script src="../scripts/collusion.js"></script>
+  <script src="../scripts/simulation.js"></script>
+  <script src="../scripts/report.js"></script>
+  <script src="../scripts/app.js"></script>
+</body>
+</html>

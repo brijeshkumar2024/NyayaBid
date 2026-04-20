@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Reverse Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/simulation.css">
+</head>
+<body data-page="simulation" data-active-nav="simulate">
+  <div class="site-shell">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <a class="brand" href="../index.html">
+          <img src="../assets/logo.svg" alt="NyayaBid AI logo" width="120" height="28">
+          <div class="brand-text"><strong>NyayaBid AI</strong><span>Explainable Tender Evaluation</span></div>
+        </a>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" data-icon="overview" data-nav="overview" href="dashboard.html">Overview</a>
+          <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
+          <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
+          <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
+          <a class="sidebar-link" data-icon="settings" data-nav="settings" href="javascript:void(0)">Settings</a>
+        </nav>
+      </div>
+      <div class="version-tag">NyayaBid AI v1.0</div>
+    </aside>
+
+    <main class="main-content">
+      <section class="sim-layout">
+        <article class="card sim-controls">
+          <h2>Reverse Simulation Engine</h2>
+          <p>Adjust eligibility criteria and see real-time impact on vendor competition before publishing the tender.</p>
+
+          <div class="preset-row">
+            <button id="preset-default" class="preset-btn" type="button">Current (Default)</button>
+            <button id="preset-msme" class="preset-btn" type="button">MSME Friendly</button>
+            <button id="preset-restrictive" class="preset-btn" type="button">Highly Restrictive</button>
+            <button id="preset-competition" class="preset-btn" type="button">Maximum Competition</button>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><span class="control-label">Min Annual Turnover</span><span class="control-value" id="sim-turnover-value">₹10 Crore</span></div>
+            <input id="sim-turnover" type="range" min="1" max="20" step="1" value="10" aria-label="Minimum annual turnover" title="Minimum annual turnover">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><span class="control-label">Min Years Experience</span><span class="control-value" id="sim-experience-value">7 years</span></div>
+            <input id="sim-experience" type="range" min="1" max="15" step="1" value="7" aria-label="Minimum years experience" title="Minimum years experience">
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><span class="control-label">GST Registration</span></div>
+            <label class="toggle"><input id="sim-gst" type="checkbox" checked> <span>Mandatory</span></label>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><span class="control-label">MSME Relaxation</span></div>
+            <select id="sim-msme" aria-label="MSME relaxation mode" title="MSME relaxation mode">
+              <option value="none">None</option>
+              <option value="-25" selected>−25% turnover</option>
+              <option value="priority">Priority scoring</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-head"><span class="control-label">Max Bid Value Cap</span><span class="control-value" id="sim-cap-value">₹100 Crore</span></div>
+            <input id="sim-cap" type="range" min="10" max="200" step="5" value="100" aria-label="Maximum bid value cap" title="Maximum bid value cap">
+          </div>
+
+          <div class="policy-box">
+            <h3>Policy Impact Summary</h3>
+            <div class="policy-list">
+              <div>Change from default: <strong id="policy-change">-</strong></div>
+              <div>Vendor gain: <strong id="policy-gain">-</strong></div>
+              <div>Competition change: <strong id="policy-competition">-</strong></div>
+              <div>CAG Risk Level: <strong id="policy-risk">-</strong></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card sim-results">
+          <div class="metric-grid sim-metrics">
+            <div class="metric-card card"><div class="metric-label">Eligible Vendors</div><div class="metric-value" id="metric-eligible">0 / 10</div></div>
+            <div class="metric-card card"><div class="metric-label">Ineligible Vendors</div><div class="metric-value" id="metric-ineligible">0 / 10</div></div>
+            <div class="metric-card card"><div class="metric-label">MSME Eligible</div><div class="metric-value" id="metric-msme-eligible">0</div></div>
+            <div class="metric-card card"><div class="metric-label">Competition Level</div><div class="metric-value" id="metric-competition">-</div></div>
+          </div>
+
+          <div class="competition-track"><div id="competition-fill" class="competition-fill"></div></div>
+
+          <div class="table-wrap">
+            <table class="sim-table">
+              <thead><tr><th>Vendor</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>MSME</th><th>Status</th></tr></thead>
+              <tbody id="simulation-table-body"></tbody>
+            </table>
+          </div>
+
+          <div id="simulation-insight" class="insight-wrap"></div>
+
+          <div class="chart-wrap">
+            <h3>Competition Health Chart</h3>
+            <svg id="competition-chart-svg" class="competition-chart-svg" role="img" aria-label="Competition health chart"></svg>
+          </div>
+
+          <div class="sim-bottom-row">
+            <section class="sim-history">
+              <h3>Simulation History</h3>
+              <ol id="simulation-history-body"></ol>
+            </section>
+            <button id="export-simulation" type="button" class="btn btn-primary">Export Simulation</button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div id="global-toast-root" class="toast-root"></div>
+
+  <script src="../scripts/data.js"></script>
+  <script src="../scripts/evaluation.js"></script>
+  <script src="../scripts/collusion.js"></script>
+  <script src="../scripts/simulation.js"></script>
+  <script src="../scripts/report.js"></script>
+  <script src="../scripts/app.js"></script>
+</body>
+</html>

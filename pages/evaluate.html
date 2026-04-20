@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Evaluate Tender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css">
+  <link rel="stylesheet" href="../styles/dashboard.css">
+</head>
+<body data-page="evaluate" data-active-nav="evaluate">
+  <div class="site-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="sidebar-top">
+        <a class="brand" href="../index.html">
+          <img src="../assets/logo.svg" alt="NyayaBid AI logo" width="120" height="28">
+          <div class="brand-text"><strong>NyayaBid AI</strong><span>Explainable Tender Evaluation</span></div>
+        </a>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link" data-icon="overview" data-nav="overview" href="dashboard.html">Overview</a>
+          <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
+          <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
+          <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
+          <a class="sidebar-link" data-icon="settings" data-nav="settings" href="javascript:void(0)">Settings</a>
+        </nav>
+      </div>
+      <div class="version-tag">NyayaBid AI v1.0</div>
+    </aside>
+
+    <main class="main-content">
+      <section class="page-header">
+        <div class="page-title">
+          <h1>Evaluation Engine</h1>
+          <p>Step-by-step explainable assessment for tender eligibility.</p>
+        </div>
+        <button id="gfr-toggle" type="button" class="btn btn-secondary">View GFR Reference</button>
+      </section>
+
+      <section class="eval-layout">
+        <div>
+          <section class="card panel step-block">
+            <span class="step-label">Step 1</span>
+            <h3 class="section-title">Tender Upload Section</h3>
+            <div class="upload-zone">
+              <p>Upload Tender Document (PDF)</p>
+              <input id="tender-file-input" type="file" accept="application/pdf" class="hidden" aria-label="Tender file input">
+              <button id="choose-pdf" class="btn btn-secondary" type="button">Choose PDF</button>
+              <p id="uploaded-file-name" class="uploaded-file-name"></p>
+              <p class="demo-tender-row">Or use demo tender → <button id="load-demo-tender" class="btn btn-primary" type="button">Use Demo Tender</button></p>
+            </div>
+            <article id="tender-info-card" class="tender-card hidden"></article>
+          </section>
+
+          <section class="card panel step-block">
+            <span class="step-label">Step 2</span>
+            <h3 class="section-title">Vendor Documents</h3>
+            <div id="vendor-cards" class="vendor-grid"></div>
+            <button id="run-evaluation" class="btn btn-primary run-eval-btn" type="button">Run Evaluation</button>
+            <div id="evaluation-progress" class="evaluation-progress hidden">
+              <div class="evaluation-progress-track"><div id="evaluation-progress-fill" class="evaluation-progress-fill"></div></div>
+              <div id="evaluation-progress-stage" class="evaluation-progress-stage">Preparing...</div>
+            </div>
+          </section>
+
+          <section id="evaluation-results-block" class="card results-card hidden">
+            <span class="step-label">Step 3</span>
+            <h3 class="section-title">Evaluation Results</h3>
+
+            <div id="evaluation-time-banner" class="evaluation-time-banner hidden">Evaluation completed in 1.3 seconds. Manual audit of same documents: est. 3–5 working days.</div>
+
+            <div class="table-wrap">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Vendor Name</th>
+                    <th>Turnover Check</th>
+                    <th>Experience Check</th>
+                    <th>GST Check</th>
+                    <th>Cross-Doc Status</th>
+                    <th>Collusion Risk</th>
+                    <th>Confidence</th>
+                    <th>Final Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="evaluation-results-body"></tbody>
+              </table>
+            </div>
+
+            <div class="step-block step-block-top">
+              <span class="step-label">Step 4</span>
+              <h3 class="section-title">Flags Raised</h3>
+              <div id="flags-container" class="flags-container"></div>
+            </div>
+
+            <div id="uncertainty-banner" class="uncertainty-banner hidden">
+              <p id="uncertainty-text"></p>
+              <button class="btn btn-secondary" type="button">Send for Review</button>
+            </div>
+
+            <div class="override-panel">
+              <button id="override-toggle" class="override-toggle" type="button">Manual Override <span>+</span></button>
+              <div id="override-content" class="override-content hidden">
+                <p class="override-warning">Overriding system recommendations requires written justification. This action is logged and cannot be undone.</p>
+                <div class="form-grid">
+                  <div class="form-field"><label for="override-vendor">Select vendor to override</label><select id="override-vendor"></select></div>
+                  <div class="form-field"><label for="override-status">Change status to</label><select id="override-status"><option value="">Select status</option><option value="Eligible">Eligible</option><option value="Rejected">Rejected</option></select></div>
+                  <div class="form-field full"><label for="override-justification">Written justification (minimum 50 characters)</label><textarea id="override-justification" rows="4"></textarea></div>
+                  <div class="form-field full checkbox-row"><input id="override-consent" type="checkbox"><label for="override-consent">I confirm this override is in compliance with GFR Rule 175</label></div>
+                </div>
+                <button id="submit-override" class="btn btn-primary" type="button" disabled>Submit Override</button>
+                <p id="override-success" class="hidden override-success">Override logged. Justification recorded in audit trail.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside id="gfr-reference-panel" class="gfr-panel hidden" aria-label="GFR reference panel">
+          <h4>GFR Reference Panel</h4>
+          <article class="gfr-rule"><strong>GFR Rule 175 — Evaluation of Bids</strong><p>The procuring entity shall evaluate bids only on the criteria disclosed in the bid document.</p></article>
+          <article class="gfr-rule"><strong>GFR Rule 160 — Eligibility</strong><p>A bidder shall be eligible to participate if they meet the technical and financial qualification criteria.</p></article>
+          <article class="gfr-rule"><strong>CVC Guidelines — Collusion</strong><p>Identical bids or bids from firms with common ownership shall be treated as evidence of bid rigging.</p></article>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div id="global-toast-root" class="toast-root"></div>
+
+  <script src="../scripts/data.js"></script>
+  <script src="../scripts/evaluation.js"></script>
+  <script src="../scripts/collusion.js"></script>
+  <script src="../scripts/simulation.js"></script>
+  <script src="../scripts/report.js"></script>
+  <script src="../scripts/app.js"></script>
+</body>
+</html>

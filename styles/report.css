@@ -1,0 +1,171 @@
+.report-page {
+  background: #eef2f7;
+}
+
+.report-toolbar {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.report-sheet {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  background: var(--white);
+  padding: 26px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.report-head {
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.report-head h1 {
+  margin-bottom: 8px;
+  font-size: 26px;
+}
+
+.report-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 18px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.report-meta-top {
+  margin-top: 10px;
+}
+
+.report-top-strip {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.report-section {
+  margin-top: 18px;
+}
+
+.report-section h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.section-table th,
+.section-table td {
+  font-size: 13px;
+  padding: 10px 8px;
+}
+
+.signature-box {
+  border: 1px solid var(--grey-200);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.report-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.report-form .full {
+  grid-column: 1 / -1;
+}
+
+.report-form label {
+  display: block;
+  margin-bottom: 5px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.report-form input,
+.report-form textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.signoff-action {
+  margin-top: 10px;
+}
+
+.recommendations {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.digital-signature-block {
+  margin-top: 16px;
+  border: 2px solid #16A34A;
+  border-radius: 10px;
+  background: #f0fdf4;
+  padding: 14px;
+  color: #14532d;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.6;
+}
+
+@media print {
+  body,
+  .report-page,
+  .site-shell,
+  .main-content {
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    display: block !important;
+  }
+
+  .sidebar,
+  .page-header,
+  .report-toolbar,
+  .global-footer-hint,
+  .demo-mode-badge,
+  .judge-helper-btn,
+  .judge-helper-popup,
+  #global-toast-root,
+  button,
+  .report-form,
+  .signature-box .btn,
+  #download-report,
+  #finalize-btn {
+    display: none !important;
+  }
+
+  .signature-box {
+    border: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .report-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  * {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
