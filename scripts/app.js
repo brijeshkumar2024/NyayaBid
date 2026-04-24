@@ -1104,6 +1104,58 @@ Contact: ${data.tender.contact}
     }
   }
 
+  function addDemoModeBadge() {
+    var badge = document.createElement('div');
+    badge.className = 'demo-mode-badge';
+    badge.textContent = 'PROTOTYPE v1.0 — NyayaBid AI';
+    document.body.appendChild(badge);
+  }
+
+  function addJudgeDemoHelper() {
+    var btn = document.createElement('button');
+    btn.className = 'judge-helper-btn';
+    btn.title = 'Judge Helper';
+    btn.textContent = '?';
+    var popup = document.createElement('div');
+    popup.className = 'judge-helper-popup';
+    popup.style.display = 'none';
+    popup.innerHTML = '<strong>Judge Helper</strong><p>Upload a tender PDF or use the demo tender to run an evaluation.</p>';
+    btn.addEventListener('click', function () {
+      popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+    });
+    document.body.appendChild(popup);
+    document.body.appendChild(btn);
+  }
+
+  function addGlobalFooterHint() {
+    var hint = document.querySelector('.global-footer-hint');
+    if (hint) hint.textContent = 'NyayaBid AI — GFR-aligned procurement evaluation';
+  }
+
+  function bindKeyboardShortcuts() {
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.show').forEach(function (m) { m.classList.remove('show'); });
+      }
+    });
+  }
+
+  function injectSidebarIcons() {}
+
+  function setActiveNav() {
+    var path = location.pathname.split('/').pop();
+    document.querySelectorAll('.nav-link, .sidebar-link').forEach(function (link) {
+      link.classList.toggle('active', link.getAttribute('href') === path);
+    });
+  }
+
+  function animateMetricCards() {
+    document.querySelectorAll('.metric-card').forEach(function (card, i) {
+      card.style.animationDelay = (i * 80) + 'ms';
+      card.classList.add('fade-in');
+    });
+  }
+
   function boot() {
     // FIX: assign app object once here and never overwrite it.
     // initDashboardPage previously did `root.NyayaBid.app = root.NyayaBid.app || {}`
