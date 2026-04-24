@@ -127,7 +127,8 @@
       }));
 
       root.NyayaBid.app.showToast('Report finalized and logged to audit trail', 'success');
-    });
+    // FIX: { once: true } prevents listener stacking if renderReport() is ever called again
+    }, { once: true });
 
     document.getElementById('download-report').addEventListener('click', function () {
       globalThis.print();

@@ -11,7 +11,7 @@
     rootEl.appendChild(toast);
     setTimeout(function () {
       toast.style.opacity = '0';
-      root.setTimeout(function () { toast.remove(); }, 240);
+      setTimeout(function () { toast.remove(); }, 240); // FIX: was root.setTimeout (inconsistent)
     }, 3000);
   }
 
@@ -356,7 +356,7 @@
       });
     }
 
-    root.NyayaBid.app = root.NyayaBid.app || {};
+    // FIX: augment the existing app object — do NOT replace it (showToast lives there)
     root.NyayaBid.app.openSettingsModal = openSettingsModal;
 
     const data = root.NyayaBid.data;
@@ -632,8 +632,23 @@ Contact: ${data.tender.contact}
         renderFlags(overrides);
         populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
         resultBlock.classList.remove('hidden');
-        document.getElementById('uncertainty-banner').classList.remove('hidden');
-        document.getElementById('uncertainty-text').textContent = 'Vendor: Sunrise Tech Solutions — Confidence Score: 61% System is uncertain about this evaluation. Manual review by procurement officer recommended before finalizing decision.';
+
+        // FIX: only show uncertainty banner when a vendor actually has low confidence.
+        // Previously this was hardcoded unconditionally — now it checks real scores.
+        var uncertainVendor = rows.find(function (entry) {
+          return entry.result.confidence < 70;
+        });
+        var uncertaintyBanner = document.getElementById('uncertainty-banner');
+        var uncertaintyText   = document.getElementById('uncertainty-text');
+        if (uncertainVendor) {
+          uncertaintyText.textContent = 'Vendor: ' + uncertainVendor.vendor.name +
+            ' — Confidence Score: ' + uncertainVendor.result.confidence +
+            '% — System is uncertain about this evaluation. Manual review by procurement officer recommended before finalizing decision.';
+          uncertaintyBanner.classList.remove('hidden');
+        } else {
+          uncertaintyBanner.classList.add('hidden');
+        }
+
         document.getElementById('evaluation-time-banner').classList.remove('hidden');
         localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({ rows, overrides }));
       });
@@ -701,6 +716,10 @@ Contact: ${data.tender.contact}
   }
 
   function boot() {
+    // FIX: assign app object once here and never overwrite it.
+    // initDashboardPage previously did `root.NyayaBid.app = root.NyayaBid.app || {}`
+    // then assigned openSettingsModal — that pattern was safe but fragile.
+    // Now we set the full object here and only augment it below.
     root.NyayaBid.app = { showToast };
     enablePageTransitions();
     bindKeyboardShortcuts();
@@ -715,6 +734,8 @@ Contact: ${data.tender.contact}
     initEvaluatePage();
     initSimulationPage();
     initReportPage();
+    // Document Intelligence — initialised last so app.showToast is guaranteed available
+    if (root.NyayaBid.docIntelligence) root.NyayaBid.docIntelligence.init();
   }
 
   document.addEventListener('DOMContentLoaded', boot);

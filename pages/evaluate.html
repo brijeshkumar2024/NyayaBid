@@ -40,6 +40,59 @@
 
       <section class="eval-layout">
         <div>
+          <!-- ═══════════════════════════════════════════════════════════════
+               DOCUMENT INTELLIGENCE (DEMO)
+               New section — reads PDFs and images, maps data to evaluation.
+               Does NOT modify any existing evaluation logic.
+          ════════════════════════════════════════════════════════════════════ -->
+          <section class="card panel step-block doc-intel-section">
+            <div class="doc-intel-header">
+              <span class="step-label doc-intel-badge">Document Intelligence (Demo)</span>
+              <p class="doc-intel-sub">Upload a typed PDF or image to extract vendor data automatically.</p>
+            </div>
+
+            <div class="doc-intel-grid">
+
+              <!-- ── PDF Upload Card ─────────────────────────────────────── -->
+              <div class="doc-card">
+                <div class="doc-card-icon">📄</div>
+                <h4 class="doc-card-title">PDF Document</h4>
+                <p class="doc-card-desc">Upload a typed/digital PDF to extract text.</p>
+                <input id="doc-pdf-input" type="file" accept="application/pdf" class="hidden" aria-label="Upload PDF for extraction">
+                <button id="doc-pdf-btn" class="btn btn-secondary" type="button">Choose PDF</button>
+                <!-- Extracted PDF text appears here -->
+                <div id="pdf-output" class="doc-output"></div>
+              </div>
+
+              <!-- ── Image OCR Card ──────────────────────────────────────── -->
+              <div class="doc-card">
+                <div class="doc-card-icon">🖼️</div>
+                <h4 class="doc-card-title">Image / Scan (OCR)</h4>
+                <p class="doc-card-desc">Upload a JPG or PNG to extract text via OCR.</p>
+                <input id="doc-ocr-input" type="file" accept="image/png,image/jpeg" class="hidden" aria-label="Upload image for OCR">
+                <button id="doc-ocr-btn" class="btn btn-secondary" type="button">Choose Image</button>
+                <!-- OCR output appears here -->
+                <div id="ocr-output" class="doc-output"></div>
+              </div>
+
+            </div>
+
+            <!-- ── Mapped Fields Preview (shown after "Use this data") ───── -->
+            <!-- FIX: scroll anchor moved here so "Use this data" scrolls DOWN
+                 toward the evaluation steps, not back up to the top of the section -->
+            <div id="doc-mapped-panel" class="doc-mapped-panel hidden">
+              <h4 class="doc-mapped-title">📋 Fields mapped from document — verify then run evaluation below</h4>
+              <ul id="doc-mapped-list" class="doc-mapped-list"></ul>
+              <div class="doc-mapped-fields">
+                <label>Turnover (Cr) <input id="doc-mapped-turnover" type="number" placeholder="e.g. 12" class="doc-mapped-input"></label>
+                <label>GST Number <input id="doc-mapped-gst" type="text" placeholder="e.g. 27AABCB1234A1Z5" class="doc-mapped-input"></label>
+                <label>Experience (yrs) <input id="doc-mapped-experience" type="number" placeholder="e.g. 8" class="doc-mapped-input"></label>
+              </div>
+              <p class="doc-mapped-note">These values are extracted from the document. Verify before use. ↓ Scroll down to run evaluation.</p>
+            </div>
+          </section>
+          <!-- ═══════════════════════════════════════════════════════════════ -->
+
           <section class="card panel step-block">
             <span class="step-label">Step 1</span>
             <h3 class="section-title">Tender Upload Section</h3>
@@ -129,11 +182,25 @@
 
   <div id="global-toast-root" class="toast-root"></div>
 
+  <!-- pdf.js CDN — used by Document Intelligence for PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- FIX: null-guard before setting workerSrc — CDN may be slow or blocked -->
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <!-- Tesseract.js CDN — used by Document Intelligence for image OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <script src="../scripts/data.js"></script>
   <script src="../scripts/evaluation.js"></script>
   <script src="../scripts/collusion.js"></script>
   <script src="../scripts/simulation.js"></script>
   <script src="../scripts/report.js"></script>
+  <script src="../scripts/docIntelligence.js"></script>
   <script src="../scripts/app.js"></script>
 </body>
 </html>

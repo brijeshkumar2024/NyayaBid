@@ -608,6 +608,12 @@ th {
   background: #fffbeb;
 }
 
+/* FIX: explicitly set display:none on dialog elements so the UA stylesheet
+   default open/closed behaviour doesn't fight our .show class toggle */
+dialog.modal-overlay {
+  display: none;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
