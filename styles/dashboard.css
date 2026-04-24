@@ -1033,3 +1033,95 @@ mark.doc-highlight-gst {
     align-items: flex-start;
   }
 }
+
+/* ── Tender Criteria Card (shown after PDF extraction) ───────────────────── */
+
+.tender-criteria-card {
+  margin-top: 14px;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  background: #f0fdf4;
+  padding: 14px 16px;
+  animation: fadeInUp 280ms ease both;
+}
+
+.tcrit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* "✅ Criteria extracted from document" green badge */
+.tcrit-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+/* filename shown next to the badge */
+.tcrit-filename {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 2×2 grid of extracted fields */
+.tcrit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tcrit-field {
+  background: #fff;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tcrit-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* value found in the PDF */
+.tcrit-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tcrit-found {
+  color: #166534;
+}
+
+/* value not found — amber so it's visible but not alarming */
+.tcrit-missing {
+  color: #b45309;
+}
+
+.tcrit-note {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .tcrit-grid {
+    grid-template-columns: 1fr;
+  }
+}

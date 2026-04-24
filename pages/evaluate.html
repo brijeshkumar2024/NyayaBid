@@ -99,11 +99,42 @@
             <div class="upload-zone">
               <p>Upload Tender Document (PDF)</p>
               <input id="tender-file-input" type="file" accept="application/pdf" class="hidden" aria-label="Tender file input">
-              <button id="choose-pdf" class="btn btn-secondary" type="button">Choose PDF</button>
+              <button id="choose-pdf" class="btn btn-primary" type="button">📄 Upload Tender PDF</button>
               <p id="uploaded-file-name" class="uploaded-file-name"></p>
-              <p class="demo-tender-row">Or use demo tender → <button id="load-demo-tender" class="btn btn-primary" type="button">Use Demo Tender</button></p>
+              <p class="demo-tender-row">Or use demo tender → <button id="load-demo-tender" class="btn btn-secondary" type="button">Use Demo Tender</button></p>
             </div>
-            <article id="tender-info-card" class="tender-card hidden"></article>
+
+            <!-- Criteria extracted from uploaded PDF — hidden until extraction runs -->
+            <article id="tender-info-card" class="tender-card hidden">
+              <!-- populated by app.js: demo tender text OR extracted criteria card -->
+            </article>
+
+            <!-- Extracted criteria card — shown after PDF parsing -->
+            <div id="tender-criteria-card" class="tender-criteria-card hidden">
+              <div class="tcrit-header">
+                <span class="tcrit-badge">✅ Criteria extracted from document</span>
+                <span id="tcrit-filename" class="tcrit-filename"></span>
+              </div>
+              <div class="tcrit-grid">
+                <div class="tcrit-field">
+                  <span class="tcrit-label">Min Annual Turnover</span>
+                  <span id="tcrit-turnover" class="tcrit-value">—</span>
+                </div>
+                <div class="tcrit-field">
+                  <span class="tcrit-label">Min Experience</span>
+                  <span id="tcrit-experience" class="tcrit-value">—</span>
+                </div>
+                <div class="tcrit-field">
+                  <span class="tcrit-label">GST Mandatory</span>
+                  <span id="tcrit-gst" class="tcrit-value">—</span>
+                </div>
+                <div class="tcrit-field">
+                  <span class="tcrit-label">MSME Mentioned</span>
+                  <span id="tcrit-msme" class="tcrit-value">—</span>
+                </div>
+              </div>
+              <p class="tcrit-note">These criteria will be used when you click Run Evaluation below.</p>
+            </div>
           </section>
 
           <section class="card panel step-block">

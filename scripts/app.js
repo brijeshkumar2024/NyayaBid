@@ -574,27 +574,158 @@
     const overrides = [];
     let rows = [];
 
+    // Holds criteria parsed from an uploaded PDF.
+    // When set, runBatchEvaluation uses these instead of the defaults.
+    let extractedCriteria = null;
+
     renderVendorCards();
 
-    const choosePdf = document.getElementById('choose-pdf');
-    const fileInput = document.getElementById('tender-file-input');
-    const fileNameEl = document.getElementById('uploaded-file-name');
-    const demoButton = document.getElementById('load-demo-tender');
-    const tenderCard = document.getElementById('tender-info-card');
-    const runButton = document.getElementById('run-evaluation');
+    const choosePdf   = document.getElementById('choose-pdf');
+    const fileInput   = document.getElementById('tender-file-input');
+    const fileNameEl  = document.getElementById('uploaded-file-name');
+    const demoButton  = document.getElementById('load-demo-tender');
+    const tenderCard  = document.getElementById('tender-info-card');
+    const runButton   = document.getElementById('run-evaluation');
     const resultBlock = document.getElementById('evaluation-results-block');
 
-    choosePdf.addEventListener('click', function () {
-      fileInput.click();
-    });
-    fileInput.addEventListener('change', function () {
-      const file = fileInput.files?.[0];
+    // ── Tender PDF extraction ──────────────────────────────────────────────
+    // Triggered when the user picks a real PDF file.
+    // Uses pdf.js to read every page, concatenates the text, then runs
+    // parseTenderCriteria() to pull out the four key fields.
+
+    /**
+     * Extract all text from a PDF file using pdf.js.
+     * Returns a Promise<string> with the full concatenated text.
+     */
+    function extractTextFromPDF(file) {
+      return new Promise(function (resolve, reject) {
+        if (typeof pdfjsLib === 'undefined') {
+          reject(new Error('PDF library not loaded. Check your internet connection and refresh.'));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          try {
+            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const pg = await pdf.getPage(i);
+              const content = await pg.getTextContent();
+              text += content.items.map(function (item) { return item.str; }).join(' ') + '\n';
+            }
+            resolve(text);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = function () { reject(new Error('Could not read file.')); };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    /**
+     * Parse tender eligibility criteria from raw PDF text.
+     *
+     * Searches for:
+     *   turnover  — "turnover" or "annual turnover" followed by a number
+     *   experience — "experience" or "years of experience" followed by a number
+     *   gst       — presence of "GST" treated as mandatory
+     *   msme      — presence of "MSME" treated as mentioned
+     *
+     * Returns an object with the four fields (nulls when not found).
+     */
+    function parseTenderCriteria(text) {
+      const lower = text.toLowerCase();
+      const result = { turnover: null, experience: null, gst: false, msme: false };
+
+      // Turnover: match "turnover" or "annual turnover" then grab the first number
+      // Handles formats like: "turnover: ₹10 crore", "annual turnover of 5 crores"
+      const turnoverMatch = lower.match(
+        /(?:annual\s+)?turnover[^\d]{0,30}?(\d+(?:\.\d+)?)/
+      );
+      if (turnoverMatch) result.turnover = parseFloat(turnoverMatch[1]);
+
+      // Experience: match "experience" then grab the first number nearby
+      // Handles: "experience: 7 years", "5 years of experience", "years of experience: 3"
+      const expMatch = lower.match(
+        /(?:(\d+)\s+years?\s+of\s+experience|experience[^\d]{0,30}?(\d+))/
+      );
+      if (expMatch) result.experience = parseInt(expMatch[1] || expMatch[2], 10);
+
+      // GST: any mention of "gst" in the document signals it is required
+      result.gst = /\bgst\b/.test(lower);
+
+      // MSME: any mention signals the relaxation clause is present
+      result.msme = /\bmsme\b/.test(lower);
+
+      return result;
+    }
+
+    /**
+     * Render the extracted criteria card below the upload zone.
+     * Shows each field with a clear label and the parsed value.
+     */
+    function renderCriteriaCard(criteria, filename) {
+      const card = document.getElementById('tender-criteria-card');
+      if (!card) return;
+
+      document.getElementById('tcrit-filename').textContent = filename;
+
+      const turnoverEl   = document.getElementById('tcrit-turnover');
+      const experienceEl = document.getElementById('tcrit-experience');
+      const gstEl        = document.getElementById('tcrit-gst');
+      const msmeEl       = document.getElementById('tcrit-msme');
+
+      turnoverEl.textContent   = criteria.turnover   !== null ? `₹${criteria.turnover} Crore` : 'Not found';
+      experienceEl.textContent = criteria.experience !== null ? `${criteria.experience} Years`  : 'Not found';
+      gstEl.textContent        = criteria.gst  ? 'Yes — Mandatory' : 'Not mentioned';
+      msmeEl.textContent       = criteria.msme ? 'Yes — Mentioned' : 'Not mentioned';
+
+      // Colour-code each value: green when found, amber when not
+      [turnoverEl, experienceEl].forEach(function (el) {
+        el.className = 'tcrit-value ' + (el.textContent === 'Not found' ? 'tcrit-missing' : 'tcrit-found');
+      });
+      gstEl.className  = 'tcrit-value ' + (criteria.gst  ? 'tcrit-found' : 'tcrit-missing');
+      msmeEl.className = 'tcrit-value ' + (criteria.msme ? 'tcrit-found' : 'tcrit-missing');
+
+      card.classList.remove('hidden');
+    }
+
+    // ── File input wiring ──────────────────────────────────────────────────
+    choosePdf.addEventListener('click', function () { fileInput.click(); });
+
+    fileInput.addEventListener('change', async function () {
+      const file = fileInput.files && fileInput.files[0];
       if (!file) return;
-      fileNameEl.textContent = `Selected: ${file.name}`;
-      showToast('Tender PDF selected.', 'success');
+
+      fileNameEl.textContent = 'Reading… ' + file.name;
+      // Hide any previously shown criteria card or demo tender card
+      document.getElementById('tender-criteria-card').classList.add('hidden');
+      tenderCard.classList.add('hidden');
+      extractedCriteria = null;
+
+      try {
+        const text = await extractTextFromPDF(file);
+        const criteria = parseTenderCriteria(text);
+
+        // Store so runBatchEvaluation can use them
+        extractedCriteria = criteria;
+
+        fileNameEl.textContent = 'Loaded: ' + file.name;
+        renderCriteriaCard(criteria, file.name);
+        showToast('Criteria extracted from document.', 'success');
+      } catch (err) {
+        fileNameEl.textContent = '';
+        showToast('Could not read PDF: ' + err.message, 'warn');
+      }
     });
 
+    // ── Demo tender (unchanged behaviour) ─────────────────────────────────
     demoButton.addEventListener('click', function () {
+      // Hide extracted criteria card if visible
+      document.getElementById('tender-criteria-card').classList.add('hidden');
+      extractedCriteria = null;
+
       tenderCard.innerHTML = `
         <div class="gov-doc-card">
           <pre>
@@ -625,16 +756,26 @@ Contact: ${data.tender.contact}
       showToast('Demo tender loaded successfully.', 'success');
     });
 
+    // ── Run Evaluation ─────────────────────────────────────────────────────
+    // If the user uploaded a real PDF and criteria were extracted, pass them
+    // to runBatchEvaluation so the engine uses the document's own thresholds.
     runButton.addEventListener('click', function () {
       runEvaluationTimer(function () {
-        rows = root.NyayaBid.evaluation.runBatchEvaluation(data.vendors);
+        // Build override criteria only for fields that were actually found
+        var criteriaOverride = null;
+        if (extractedCriteria) {
+          criteriaOverride = {};
+          if (extractedCriteria.turnover   !== null) criteriaOverride.minTurnover   = extractedCriteria.turnover;
+          if (extractedCriteria.experience !== null) criteriaOverride.minExperience = extractedCriteria.experience;
+          criteriaOverride.gstMandatory = extractedCriteria.gst;
+        }
+
+        rows = root.NyayaBid.evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
         renderEvaluationRows(rows, overrides);
         renderFlags(overrides);
         populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
         resultBlock.classList.remove('hidden');
 
-        // FIX: only show uncertainty banner when a vendor actually has low confidence.
-        // Previously this was hardcoded unconditionally — now it checks real scores.
         var uncertainVendor = rows.find(function (entry) {
           return entry.result.confidence < 70;
         });
