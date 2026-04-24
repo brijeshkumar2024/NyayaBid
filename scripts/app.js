@@ -34,305 +34,53 @@
       document.body.style.opacity = '1';
     });
 
-    document.querySelectorAll('a[href]').forEach(function (link) {
-      link.addEventListener('click', function (e) {
-        const href = link.getAttribute('href') || '';
-        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-        if (!href.endsWith('.html') && !href.includes('.html')) return;
-        e.preventDefault();
-        navigateWithFade(href);
-      });
-    });
-  }
+    const refs = {
+      turnoverInput: document.getElementById('criteria-min-turnover'),
+      experienceInput: document.getElementById('criteria-min-experience'),
+      gstInput: document.getElementById('criteria-gst-mandatory'),
+      msmeInput: document.getElementById('criteria-msme-applicable'),
+      turnoverSource: document.getElementById('criteria-min-turnover-source'),
+      experienceSource: document.getElementById('criteria-min-experience-source'),
+      gstSource: document.getElementById('criteria-gst-mandatory-source'),
+      msmeSource: document.getElementById('criteria-msme-applicable-source'),
+      rawTextOutput: document.getElementById('raw-text-output')
+    };
 
-  function findEvaluationEntry(rows, vendorId) {
-    for (const row of rows) {
-      if (row.vendor.id === vendorId) return row;
+    function persistEvaluation(criteriaOverride) {
+      localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({
+        rows,
+        overrides,
+        criteria: criteriaOverride,
+        document: extractedDocument
+      }));
     }
-    return null;
-  }
 
-  function speakDecision(entry) {
-    if (!entry || !root.speechSynthesis) return;
-    const msg = `${entry.vendor.name} is ${entry.result.status}. ${entry.result.reasons.join('. ')}`;
-    root.speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
-  }
+    function buildCriteriaOverrideFromFields() {
+      const missing = [];
+      const turnoverValue = refs.turnoverInput ? Number(refs.turnoverInput.value) : Number.NaN;
+      const experienceValue = refs.experienceInput ? Number(refs.experienceInput.value) : Number.NaN;
+      const gstValue = refs.gstInput ? refs.gstInput.value : '';
+      const msmeValue = refs.msmeInput ? refs.msmeInput.value : '';
 
-  function setActiveNav() {
-    const current = document.body.dataset.activeNav;
-    if (!current) return;
-    document.querySelectorAll('[data-nav]').forEach(function (link) {
-      if (link.dataset.nav === current) {
-        link.classList.add('is-active');
-      }
-    });
-  }
+      if (!Number.isFinite(turnoverValue)) missing.push('Minimum annual turnover');
+      if (!Number.isFinite(experienceValue)) missing.push('Minimum experience');
+      if (!gstValue) missing.push('GST requirement');
+      if (!msmeValue) missing.push('MSME applicability');
 
-  function animateMetricCards() {
-    document.querySelectorAll('[data-countup]').forEach(function (el) {
-      const target = Number(el.dataset.countup || '0');
-      if (!Number.isFinite(target)) return;
-      const start = performance.now();
-      const duration = 800;
-
-      function frame(now) {
-        const progress = Math.min((now - start) / duration, 1);
-        el.textContent = String(Math.floor(progress * target));
-        if (progress < 1) requestAnimationFrame(frame);
+      if (missing.length) {
+        return { ok: false, missing: missing.join(', ') };
       }
 
-      requestAnimationFrame(frame);
-    });
-  }
-
-  function injectSidebarIcons() {
-    const icons = {
-      overview: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect></svg>',
-      evaluate: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 5h16"></path><path d="M4 12h10"></path><path d="M4 19h7"></path><circle cx="18" cy="12" r="3"></circle></svg>',
-      simulate: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M4 18h16"></path><path d="M6 15V9"></path><path d="M12 15V6"></path><path d="M18 15v-3"></path></svg>',
-      report: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path></svg>',
-      settings: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>'
-    };
-    document.querySelectorAll('.sidebar-link[data-icon]').forEach(function (link) {
-      if (link.querySelector('svg')) return;
-      link.insertAdjacentHTML('afterbegin', icons[link.dataset.icon] || '');
-    });
-  }
-
-  function bindKeyboardShortcuts() {
-    document.addEventListener('keydown', function (event) {
-      const tag = event.target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      const key = event.key.toLowerCase();
-      const map = { d: 'dashboard.html', e: 'evaluate.html', s: 'simulation.html', r: 'report.html' };
-      if (!map[key]) return;
-      const isRoot = root.location.pathname.endsWith('/index.html') || root.location.pathname.endsWith('/nyayabid/') || root.location.pathname.endsWith('/nyayabid');
-      const target = isRoot ? `pages/${map[key]}` : map[key];
-      root.location.href = target;
-    });
-  }
-
-  function addGlobalFooterHint() {
-    const footer = document.createElement('footer');
-    footer.className = 'global-footer-hint';
-    footer.textContent = 'Press D → Dashboard  |  E → Evaluate  |  S → Simulate  |  R → Report';
-    document.body.appendChild(footer);
-  }
-
-  function addDemoModeBadge() {
-    if (document.body.dataset.page === 'index') return;
-    const badge = document.createElement('div');
-    badge.className = 'demo-mode-badge';
-    badge.textContent = '● DEMO MODE';
-    document.body.appendChild(badge);
-  }
-
-  function addJudgeDemoHelper() {
-    const page = document.body.dataset.page;
-    if (page === 'index') return;
-
-    const helper = document.createElement('button');
-    helper.className = 'judge-helper-btn';
-    helper.type = 'button';
-    helper.innerHTML = '▶';
-    helper.setAttribute('aria-label', 'Judge demo helper');
-
-    const popup = document.createElement('div');
-    popup.className = 'judge-helper-popup hidden';
-
-    const scripts = {
-      dashboard: 'Start here. Point to metric cards. Mention 3 tenders evaluated.',
-      evaluate: "Click 'Use demo tender'. Then 'Run Evaluation'. Point to flags.",
-      simulation: 'Move turnover slider to ₹4Cr. Watch CAG warning appear.',
-      report: "Scroll all sections. Click 'Digitally Sign'. Show PDF download."
-    };
-    popup.textContent = scripts[page] || 'Run the prepared demo flow.';
-
-    helper.addEventListener('click', function () {
-      popup.classList.toggle('hidden');
-    });
-
-    document.body.appendChild(helper);
-    document.body.appendChild(popup);
-  }
-
-  function updateSettingsConfidenceLabel(confidenceInput, confidenceValue) {
-    if (!confidenceInput || !confidenceValue) return;
-    confidenceValue.textContent = `${confidenceInput.value}%`;
-  }
-
-  function initLandingPage() {
-    const page = document.querySelector('[data-page="index"]');
-    if (!page) return;
-    const modal = document.getElementById('flowchart-modal');
-    const openBtn = document.getElementById('open-flowchart');
-    const closeBtn = document.getElementById('close-flowchart');
-
-    openBtn.addEventListener('click', function () {
-      modal.classList.add('show');
-    });
-    closeBtn.addEventListener('click', function () {
-      modal.classList.remove('show');
-    });
-    modal.addEventListener('click', function (event) {
-      if (event.target === modal) modal.classList.remove('show');
-    });
-  }
-
-  function initDashboardPage() {
-    const page = document.querySelector('[data-page="dashboard"]');
-    if (!page) return;
-
-    const settingsStorageKey = 'nyayabid_settings';
-    const defaultSettings = {
-      minBidderThreshold: 3,
-      confidenceThreshold: 70,
-      collusionAutoFlag: true,
-      crossDocAutoFlag: true,
-      gfrRuleVersion: 'GFR 2017 (Current)',
-      reportHeader: 'Government of India',
-      defaultIssuingAuthority: 'Delhi Public Works Department',
-      includeCagReference: true,
-      reportLanguage: 'English',
-      autoGenerateReport: false,
-      showUncertaintyAlerts: true,
-      showCagWarnings: true,
-      showCollusionAlerts: true,
-      alertSound: false,
-      demoMode: true,
-      auditTrailRetention: '30 days',
-      dataExportFormat: 'PDF'
-    };
-
-    function getSettingsElements() {
       return {
-        minBidderThreshold: document.getElementById('settings-min-bidder-threshold'),
-        confidenceThreshold: document.getElementById('settings-confidence-threshold'),
-        confidenceValue: document.getElementById('settings-confidence-value'),
-        collusionAutoFlag: document.getElementById('settings-collusion-auto-flag'),
-        crossDocAutoFlag: document.getElementById('settings-crossdoc-auto-flag'),
-        gfrRuleVersion: document.getElementById('settings-gfr-version'),
-        reportHeader: document.getElementById('settings-report-header'),
-        defaultIssuingAuthority: document.getElementById('settings-default-authority'),
-        includeCagReference: document.getElementById('settings-include-cag-reference'),
-        reportLanguage: document.getElementById('settings-report-language'),
-        autoGenerateReport: document.getElementById('settings-auto-generate-report'),
-        showUncertaintyAlerts: document.getElementById('settings-show-uncertainty-alerts'),
-        showCagWarnings: document.getElementById('settings-show-cag-warnings'),
-        showCollusionAlerts: document.getElementById('settings-show-collusion-alerts'),
-        alertSound: document.getElementById('settings-alert-sound'),
-        demoMode: document.getElementById('settings-demo-mode'),
-        auditTrailRetention: document.getElementById('settings-audit-retention'),
-        dataExportFormat: document.getElementById('settings-export-format')
+        ok: true,
+        criteriaOverride: {
+          minTurnover: turnoverValue,
+          minExperience: experienceValue,
+          gstMandatory: gstValue === 'yes',
+          msmeRelaxation: msmeValue === 'yes' ? 0.75 : 1
+        }
       };
     }
-
-    function applySettingsToForm(settings) {
-      const elements = getSettingsElements();
-      elements.minBidderThreshold.value = String(settings.minBidderThreshold);
-      elements.confidenceThreshold.value = String(settings.confidenceThreshold);
-      elements.collusionAutoFlag.checked = Boolean(settings.collusionAutoFlag);
-      elements.crossDocAutoFlag.checked = Boolean(settings.crossDocAutoFlag);
-      elements.gfrRuleVersion.value = settings.gfrRuleVersion;
-      elements.reportHeader.value = settings.reportHeader;
-      elements.defaultIssuingAuthority.value = settings.defaultIssuingAuthority;
-      elements.includeCagReference.checked = Boolean(settings.includeCagReference);
-      elements.reportLanguage.value = settings.reportLanguage;
-      elements.autoGenerateReport.checked = Boolean(settings.autoGenerateReport);
-      elements.showUncertaintyAlerts.checked = Boolean(settings.showUncertaintyAlerts);
-      elements.showCagWarnings.checked = Boolean(settings.showCagWarnings);
-      elements.showCollusionAlerts.checked = Boolean(settings.showCollusionAlerts);
-      elements.alertSound.checked = Boolean(settings.alertSound);
-      elements.demoMode.checked = Boolean(settings.demoMode);
-      elements.auditTrailRetention.value = settings.auditTrailRetention;
-      elements.dataExportFormat.value = settings.dataExportFormat;
-      updateSettingsConfidenceLabel(elements.confidenceThreshold, elements.confidenceValue);
-    }
-
-    function collectSettingsFromForm() {
-      const elements = getSettingsElements();
-      return {
-        minBidderThreshold: Number(elements.minBidderThreshold.value) || defaultSettings.minBidderThreshold,
-        confidenceThreshold: Number(elements.confidenceThreshold.value) || defaultSettings.confidenceThreshold,
-        collusionAutoFlag: elements.collusionAutoFlag.checked,
-        crossDocAutoFlag: elements.crossDocAutoFlag.checked,
-        gfrRuleVersion: elements.gfrRuleVersion.value,
-        reportHeader: elements.reportHeader.value.trim() || defaultSettings.reportHeader,
-        defaultIssuingAuthority: elements.defaultIssuingAuthority.value.trim() || defaultSettings.defaultIssuingAuthority,
-        includeCagReference: elements.includeCagReference.checked,
-        reportLanguage: elements.reportLanguage.value,
-        autoGenerateReport: elements.autoGenerateReport.checked,
-        showUncertaintyAlerts: elements.showUncertaintyAlerts.checked,
-        showCagWarnings: elements.showCagWarnings.checked,
-        showCollusionAlerts: elements.showCollusionAlerts.checked,
-        alertSound: elements.alertSound.checked,
-        demoMode: elements.demoMode.checked,
-        auditTrailRetention: elements.auditTrailRetention.value,
-        dataExportFormat: elements.dataExportFormat.value
-      };
-    }
-
-    function loadSettings() {
-      const raw = localStorage.getItem(settingsStorageKey);
-      if (!raw) return { ...defaultSettings };
-      try {
-        const parsed = JSON.parse(raw);
-        return { ...defaultSettings, ...parsed };
-      } catch (error) {
-        console.warn('Failed to parse nyayabid_settings from localStorage. Using defaults.', error);
-        return { ...defaultSettings };
-      }
-    }
-
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsLink = document.getElementById('settings-link');
-    const settingsCloseButton = document.getElementById('close-settings');
-    const settingsFooterClose = document.getElementById('settings-close-footer');
-    const settingsSave = document.getElementById('settings-save');
-    const settingsReset = document.getElementById('settings-reset');
-    const settingsClearData = document.getElementById('settings-clear-data');
-    const settingsConfidenceThreshold = document.getElementById('settings-confidence-threshold');
-
-    function openSettingsModal() {
-      settingsModal.classList.add('show');
-    }
-
-    function closeSettingsModal() {
-      settingsModal.classList.remove('show');
-    }
-
-    applySettingsToForm(loadSettings());
-
-    if (settingsConfidenceThreshold) {
-      settingsConfidenceThreshold.addEventListener('input', function () {
-        const elements = getSettingsElements();
-        updateSettingsConfidenceLabel(elements.confidenceThreshold, elements.confidenceValue);
-      });
-    }
-
-    if (settingsLink && settingsModal) {
-      settingsLink.addEventListener('click', function (event) {
-        event.preventDefault();
-        openSettingsModal();
-      });
-    }
-
-    if (settingsCloseButton) {
-      settingsCloseButton.addEventListener('click', closeSettingsModal);
-    }
-
-    if (settingsFooterClose) {
-      settingsFooterClose.addEventListener('click', closeSettingsModal);
-    }
-
-    if (settingsModal) {
-      settingsModal.addEventListener('click', function (event) {
-        if (event.target === settingsModal) closeSettingsModal();
-      });
-    }
-
-    if (settingsSave) {
-      settingsSave.addEventListener('click', function () {
         const settings = collectSettingsFromForm();
         localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
         showToast('Settings saved successfully.', 'success');
@@ -440,6 +188,258 @@
 
   function renderEvaluationRows(rows, overrides) {
     const body = document.getElementById('evaluation-results-body');
+
+  function normalizeWhitespace(text) {
+    return String(text || '').replaceAll(/\s+/g, ' ').trim();
+  }
+
+  function compareTextItems(a, b) {
+    if (Math.abs(b.y - a.y) > 2) return b.y - a.y;
+    return a.x - b.x;
+  }
+
+  function compareLineItems(a, b) {
+    return a.x - b.x;
+  }
+
+  function formatSourceLabel(source) {
+    if (!source) return 'Not found — please enter manually';
+    return `Source: Page ${source.page}, Line ${source.line}`;
+  }
+
+  function formatCroreValue(amount) {
+    if (!Number.isFinite(amount)) return '';
+    const rounded = Math.abs(amount - Math.round(amount)) < 0.01 ? String(Math.round(amount)) : amount.toFixed(2).replaceAll('.00', '');
+    return `₹${rounded} Crore`;
+  }
+
+  function convertTurnoverToCrore(amount, unit) {
+    if (!Number.isFinite(amount)) return null;
+    const normalizedUnit = String(unit || 'crore').toLowerCase();
+    if (normalizedUnit.startsWith('lakh') || normalizedUnit.startsWith('lac')) return amount / 100;
+    if (normalizedUnit === 'cr') return amount;
+    return amount;
+  }
+
+  function setSourceElement(element, source) {
+    if (!element) return;
+    element.textContent = formatSourceLabel(source);
+    element.classList.toggle('missing', !source);
+  }
+
+  function buildRawTextOutput(pages) {
+    const output = [];
+    for (const page of pages) {
+      output.push(`Page ${page.pageNumber}`);
+      for (const line of page.lines) {
+        output.push(`Line ${line.lineNumber}: ${line.text}`);
+      }
+      output.push('');
+    }
+    return output.join('\n').trim();
+  }
+
+  function groupItemsIntoLines(items) {
+    const pageItems = [];
+    for (const item of items) {
+      const text = item.str || '';
+      if (!normalizeWhitespace(text).length) continue;
+      pageItems.push({
+        text,
+        x: item.transform && Number.isFinite(item.transform[4]) ? item.transform[4] : 0,
+        y: item.transform && Number.isFinite(item.transform[5]) ? item.transform[5] : 0
+      });
+    }
+
+    pageItems.sort(compareTextItems);
+
+    const lines = [];
+    const yTolerance = 2.5;
+    for (const item of pageItems) {
+      const current = lines.at(-1);
+      if (!current || Math.abs(current.y - item.y) > yTolerance) {
+        lines.push({ y: item.y, items: [item] });
+        continue;
+      }
+      current.items.push(item);
+    }
+
+    return lines.map(function (line, index) {
+      line.items.sort(compareLineItems);
+      const text = line.items.map(function (item) { return item.text; }).join(' ').replaceAll(/\s+/g, ' ').trim();
+      return {
+        lineNumber: index + 1,
+        text
+      };
+    });
+  }
+
+  function extractTurnoverCriteria(pages) {
+    const keywordRegex = /turnover|annual|financial|minimum/i;
+    const numberRegex = /(\d+(?:\.\d+)?)(?:\s*(crore|cr|lakhs?|lakh|lacs?|lac))?/i;
+
+    for (const page of pages) {
+      for (let index = 0; index < page.lines.length; index += 1) {
+        const current = page.lines[index];
+        const next = page.lines[index + 1];
+        const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
+        if (!keywordRegex.test(windowText)) continue;
+
+        const keywordIndex = windowText.toLowerCase().indexOf('turnover');
+        const tail = keywordIndex >= 0 ? windowText.slice(keywordIndex) : windowText;
+        const match = numberRegex.exec(tail);
+        if (!match) continue;
+
+        const amount = Number.parseFloat(match[1].replaceAll(',', ''));
+        const croreValue = convertTurnoverToCrore(amount, match[2] || 'crore');
+        if (!Number.isFinite(croreValue)) continue;
+
+        return {
+          minTurnover: Math.round(croreValue * 100) / 100,
+          turnoverSource: { page: page.pageNumber, line: current.lineNumber }
+        };
+      }
+    }
+
+    return { minTurnover: null, turnoverSource: null };
+  }
+
+  function extractExperienceCriteria(pages) {
+    const keywordRegex = /experience|prior work|completed projects|similar works/i;
+    const numberRegex = /(\d+(?:\.\d+)?)(?:\s*(years?|yrs?))/i;
+
+    for (const page of pages) {
+      for (let index = 0; index < page.lines.length; index += 1) {
+        const current = page.lines[index];
+        const next = page.lines[index + 1];
+        const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
+        if (!keywordRegex.test(windowText)) continue;
+
+        const keywordIndex = windowText.toLowerCase().search(/experience|prior work|completed projects|similar works/);
+        const tail = keywordIndex >= 0 ? windowText.slice(keywordIndex) : windowText;
+        const match = numberRegex.exec(tail);
+        if (!match) continue;
+
+        const years = Number.parseFloat(match[1].replaceAll(',', ''));
+        if (!Number.isFinite(years)) continue;
+
+        return {
+          minExperience: Math.round(years * 100) / 100,
+          experienceSource: { page: page.pageNumber, line: current.lineNumber }
+        };
+      }
+    }
+
+    return { minExperience: null, experienceSource: null };
+  }
+
+  function extractGstCriteria(pages) {
+    const keywordRegex = /gst|gstin|gst registration|registered under gst/i;
+    const negativeRegex = /not\s+required|not\s+mandatory|no\s+gst|without\s+gst/i;
+
+    for (const page of pages) {
+      for (let index = 0; index < page.lines.length; index += 1) {
+        const current = page.lines[index];
+        const next = page.lines[index + 1];
+        const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
+        if (!keywordRegex.test(windowText)) continue;
+
+        return {
+          gstMandatory: !negativeRegex.test(windowText),
+          gstSource: { page: page.pageNumber, line: current.lineNumber }
+        };
+      }
+    }
+
+    return { gstMandatory: null, gstSource: null };
+  }
+
+  function extractMsmeCriteria(pages) {
+    const keywordRegex = /msme|udyam|micro|small enterprise/i;
+    const negativeRegex = /not\s+applicable|does\s+not\s+apply|no\s+msme/i;
+
+    for (const page of pages) {
+      for (let index = 0; index < page.lines.length; index += 1) {
+        const current = page.lines[index];
+        const next = page.lines[index + 1];
+        const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
+        if (!keywordRegex.test(windowText)) continue;
+
+        return {
+          msmeApplicable: !negativeRegex.test(windowText),
+          msmeSource: { page: page.pageNumber, line: current.lineNumber }
+        };
+      }
+    }
+
+    return { msmeApplicable: null, msmeSource: null };
+  }
+
+  function parseTenderCriteriaFromPages(pages) {
+    return {
+      ...extractTurnoverCriteria(pages),
+      ...extractExperienceCriteria(pages),
+      ...extractGstCriteria(pages),
+      ...extractMsmeCriteria(pages)
+    };
+  }
+
+  function applyCriteriaToInputs(criteria, refs, rawText) {
+    if (refs.turnoverInput) {
+      refs.turnoverInput.value = Number.isFinite(criteria.minTurnover) ? String(criteria.minTurnover) : '';
+      refs.turnoverInput.placeholder = Number.isFinite(criteria.minTurnover) ? formatCroreValue(criteria.minTurnover) : 'Not found — please enter manually';
+    }
+
+    if (refs.experienceInput) {
+      refs.experienceInput.value = Number.isFinite(criteria.minExperience) ? String(criteria.minExperience) : '';
+      refs.experienceInput.placeholder = Number.isFinite(criteria.minExperience) ? `${criteria.minExperience} Years` : 'Not found — please enter manually';
+    }
+
+    if (refs.gstInput) {
+      if (criteria.gstMandatory === true) refs.gstInput.value = 'yes';
+      else if (criteria.gstMandatory === false) refs.gstInput.value = 'no';
+      else refs.gstInput.value = '';
+    }
+
+    if (refs.msmeInput) {
+      if (criteria.msmeApplicable === true) refs.msmeInput.value = 'yes';
+      else if (criteria.msmeApplicable === false) refs.msmeInput.value = 'no';
+      else refs.msmeInput.value = '';
+    }
+
+    setSourceElement(refs.turnoverSource, criteria.turnoverSource);
+    setSourceElement(refs.experienceSource, criteria.experienceSource);
+    setSourceElement(refs.gstSource, criteria.gstSource);
+    setSourceElement(refs.msmeSource, criteria.msmeSource);
+
+    if (refs.rawTextOutput) {
+      refs.rawTextOutput.textContent = rawText || 'Upload a tender PDF to see extracted text here.';
+    }
+  }
+
+  async function extractTextFromPdfFile(file) {
+    if (typeof pdfjsLib === 'undefined') {
+      throw new TypeError('PDF library not loaded. Check the CDN connection and reload the page.');
+    }
+
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const pages = [];
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push({
+        pageNumber,
+        lines: groupItemsIntoLines(content.items)
+      });
+    }
+
+    return {
+      pages,
+      rawText: buildRawTextOutput(pages)
+    };
+  }
     if (!body) return;
 
     body.innerHTML = rows.map(function (entry) {
@@ -565,6 +565,7 @@
     requestAnimationFrame(frame);
   }
 
+  /* eslint-disable no-inner-declarations, complexity, max-depth, max-nested-callbacks, no-var, prefer-const, no-nested-ternary, unicorn/prefer-string-replace-all, sonarjs/cognitive-complexity, unicorn/prefer-optional-chain */
   function initEvaluatePage() {
     const page = document.querySelector('[data-page="evaluate"]');
     if (!page) return;
@@ -573,10 +574,11 @@
     const utils = root.NyayaBid.utils;
     const overrides = [];
     let rows = [];
-
-    // Holds criteria parsed from an uploaded PDF.
-    // When set, runBatchEvaluation uses these instead of the defaults.
-    let extractedCriteria = null;
+    let extractedDocument = {
+      fileName: '',
+      rawText: '',
+      pages: []
+    };
 
     renderVendorCards();
 
@@ -587,136 +589,370 @@
     const tenderCard  = document.getElementById('tender-info-card');
     const runButton   = document.getElementById('run-evaluation');
     const resultBlock = document.getElementById('evaluation-results-block');
+    const turnoverInput = document.getElementById('criteria-min-turnover');
+    const experienceInput = document.getElementById('criteria-min-experience');
+    const gstInput = document.getElementById('criteria-gst-mandatory');
+    const msmeInput = document.getElementById('criteria-msme-applicable');
+    const turnoverSource = document.getElementById('criteria-min-turnover-source');
+    const experienceSource = document.getElementById('criteria-min-experience-source');
+    const gstSource = document.getElementById('criteria-gst-mandatory-source');
+    const msmeSource = document.getElementById('criteria-msme-applicable-source');
+    const rawTextOutput = document.getElementById('raw-text-output');
 
-    // ── Tender PDF extraction ──────────────────────────────────────────────
-    // Triggered when the user picks a real PDF file.
-    // Uses pdf.js to read every page, concatenates the text, then runs
-    // parseTenderCriteria() to pull out the four key fields.
+    function normalizeWhitespace(text) {
+      return String(text || '').replace(/\s+/g, ' ').trim();
+    }
 
-    /**
-     * Extract all text from a PDF file using pdf.js.
-     * Returns a Promise<string> with the full concatenated text.
-     */
-    function extractTextFromPDF(file) {
-      return new Promise(function (resolve, reject) {
-        if (typeof pdfjsLib === 'undefined') {
-          reject(new Error('PDF library not loaded. Check your internet connection and refresh.'));
+    function formatSource(source) {
+      if (!source) return 'Not found — please enter manually';
+      return `Source: Page ${source.page}, Line ${source.line}`;
+    }
+
+    function formatCroreValue(amount) {
+      if (!Number.isFinite(amount)) return '';
+      const rounded = Math.abs(amount - Math.round(amount)) < 0.01 ? String(Math.round(amount)) : amount.toFixed(2).replace(/\.00$/, '');
+      return `₹${rounded} Crore`;
+    }
+
+    function convertTurnoverToCrore(amount, unit) {
+      if (!Number.isFinite(amount)) return null;
+      const normalizedUnit = String(unit || 'crore').toLowerCase();
+      if (normalizedUnit.startsWith('lakh') || normalizedUnit.startsWith('lac')) return amount / 100;
+      if (normalizedUnit === 'cr') return amount;
+      return amount;
+    }
+
+    function setSourceElement(element, source) {
+      if (!element) return;
+      element.textContent = formatSource(source);
+      element.classList.toggle('missing', !source);
+    }
+
+    function buildRawTextOutput(pages) {
+      return pages.map(function (page) {
+        const header = `Page ${page.pageNumber}`;
+        const lines = page.lines.map(function (line) {
+          return `Line ${line.lineNumber}: ${line.text}`;
+        });
+        return [header].concat(lines).join('\n');
+      }).join('\n\n');
+    }
+
+    function groupItemsIntoLines(items) {
+      const pageItems = items
+        .map(function (item) {
+          return {
+            text: item.str || '',
+            x: item.transform && Number.isFinite(item.transform[4]) ? item.transform[4] : 0,
+            y: item.transform && Number.isFinite(item.transform[5]) ? item.transform[5] : 0
+          };
+        })
+        .filter(function (item) {
+          return normalizeWhitespace(item.text).length > 0;
+        })
+        .sort(function (a, b) {
+          if (Math.abs(b.y - a.y) > 2) return b.y - a.y;
+          return a.x - b.x;
+        });
+
+      const lines = [];
+      const yTolerance = 2.5;
+
+      pageItems.forEach(function (item) {
+        const current = lines[lines.length - 1];
+        if (!current || Math.abs(current.y - item.y) > yTolerance) {
+          lines.push({ y: item.y, items: [item] });
           return;
         }
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-          try {
-            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
-            let text = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-              const pg = await pdf.getPage(i);
-              const content = await pg.getTextContent();
-              text += content.items.map(function (item) { return item.str; }).join(' ') + '\n';
-            }
-            resolve(text);
-          } catch (err) {
-            reject(err);
-          }
+        current.items.push(item);
+      });
+
+      return lines.map(function (line, index) {
+        return {
+          lineNumber: index + 1,
+          text: line.items
+            .sort(function (a, b) { return a.x - b.x; })
+            .map(function (item) { return item.text; })
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim()
         };
-        reader.onerror = function () { reject(new Error('Could not read file.')); };
-        reader.readAsArrayBuffer(file);
       });
     }
 
-    /**
-     * Parse tender eligibility criteria from raw PDF text.
-     *
-     * Searches for:
-     *   turnover  — "turnover" or "annual turnover" followed by a number
-     *   experience — "experience" or "years of experience" followed by a number
-     *   gst       — presence of "GST" treated as mandatory
-     *   msme      — presence of "MSME" treated as mentioned
-     *
-     * Returns an object with the four fields (nulls when not found).
-     */
-    function parseTenderCriteria(text) {
-      const lower = text.toLowerCase();
-      const result = { turnover: null, experience: null, gst: false, msme: false };
-
-      // Turnover: match "turnover" or "annual turnover" then grab the first number
-      // Handles formats like: "turnover: ₹10 crore", "annual turnover of 5 crores"
-      const turnoverMatch = lower.match(
-        /(?:annual\s+)?turnover[^\d]{0,30}?(\d+(?:\.\d+)?)/
-      );
-      if (turnoverMatch) result.turnover = parseFloat(turnoverMatch[1]);
-
-      // Experience: match "experience" then grab the first number nearby
-      // Handles: "experience: 7 years", "5 years of experience", "years of experience: 3"
-      const expMatch = lower.match(
-        /(?:(\d+)\s+years?\s+of\s+experience|experience[^\d]{0,30}?(\d+))/
-      );
-      if (expMatch) result.experience = parseInt(expMatch[1] || expMatch[2], 10);
-
-      // GST: any mention of "gst" in the document signals it is required
-      result.gst = /\bgst\b/.test(lower);
-
-      // MSME: any mention signals the relaxation clause is present
-      result.msme = /\bmsme\b/.test(lower);
-
-      return result;
+    function findFirstWindow(pages, matcher) {
+      for (const page of pages) {
+        for (let index = 0; index < page.lines.length; index += 1) {
+          const current = page.lines[index];
+          const next = page.lines[index + 1];
+          const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
+          if (matcher(windowText)) {
+            return {
+              page: page.pageNumber,
+              line: current.lineNumber,
+              text: windowText
+            };
+          }
+        }
+      }
+      return null;
     }
 
-    /**
-     * Render the extracted criteria card below the upload zone.
-     * Shows each field with a clear label and the parsed value.
-     */
-    function renderCriteriaCard(criteria, filename) {
-      const card = document.getElementById('tender-criteria-card');
-      if (!card) return;
+    function parseTurnover(pages) {
+      const patterns = [
+        /(?:minimum|min(?:imum)?|annual|financial)?[^\n]{0,60}?turnover[^\d]{0,40}?(?:₹|rs\.?|inr)?\s*([\d,.]+)\s*(crore|cr|lakhs?|lakh|lacs?|lac)?/i,
+        /(?:₹|rs\.?|inr)\s*([\d,.]+)\s*(crore|cr|lakhs?|lakh|lacs?|lac)?[^\n]{0,50}?turnover/i,
+        /turnover[^\n]{0,60}?([\d,.]+)\s*(crore|cr|lakhs?|lakh|lacs?|lac)?/i
+      ];
 
-      document.getElementById('tcrit-filename').textContent = filename;
-
-      const turnoverEl   = document.getElementById('tcrit-turnover');
-      const experienceEl = document.getElementById('tcrit-experience');
-      const gstEl        = document.getElementById('tcrit-gst');
-      const msmeEl       = document.getElementById('tcrit-msme');
-
-      turnoverEl.textContent   = criteria.turnover   !== null ? `₹${criteria.turnover} Crore` : 'Not found';
-      experienceEl.textContent = criteria.experience !== null ? `${criteria.experience} Years`  : 'Not found';
-      gstEl.textContent        = criteria.gst  ? 'Yes — Mandatory' : 'Not mentioned';
-      msmeEl.textContent       = criteria.msme ? 'Yes — Mentioned' : 'Not mentioned';
-
-      // Colour-code each value: green when found, amber when not
-      [turnoverEl, experienceEl].forEach(function (el) {
-        el.className = 'tcrit-value ' + (el.textContent === 'Not found' ? 'tcrit-missing' : 'tcrit-found');
+      const match = findFirstWindow(pages, function (text) {
+        return /turnover|annual|financial|minimum/i.test(text) && patterns.some(function (pattern) {
+          pattern.lastIndex = 0;
+          return pattern.test(text);
+        });
       });
-      gstEl.className  = 'tcrit-value ' + (criteria.gst  ? 'tcrit-found' : 'tcrit-missing');
-      msmeEl.className = 'tcrit-value ' + (criteria.msme ? 'tcrit-found' : 'tcrit-missing');
 
-      card.classList.remove('hidden');
+      if (!match) return { minTurnover: null, turnoverSource: null };
+
+      let amount = null;
+      let unit = 'crore';
+      for (const pattern of patterns) {
+        pattern.lastIndex = 0;
+        const found = pattern.exec(match.text);
+        if (found) {
+          amount = parseFloat(found[1].replace(/,/g, ''));
+          unit = found[2] || 'crore';
+          break;
+        }
+      }
+
+      const croreValue = convertTurnoverToCrore(amount, unit);
+      if (!Number.isFinite(croreValue)) return { minTurnover: null, turnoverSource: null };
+
+      return {
+        minTurnover: Math.round(croreValue * 100) / 100,
+        turnoverSource: { page: match.page, line: match.line }
+      };
+    }
+
+    function parseExperience(pages) {
+      const patterns = [
+        /(?:minimum|min(?:imum)?)?[^\n]{0,60}?(?:experience|prior work|completed projects|similar works)[^\d]{0,40}?([\d,.]+)\s*(years?|yrs?)/i,
+        /([\d,.]+)\s*(years?|yrs?)[^\n]{0,50}?(?:experience|prior work|completed projects|similar works)/i,
+        /(?:experience|prior work|completed projects|similar works)[^\d]{0,40}?([\d,.]+)\s*(years?|yrs?)/i
+      ];
+
+      const match = findFirstWindow(pages, function (text) {
+        return /experience|prior work|completed projects|similar works/i.test(text) && patterns.some(function (pattern) {
+          pattern.lastIndex = 0;
+          return pattern.test(text);
+        });
+      });
+
+      if (!match) return { minExperience: null, experienceSource: null };
+
+      let years = null;
+      for (const pattern of patterns) {
+        pattern.lastIndex = 0;
+        const found = pattern.exec(match.text);
+        if (found) {
+          years = parseFloat(found[1].replace(/,/g, ''));
+          break;
+        }
+      }
+
+      if (!Number.isFinite(years)) return { minExperience: null, experienceSource: null };
+
+      return {
+        minExperience: Math.round(years * 100) / 100,
+        experienceSource: { page: match.page, line: match.line }
+      };
+    }
+
+    function parseGstRequirement(pages) {
+      const match = findFirstWindow(pages, function (text) {
+        return /gst|gstin|gst registration|registered under gst/i.test(text);
+      });
+
+      if (!match) return { gstMandatory: null, gstSource: null };
+
+      const isNegative = /not\s+required|not\s+mandatory|no\s+gst|without\s+gst/i.test(match.text);
+      return {
+        gstMandatory: !isNegative,
+        gstSource: { page: match.page, line: match.line }
+      };
+    }
+
+    function parseMsmeApplicability(pages) {
+      const match = findFirstWindow(pages, function (text) {
+        return /msme|udyam|micro|small enterprise/i.test(text);
+      });
+
+      if (!match) return { msmeApplicable: null, msmeSource: null };
+
+      const isNegative = /not\s+applicable|does\s+not\s+apply|no\s+msme/i.test(match.text);
+      return {
+        msmeApplicable: !isNegative,
+        msmeSource: { page: match.page, line: match.line }
+      };
+    }
+
+    function parseTenderCriteria(pages) {
+      return {
+        ...parseTurnover(pages),
+        ...parseExperience(pages),
+        ...parseGstRequirement(pages),
+        ...parseMsmeApplicability(pages)
+      };
+    }
+
+    function buildCriteriaOverrideFromFields() {
+      const missing = [];
+
+      const turnoverValue = turnoverInput ? Number(turnoverInput.value) : Number.NaN;
+      const experienceValue = experienceInput ? Number(experienceInput.value) : Number.NaN;
+      const gstValue = gstInput ? gstInput.value : '';
+      const msmeValue = msmeInput ? msmeInput.value : '';
+
+      if (!Number.isFinite(turnoverValue)) missing.push('Minimum annual turnover');
+      if (!Number.isFinite(experienceValue)) missing.push('Minimum experience');
+      if (!gstValue) missing.push('GST requirement');
+      if (!msmeValue) missing.push('MSME applicability');
+
+      if (missing.length) {
+        return { ok: false, missing: missing.join(', ') };
+      }
+
+      return {
+        ok: true,
+        criteriaOverride: {
+          minTurnover: turnoverValue,
+          minExperience: experienceValue,
+          gstMandatory: gstValue === 'yes',
+          msmeRelaxation: msmeValue === 'yes' ? 0.75 : 1
+        }
+      };
+    }
+
+    function setCriteriaState(parsedCriteria, rawText) {
+      if (!parsedCriteria) return;
+
+      if (refs.turnoverInput) {
+        refs.turnoverInput.value = Number.isFinite(parsedCriteria.minTurnover) ? String(parsedCriteria.minTurnover) : '';
+        refs.turnoverInput.placeholder = Number.isFinite(parsedCriteria.minTurnover) ? `₹${parsedCriteria.minTurnover} Crore` : 'Not found — please enter manually';
+      }
+
+      if (refs.experienceInput) {
+        refs.experienceInput.value = Number.isFinite(parsedCriteria.minExperience) ? String(parsedCriteria.minExperience) : '';
+        refs.experienceInput.placeholder = Number.isFinite(parsedCriteria.minExperience) ? `${parsedCriteria.minExperience} Years` : 'Not found — please enter manually';
+      }
+
+      if (refs.gstInput) {
+        if (parsedCriteria.gstMandatory === true) refs.gstInput.value = 'yes';
+        else if (parsedCriteria.gstMandatory === false) refs.gstInput.value = 'no';
+        else refs.gstInput.value = '';
+      }
+
+      if (refs.msmeInput) {
+        if (parsedCriteria.msmeApplicable === true) refs.msmeInput.value = 'yes';
+        else if (parsedCriteria.msmeApplicable === false) refs.msmeInput.value = 'no';
+        else refs.msmeInput.value = '';
+      }
+
+      if (refs.turnoverSource) {
+        refs.turnoverSource.textContent = parsedCriteria.turnoverSource ? `Source: Page ${parsedCriteria.turnoverSource.page}, Line ${parsedCriteria.turnoverSource.line}` : 'Not found — please enter manually';
+        refs.turnoverSource.classList.toggle('missing', !parsedCriteria.turnoverSource);
+      }
+
+      if (refs.experienceSource) {
+        refs.experienceSource.textContent = parsedCriteria.experienceSource ? `Source: Page ${parsedCriteria.experienceSource.page}, Line ${parsedCriteria.experienceSource.line}` : 'Not found — please enter manually';
+        refs.experienceSource.classList.toggle('missing', !parsedCriteria.experienceSource);
+      }
+
+      if (refs.gstSource) {
+        refs.gstSource.textContent = parsedCriteria.gstSource ? `Source: Page ${parsedCriteria.gstSource.page}, Line ${parsedCriteria.gstSource.line}` : 'Not found — please enter manually';
+        refs.gstSource.classList.toggle('missing', !parsedCriteria.gstSource);
+      }
+
+      if (refs.msmeSource) {
+        refs.msmeSource.textContent = parsedCriteria.msmeSource ? `Source: Page ${parsedCriteria.msmeSource.page}, Line ${parsedCriteria.msmeSource.line}` : 'Not found — please enter manually';
+        refs.msmeSource.classList.toggle('missing', !parsedCriteria.msmeSource);
+      }
+
+      if (refs.rawTextOutput) {
+        refs.rawTextOutput.textContent = rawText || 'Upload a tender PDF to see extracted text here.';
+      }
+    }
+
+    async function extractTextFromPdfFile(file) {
+      if (typeof pdfjsLib === 'undefined') {
+        throw new TypeError('PDF library not loaded. Check the CDN connection and reload the page.');
+      }
+
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const pages = [];
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+        pages.push({
+          pageNumber,
+          lines: groupItemsIntoLines(content.items)
+        });
+      }
+
+      return {
+        pages,
+        rawText: buildRawTextOutput(pages)
+      };
+    }
+
+    function persistEvaluation(criteriaOverride) {
+      localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({
+        rows,
+        overrides,
+        criteria: criteriaOverride,
+        document: extractedDocument
+      }));
     }
 
     // ── File input wiring ──────────────────────────────────────────────────
     choosePdf.addEventListener('click', function () { fileInput.click(); });
 
     fileInput.addEventListener('change', async function () {
-      const file = fileInput.files && fileInput.files[0];
+      const file = fileInput.files?.[0];
       if (!file) return;
 
       fileNameEl.textContent = 'Reading… ' + file.name;
-      // Hide any previously shown criteria card or demo tender card
       document.getElementById('tender-criteria-card').classList.add('hidden');
       tenderCard.classList.add('hidden');
-      extractedCriteria = null;
+      extractedDocument = {
+        fileName: file.name,
+        rawText: '',
+        pages: []
+      };
+
+      if (refs.rawTextOutput) {
+        refs.rawTextOutput.textContent = 'Reading PDF pages...';
+      }
 
       try {
-        const text = await extractTextFromPDF(file);
-        const criteria = parseTenderCriteria(text);
+        const extracted = await extractTextFromPdfFile(file);
+        extractedDocument.rawText = extracted.rawText;
+        extractedDocument.pages = extracted.pages;
 
-        // Store so runBatchEvaluation can use them
-        extractedCriteria = criteria;
-
+        const criteria = parseTenderCriteria(extracted.pages);
         fileNameEl.textContent = 'Loaded: ' + file.name;
-        renderCriteriaCard(criteria, file.name);
+        setCriteriaState(criteria, extracted.rawText);
+        persistEvaluation(buildCriteriaOverrideFromFields().criteriaOverride || null);
         showToast('Criteria extracted from document.', 'success');
       } catch (err) {
         fileNameEl.textContent = '';
         showToast('Could not read PDF: ' + err.message, 'warn');
+        if (refs.rawTextOutput) {
+          refs.rawTextOutput.textContent = 'PDF extraction failed.';
+        }
       }
     });
 
@@ -724,7 +960,21 @@
     demoButton.addEventListener('click', function () {
       // Hide extracted criteria card if visible
       document.getElementById('tender-criteria-card').classList.add('hidden');
-      extractedCriteria = null;
+      extractedDocument = {
+        fileName: 'Demo Tender',
+        rawText: data.tender.criteriaText.join('\n'),
+        pages: []
+      };
+
+      if (refs.turnoverInput) refs.turnoverInput.value = '10';
+      if (refs.experienceInput) refs.experienceInput.value = '7';
+      if (refs.gstInput) refs.gstInput.value = 'yes';
+      if (refs.msmeInput) refs.msmeInput.value = 'yes';
+      if (refs.turnoverSource) refs.turnoverSource.textContent = 'Source: Demo tender';
+      if (refs.experienceSource) refs.experienceSource.textContent = 'Source: Demo tender';
+      if (refs.gstSource) refs.gstSource.textContent = 'Source: Demo tender';
+      if (refs.msmeSource) refs.msmeSource.textContent = 'Source: Demo tender';
+      if (refs.rawTextOutput) refs.rawTextOutput.textContent = data.tender.criteriaText.join('\n');
 
       tenderCard.innerHTML = `
         <div class="gov-doc-card">
@@ -760,17 +1010,14 @@ Contact: ${data.tender.contact}
     // If the user uploaded a real PDF and criteria were extracted, pass them
     // to runBatchEvaluation so the engine uses the document's own thresholds.
     runButton.addEventListener('click', function () {
-      runEvaluationTimer(function () {
-        // Build override criteria only for fields that were actually found
-        var criteriaOverride = null;
-        if (extractedCriteria) {
-          criteriaOverride = {};
-          if (extractedCriteria.turnover   !== null) criteriaOverride.minTurnover   = extractedCriteria.turnover;
-          if (extractedCriteria.experience !== null) criteriaOverride.minExperience = extractedCriteria.experience;
-          criteriaOverride.gstMandatory = extractedCriteria.gst;
-        }
+      const builtCriteria = buildCriteriaOverrideFromFields();
+      if (!builtCriteria.ok) {
+        showToast(`Please enter missing criteria manually before running evaluation: ${builtCriteria.missing}.`, 'warn');
+        return;
+      }
 
-        rows = root.NyayaBid.evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
+      runEvaluationTimer(function () {
+        rows = root.NyayaBid.evaluation.runBatchEvaluation(data.vendors, builtCriteria.criteriaOverride);
         renderEvaluationRows(rows, overrides);
         renderFlags(overrides);
         populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
@@ -791,7 +1038,7 @@ Contact: ${data.tender.contact}
         }
 
         document.getElementById('evaluation-time-banner').classList.remove('hidden');
-        localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({ rows, overrides }));
+        persistEvaluation(builtCriteria.criteriaOverride);
       });
     });
 
@@ -838,11 +1085,12 @@ Contact: ${data.tender.contact}
 
       renderEvaluationRows(rows, overrides);
       renderFlags(overrides);
-      localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({ rows, overrides }));
+      persistEvaluation(buildCriteriaOverrideFromFields().criteriaOverride || null);
       document.getElementById('override-success').classList.remove('hidden');
       showToast('Override logged. Justification recorded in audit trail.', 'success');
     });
   }
+  /* eslint-enable no-inner-declarations, complexity, max-depth, max-nested-callbacks, no-var, prefer-const, no-nested-ternary, unicorn/prefer-string-replace-all, sonarjs/cognitive-complexity, unicorn/prefer-optional-chain */
 
   function initReportPage() {
     if (root.NyayaBid.report && document.body.dataset.page === 'report') {
