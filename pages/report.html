@@ -35,16 +35,27 @@
       </section>
 
       <div class="report-toolbar">
-        <button id="download-report" class="btn btn-primary" type="button">Download PDF</button>
+          <div class="report-toolbar-group">
+            <button id="use-stored-report" class="btn btn-secondary" type="button">Use Stored Evaluation</button>
+            <button id="use-demo-report" class="btn btn-secondary" type="button">Use Demo Tender</button>
+          </div>
+          <button id="download-report" class="btn btn-primary" type="button">Download PDF</button>
       </div>
 
       <article class="report-sheet">
         <header class="report-head">
           <h1>NyayaBid AI — Evaluation Audit Report</h1>
+            <div class="report-kicker">
+              <span id="report-source-badge" class="report-badge">Loading report...</span>
+              <span id="report-mode-badge" class="report-badge">Source pending</span>
+            </div>
           <div class="report-top-strip">
             <div><strong>Report ID:</strong> <span id="report-id"></span></div>
             <div><strong>Verification:</strong> <span id="report-hash"></span></div>
             <div><strong>Status:</strong> <span id="report-status" class="badge badge-flag">DRAFT</span></div>
+              <div><strong>Source Document:</strong> <span id="report-document"></span></div>
+              <div><strong>Generated From:</strong> <span id="report-generation-source"></span></div>
+              <div><strong>Generated At:</strong> <span id="report-generated-at"></span></div>
           </div>
           <div class="report-meta report-meta-top">
             <div><strong>Tender ID:</strong> <span id="meta-tender-id"></span></div>
@@ -67,13 +78,18 @@
         </section>
 
         <section class="report-section">
+          <h2>Section 2 — Tender Source &amp; Metadata</h2>
+          <div class="table-wrap"><table class="section-table"><thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead><tbody id="source-body"></tbody></table></div>
+        </section>
+
+        <section class="report-section">
           <h2>Section 2 — Criteria Applied</h2>
           <div class="table-wrap"><table class="section-table"><thead><tr><th>Criterion</th><th>Value Set</th><th>GFR Rule Reference</th><th>Justification</th></tr></thead><tbody id="criteria-body"></tbody></table></div>
         </section>
 
         <section class="report-section">
           <h2>Section 3 — Vendor Evaluation Detail</h2>
-          <div class="table-wrap"><table class="section-table"><thead><tr><th>Name</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>Confidence</th><th>Final Status</th><th>Reason</th></tr></thead><tbody id="vendor-detail-body"></tbody></table></div>
+          <div class="table-wrap"><table class="section-table"><thead><tr><th>Name</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>Confidence</th><th>Final Status</th><th>Override</th><th>Reason</th></tr></thead><tbody id="vendor-detail-body"></tbody></table></div>
         </section>
 
         <section class="report-section">
@@ -82,12 +98,17 @@
         </section>
 
         <section class="report-section">
-          <h2>Section 5 — Collusion Analysis</h2>
+          <h2>Section 5 — Override Log</h2>
+          <div class="table-wrap"><table class="section-table"><thead><tr><th>Vendor</th><th>New Status</th><th>Justification</th><th>Timestamp</th></tr></thead><tbody id="override-log-body"></tbody></table></div>
+        </section>
+
+        <section class="report-section">
+          <h2>Section 6 — Collusion Analysis</h2>
           <p id="collusion-text"></p>
         </section>
 
         <section class="report-section">
-          <h2>Section 6 — Evaluating Officer Sign-off</h2>
+          <h2>Section 7 — Evaluating Officer Sign-off</h2>
           <div class="signature-box">
             <div class="report-form">
               <div><label for="officer-name">Officer name</label><input id="officer-name" type="text"></div>
@@ -100,7 +121,7 @@
         </section>
 
         <section class="report-section">
-          <h2>Section 7 — Recommendations</h2>
+          <h2>Section 8 — Recommendations</h2>
           <ol id="recommendations-list" class="recommendations"></ol>
         </section>
 
@@ -121,8 +142,433 @@
   <script src="../scripts/data.js"></script>
   <script src="../scripts/evaluation.js"></script>
   <script src="../scripts/collusion.js"></script>
-  <script src="../scripts/simulation.js"></script>
-  <script src="../scripts/report.js"></script>
-  <script src="../scripts/app.js"></script>
+  <script>
+    (function () {
+      const root = globalThis;
+      const data = root.NyayaBid.data;
+      const evaluation = root.NyayaBid.evaluation;
+      const collusion = root.NyayaBid.collusion;
+
+      const DEMO_TENDER = {
+        id: 'TND-DEMO-001',
+        title: 'Road Construction Works — Delhi PWD Demo Tender',
+        authority: 'Delhi Public Works Department',
+        estimatedCost: 475000000,
+        emdRequired: 94000,
+        bidSubmissionDeadline: '2024-03-15',
+        openingDate: '2024-03-16',
+        reference: 'GFR 2017, Rule 160 & 175',
+        contact: 'procurement@delpwd.gov.in'
+      };
+
+      const refs = {
+        reportId: document.getElementById('report-id'),
+        reportHash: document.getElementById('report-hash'),
+        reportStatus: document.getElementById('report-status'),
+        reportDocument: document.getElementById('report-document'),
+        reportGenerationSource: document.getElementById('report-generation-source'),
+        reportGeneratedAt: document.getElementById('report-generated-at'),
+        reportDate: document.getElementById('report-date'),
+        reportSourceBadge: document.getElementById('report-source-badge'),
+        reportModeBadge: document.getElementById('report-mode-badge'),
+        metaTenderId: document.getElementById('meta-tender-id'),
+        metaTitle: document.getElementById('meta-title'),
+        metaAuthority: document.getElementById('meta-authority'),
+        summaryBody: document.getElementById('summary-body'),
+        sourceBody: document.getElementById('source-body'),
+        criteriaBody: document.getElementById('criteria-body'),
+        vendorBody: document.getElementById('vendor-detail-body'),
+        flagsBody: document.getElementById('flags-body'),
+        overrideBody: document.getElementById('override-log-body'),
+        collusionText: document.getElementById('collusion-text'),
+        recommendationsList: document.getElementById('recommendations-list'),
+        officerName: document.getElementById('officer-name'),
+        officerDesignation: document.getElementById('officer-designation'),
+        officerRemarks: document.getElementById('officer-remarks'),
+        signDate: document.getElementById('sign-date'),
+        finalizeBtn: document.getElementById('finalize-btn'),
+        signatureBlock: document.getElementById('digital-signature-block'),
+        sigOfficer: document.getElementById('sig-officer'),
+        sigDesignation: document.getElementById('sig-designation'),
+        sigDatetime: document.getElementById('sig-datetime'),
+        downloadButton: document.getElementById('download-report'),
+        useStoredButton: document.getElementById('use-stored-report'),
+        useDemoButton: document.getElementById('use-demo-report'),
+        toastRoot: document.getElementById('global-toast-root')
+      };
+
+      function showToast(message, type) {
+        if (!refs.toastRoot) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type || ''}`;
+        toast.textContent = message;
+        refs.toastRoot.appendChild(toast);
+        setTimeout(function () {
+          toast.style.opacity = '0';
+          setTimeout(function () { toast.remove(); }, 240);
+        }, 2800);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function formatCriteriaValue(criteria) {
+        const turnover = Number.isFinite(criteria.minTurnover) ? `₹${criteria.minTurnover} Crore` : 'Not set';
+        const experience = Number.isFinite(criteria.minExperience) ? `${criteria.minExperience} Years` : 'Not set';
+        let gst = 'Not set';
+        if (criteria.gstMandatory === true) gst = 'Mandatory';
+        else if (criteria.gstMandatory === false) gst = 'Optional';
+
+        let msme = 'Not set';
+        if (criteria.msmeRelaxation === 0.75) msme = '−25% turnover relaxation';
+        else if (criteria.msmeRelaxation === 1) msme = 'No relaxation';
+        return { turnover, experience, gst, msme };
+      }
+
+      function getStoredEvaluation() {
+        const raw = localStorage.getItem('nyayabid-evaluation-data');
+        if (!raw) return null;
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      }
+
+      function getStoredSignoff() {
+        const raw = localStorage.getItem('nyayabid-report-signoff');
+        if (!raw) return null;
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      }
+
+      function resolveOverrides(overrides, rows) {
+        const overrideMap = new Map((overrides || []).map(function (entry) {
+          return [entry.vendorId, entry];
+        }));
+        return rows.map(function (entry) {
+          const override = overrideMap.get(entry.vendor.id) || null;
+          const finalStatus = override ? override.newStatus : entry.result.status;
+          return {
+            ...entry,
+            override,
+            finalStatus
+          };
+        });
+      }
+
+      function buildDemoState() {
+        const rows = evaluation.runBatchEvaluation(data.vendors, data.criteria);
+        return {
+          mode: 'demo',
+          sourceLabel: 'Demo fallback',
+          sourceDetail: 'No stored evaluation was found. Loaded the built-in Delhi PWD demo tender.',
+          tender: DEMO_TENDER,
+          documentName: DEMO_TENDER.title,
+          criteria: data.criteria,
+          rows,
+          overrides: [],
+          document: null,
+          finalRows: resolveOverrides([], rows)
+        };
+      }
+
+      function buildStoredState() {
+        const payload = getStoredEvaluation();
+        if (!payload) return null;
+        const criteria = payload.criteria || data.criteria;
+        const rows = Array.isArray(payload.rows) && payload.rows.length
+          ? payload.rows
+          : evaluation.runBatchEvaluation(data.vendors, criteria);
+        const overrides = Array.isArray(payload.overrides) ? payload.overrides : [];
+        return {
+          mode: 'stored',
+          sourceLabel: 'Stored evaluation',
+          sourceDetail: payload.document?.fileName
+            ? `Loaded from ${payload.document.fileName}`
+            : 'Loaded from nyayabid-evaluation-data in localStorage.',
+          tender: { ...data.tender },
+          documentName: payload.document?.fileName || 'Stored evaluation payload',
+          criteria,
+          rows,
+          overrides,
+          document: payload.document || null,
+          finalRows: resolveOverrides(overrides, rows)
+        };
+      }
+
+      function buildSourceRows(state) {
+        const criteria = formatCriteriaValue(state.criteria);
+        return [
+          ['Evaluation Mode', state.mode === 'stored' ? 'Stored payload' : 'Demo fallback', state.sourceDetail],
+          ['Source Document', state.documentName, state.document?.pages?.length ? `${state.document.pages.length} extracted pages` : 'Document provenance stored with the report'],
+          ['Tender Title', state.tender.title, 'Used for executive summary and header metadata'],
+          ['Tender Authority', state.tender.authority, 'Reference authority for the audit record'],
+          ['Criteria Snapshot', `${criteria.turnover} | ${criteria.experience} | ${criteria.gst} | ${criteria.msme}`, 'Values currently applied to the scoring engine']
+        ];
+      }
+
+      function buildSummaryRows(state, flags) {
+        const baseEligible = state.rows.filter(function (entry) { return entry.result.status === 'Eligible'; }).length;
+        const finalEligible = state.finalRows.filter(function (entry) { return entry.finalStatus === 'Eligible'; }).length;
+        const rejected = state.finalRows.length - finalEligible;
+        const overrides = state.overrides.length;
+        const collusionCount = flags.filter(function (flag) { return /collusion/i.test(flag.type); }).length;
+        return [
+          ['Total Vendors Evaluated', state.rows.length],
+          ['Eligible Before Overrides', baseEligible],
+          ['Eligible After Overrides', finalEligible],
+          ['Rejected After Overrides', rejected],
+          ['Overrides Logged', overrides],
+          ['Flags Raised', flags.length],
+          ['Collusion Risks', collusionCount],
+          ['Evaluation Method', 'Rule-based explainable engine + cross-document checks']
+        ];
+      }
+
+      function buildCriteriaRows(state) {
+        const criteria = formatCriteriaValue(state.criteria);
+        return [
+          ['Minimum Annual Turnover', criteria.turnover, 'GFR Rule 175(2)', 'Ensures financial capacity for public works'],
+          ['Minimum Experience', criteria.experience, 'GFR Rule 175(3)', 'Requires execution maturity for similar works'],
+          ['GST Registration', criteria.gst, 'GFR Rule 144', 'Verifies tax compliance and vendor legitimacy'],
+          ['MSME Preference', criteria.msme, 'MSME Procurement Policy', 'Promotes inclusion while preserving quality threshold']
+        ];
+      }
+
+      async function sha256Hex(text) {
+        if (!root.crypto || !root.crypto.subtle) return 'Unavailable in this browser';
+        const bytes = new TextEncoder().encode(text);
+        const hash = await root.crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(hash)).map(function (byte) {
+          return byte.toString(16).padStart(2, '0');
+        }).join('');
+      }
+
+      function renderSectionTable(tbody, rows) {
+        tbody.innerHTML = rows.map(function (row) {
+          return '<tr>' + row.map(function (cell) {
+            return '<td>' + cell + '</td>';
+          }).join('') + '</tr>';
+        }).join('');
+      }
+
+      function renderVendorRows(state) {
+        refs.vendorBody.innerHTML = state.finalRows.map(function (entry) {
+          const overrideText = entry.override ? entry.override.newStatus : 'None';
+          const reasonParts = entry.result.reasons.slice();
+          if (entry.override?.justification) {
+            reasonParts.push(`Override: ${entry.override.justification}`);
+          }
+          return `
+            <tr>
+              <td>${escapeHtml(entry.vendor.name)}</td>
+              <td>${escapeHtml(entry.vendor.city)}</td>
+              <td><span class="badge ${entry.result.turnoverPass ? 'badge-pass' : 'badge-fail'}">${entry.result.turnoverPass ? 'Pass' : 'Fail'}</span></td>
+              <td><span class="badge ${entry.result.expPass ? 'badge-pass' : 'badge-fail'}">${entry.result.expPass ? 'Pass' : 'Fail'}</span></td>
+              <td><span class="badge ${entry.result.gstPass ? 'badge-pass' : 'badge-fail'}">${entry.result.gstPass ? 'Pass' : 'Fail'}</span></td>
+              <td>${entry.result.confidence}%</td>
+              <td><span class="badge ${entry.finalStatus === 'Eligible' ? 'badge-pass' : 'badge-fail'}">${escapeHtml(entry.finalStatus)}</span></td>
+              <td>${escapeHtml(overrideText)}</td>
+              <td>${escapeHtml(reasonParts.join('; '))}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function renderFlags(flags) {
+        refs.flagsBody.innerHTML = flags.map(function (flag) {
+          return `
+            <tr>
+              <td>${escapeHtml(flag.vendor)}</td>
+              <td>${escapeHtml(flag.type)}</td>
+              <td>${escapeHtml(flag.detail)}</td>
+              <td>${escapeHtml(flag.recommendedAction)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function renderOverrides(overrides) {
+        if (!overrides.length) {
+          refs.overrideBody.innerHTML = '<tr><td colspan="4">No overrides recorded.</td></tr>';
+          return;
+        }
+        refs.overrideBody.innerHTML = overrides.map(function (override) {
+          return `
+            <tr>
+              <td>${escapeHtml(override.vendorName)}</td>
+              <td>${escapeHtml(override.newStatus)}</td>
+              <td>${escapeHtml(override.justification)}</td>
+              <td>${escapeHtml(new Date(override.timestamp).toLocaleString('en-IN'))}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function renderRecommendations(state, flags) {
+        const finalEligible = state.finalRows.filter(function (entry) { return entry.finalStatus === 'Eligible'; }).length;
+        const recommendationRows = [];
+
+        recommendationRows.push(`Document source: ${state.mode === 'stored' ? 'stored evaluation payload' : 'demo fallback'} for ${state.tender.title}.`);
+
+        if (finalEligible < 3) {
+          recommendationRows.push('Raise the competition threshold review because the current policy leaves fewer than 3 eligible vendors and creates a CAG risk warning condition.');
+        } else if (finalEligible >= 5) {
+          recommendationRows.push('Proceeding posture is healthy: at least 5 vendors remain eligible, which supports competitive procurement.');
+        } else {
+          recommendationRows.push('Competition is moderate. Consider reviewing turnover or MSME relaxation if broader participation is required.');
+        }
+
+        if (flags.some(function (flag) { return /collusion/i.test(flag.type); })) {
+          recommendationRows.push('Escalate collusion flags to procurement review before final award decisions are issued.');
+        }
+
+        if (state.overrides.length) {
+          recommendationRows.push('Preserve all override justifications in the audit trail and attach them to the final file pack.');
+        }
+
+        recommendationRows.push('Award should be issued only after sign-off, because the report is generated for CAG-ready audit evidence.');
+
+        refs.recommendationsList.innerHTML = recommendationRows.map(function (text) {
+          return `<li>${escapeHtml(text)}</li>`;
+        }).join('');
+      }
+
+      function applySignoff(signoff) {
+        if (!signoff) {
+          refs.reportStatus.textContent = 'DRAFT';
+          refs.reportStatus.className = 'badge badge-flag';
+          refs.signatureBlock.classList.add('hidden');
+          return;
+        }
+
+        refs.reportStatus.textContent = 'FINALIZED';
+        refs.reportStatus.className = 'badge badge-pass';
+        refs.signatureBlock.classList.remove('hidden');
+        refs.sigOfficer.textContent = signoff.officer || '';
+        refs.sigDesignation.textContent = signoff.designation || '';
+        refs.sigDatetime.textContent = signoff.finalizedAt ? new Date(signoff.finalizedAt).toLocaleString('en-IN') : '';
+        refs.officerName.value = signoff.officer || '';
+        refs.officerDesignation.value = signoff.designation || '';
+        refs.officerRemarks.value = signoff.remarks || '';
+        if (signoff.date) refs.signDate.value = signoff.date;
+      }
+
+      async function renderReport(sourceMode) {
+        const state = sourceMode === 'demo' ? buildDemoState() : buildStoredState() || buildDemoState();
+
+        const flags = collusion.getFlagCards(data.vendors, state.overrides);
+        const generatedAt = new Date();
+        const sourceLabel = state.mode === 'stored' ? 'Live evaluation payload' : 'Built-in demo tender';
+        const hashPayload = {
+          mode: state.mode,
+          tender: state.tender,
+          criteria: state.criteria,
+          rows: state.finalRows.map(function (entry) {
+            return {
+              vendorId: entry.vendor.id,
+              name: entry.vendor.name,
+              city: entry.vendor.city,
+              finalStatus: entry.finalStatus,
+              originalStatus: entry.result.status,
+              confidence: entry.result.confidence,
+              override: entry.override ? {
+                vendorId: entry.override.vendorId,
+                newStatus: entry.override.newStatus,
+                justification: entry.override.justification,
+                timestamp: entry.override.timestamp
+              } : null
+            };
+          }),
+          flags: flags.map(function (flag) {
+            return {
+              vendor: flag.vendor,
+              type: flag.type,
+              level: flag.level,
+              detail: flag.detail
+            };
+          }),
+          documentName: state.documentName
+        };
+
+        const reportHash = await sha256Hex(JSON.stringify(hashPayload));
+
+        refs.reportId.textContent = state.mode === 'stored' ? `NBR-${data.tender.id}` : `NBR-${DEMO_TENDER.id}`;
+        refs.reportHash.textContent = reportHash === 'Unavailable in this browser' ? reportHash : `SHA-256: ${reportHash}`;
+        refs.reportDocument.textContent = state.documentName;
+        refs.reportGenerationSource.textContent = sourceLabel;
+        refs.reportGeneratedAt.textContent = generatedAt.toLocaleString('en-IN');
+        const reportDateNode = document.getElementById('report-date');
+        if (reportDateNode) reportDateNode.textContent = generatedAt.toLocaleDateString('en-IN');
+        refs.reportSourceBadge.textContent = sourceLabel;
+        refs.reportModeBadge.textContent = state.mode === 'stored' ? 'Stored payload' : 'Demo fallback';
+        refs.metaTenderId.textContent = state.tender.id;
+        refs.metaTitle.textContent = state.tender.title;
+        refs.metaAuthority.textContent = state.tender.authority;
+
+        renderSectionTable(refs.summaryBody, buildSummaryRows(state, flags));
+        renderSectionTable(refs.sourceBody, buildSourceRows(state));
+        renderSectionTable(refs.criteriaBody, buildCriteriaRows(state));
+        renderVendorRows(state);
+        renderFlags(flags);
+        renderOverrides(state.overrides);
+        refs.collusionText.textContent = collusion.collusionNarrative();
+        renderRecommendations(state, flags);
+
+        applySignoff(getStoredSignoff());
+
+        showToast(state.mode === 'stored'
+          ? 'Stored evaluation loaded into the audit report.'
+          : 'Demo tender loaded into the audit report.',
+        'success');
+      }
+
+      refs.downloadButton.addEventListener('click', function () {
+        root.print();
+      });
+
+      refs.useStoredButton.addEventListener('click', function () {
+        renderReport('stored');
+      });
+
+      refs.useDemoButton.addEventListener('click', function () {
+        renderReport('demo');
+      });
+
+      refs.finalizeBtn.addEventListener('click', function () {
+        const officer = refs.officerName.value.trim();
+        const designation = refs.officerDesignation.value.trim();
+        const remarks = refs.officerRemarks.value.trim();
+        if (!officer || !designation || !remarks) {
+          showToast('Please complete officer sign-off details before finalizing.', 'warn');
+          return;
+        }
+
+        const now = new Date();
+        const signoff = {
+          officer,
+          designation,
+          remarks,
+          date: refs.signDate.value,
+          finalizedAt: now.toISOString()
+        };
+        localStorage.setItem('nyayabid-report-signoff', JSON.stringify(signoff));
+        applySignoff(signoff);
+        showToast('Report finalized and logged to audit trail.', 'success');
+      });
+
+      renderReport('stored');
+    })();
+  </script>
 </body>
 </html>
