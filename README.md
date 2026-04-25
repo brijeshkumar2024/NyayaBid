@@ -1,43 +1,96 @@
 # NyayaBid AI
 
-NyayaBid AI is a static, browser-based tender evaluation copilot built for explainable public procurement workflows. It helps users extract tender criteria from PDFs, evaluate vendor eligibility, simulate policy changes, and generate a CAG-ready audit report with officer sign-off.
+NyayaBid AI is an explainable, browser-based tender evaluation copilot designed for public procurement systems.
 
-## What It Does
+It not only evaluates vendor eligibility but also simulates policy impact before tender publication — helping prevent low-competition and high-risk tenders.
 
-- Reads tender PDFs in the browser and extracts criteria such as turnover, experience, GST, and MSME applicability.
-- Evaluates vendors against live criteria and shows pass/fail reasons with confidence scores.
-- Detects cross-document inconsistencies and collusion risks.
-- Lets users reverse-simulate policy changes to see how competition changes in real time.
-- Generates an audit report with SHA-256 verification, flag summaries, override history, and printable sign-off output.
+The system generates a tamper-proof audit report with SHA-256 verification and officer sign-off, making procurement decisions transparent, traceable, and defensible.
+
+---
+
+## Why It Matters
+
+Government procurement in India exceeds ₹15 lakh crore annually.
+Yet evaluation is still manual, inconsistent, and difficult to audit.
+
+NyayaBid AI solves this by:
+
+- Automating eligibility evaluation
+- Providing explainable decisions with confidence scores
+- Detecting fraud and collusion signals
+- Preventing restrictive tenders using reverse simulation
+- Generating audit-ready reports with tamper-proof verification
+
+---
+
+## Key Features
+
+- **Explainable Tender Evaluation** with per-vendor confidence scoring and pass/fail reasons
+- **Reverse Simulation Engine** for real-time policy impact analysis before tender publication
+- **Cross-document fraud detection** and collusion risk flagging
+- **SHA-256 verified audit report** with digital officer sign-off
+- **OCR fallback** for scanned documents via Tesseract.js
+- **Fully browser-based** — zero backend, zero build step, zero dependencies to install
+
+---
+
+## How It Works
+
+1. Upload a tender PDF
+2. Extract eligibility criteria automatically (PDF.js / OCR fallback)
+3. Evaluate vendors with the rule-based engine
+4. Detect cross-document inconsistencies and collusion risks
+5. Generate a CAG-ready audit report with SHA-256 verification hash
+6. Simulate policy changes to analyse competition impact before publishing
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, Vanilla JavaScript |
+| Document Parsing | PDF.js (CDN) |
+| OCR Fallback | Tesseract.js (CDN) |
+| Audit Hashing | Web Crypto API (SHA-256) |
+| State Management | localStorage |
+
+---
 
 ## Project Structure
 
-- `index.html` - landing page and product overview.
-- `pages/evaluate.html` - PDF-driven evaluation flow with extraction, scoring, and override logging.
-- `pages/simulation.html` - reverse simulation engine for eligibility and competition analysis.
-- `pages/report.html` - audit report generator with hash verification and sign-off.
-- `scripts/data.js` - tender data, vendor data, and shared utilities.
-- `scripts/evaluation.js` - rule-based evaluation logic.
-- `scripts/collusion.js` - fraud and collusion flag helpers.
-- `styles/` - shared and page-specific styling.
-- `assets/logo.svg` - NyayaBid AI brand asset.
+```
+nyayabid/
+├── index.html              — Landing page and product overview
+├── pages/
+│   ├── dashboard.html      — Procurement overview and audit trail
+│   ├── evaluate.html       — PDF-driven evaluation flow
+│   ├── simulation.html     — Reverse simulation engine
+│   └── report.html         — Audit report generator with sign-off
+├── scripts/
+│   ├── app.js              — Shared boot, settings modal, toast
+│   ├── data.js             — Tender data, vendor data, utilities
+│   ├── evaluation.js       — Rule-based evaluation engine
+│   └── collusion.js        — Fraud and collusion flag helpers
+├── styles/
+│   ├── main.css            — Global styles and layout
+│   ├── dashboard.css       — Dashboard and evaluate page styles
+│   ├── simulation.css      — Simulation page styles
+│   └── report.css          — Report and print styles
+└── assets/
+    └── logo.svg            — NyayaBid AI brand asset
+```
 
-## How The Flow Works
-
-1. Evaluate a tender in `pages/evaluate.html`.
-2. The page stores the latest evaluation result in `localStorage` under `nyayabid-evaluation-data`.
-3. Open `pages/report.html` to render the stored evaluation as a formal audit report.
-4. Use `pages/simulation.html` to tune eligibility criteria and observe how the bidder pool changes.
+---
 
 ## Running The App
 
-This repository has no build step and no package manager dependency.
+No build step. No package manager. No server required.
 
-Option 1: open `index.html` directly in a browser.
+**Option 1 — Open directly:**
+Open `index.html` in any modern browser.
 
-Option 2: serve the folder with any static file server if you prefer a local HTTP origin.
-
-Examples:
+**Option 2 — Local server (recommended for PDF upload):**
 
 ```bash
 python -m http.server 8000
@@ -49,28 +102,38 @@ or
 npx serve .
 ```
 
-Then open the site root in your browser and navigate through the pages.
+Then open `http://localhost:8000` and navigate through the pages.
 
-## Data And Storage
+---
 
-- Evaluation output is persisted in `localStorage` under `nyayabid-evaluation-data`.
-- Report sign-off is persisted in `localStorage` under `nyayabid-report-signoff`.
-- The report page uses the stored payload when available and falls back to a built-in demo tender when no stored evaluation exists.
+## Data and Storage
 
-## Implementation Notes
+| Key | Contents |
+|---|---|
+| `nyayabid-evaluation-data` | Full evaluation payload — rows, overrides, criteria, document |
+| `nyayabid-report-signoff` | Officer sign-off — name, designation, remarks, timestamp |
 
-- The app is intentionally frontend-only.
-- The evaluation and simulation pages are self-contained so they do not rely on a brittle shared bootstrap.
-- PDF parsing in the evaluation page uses PDF.js from a CDN.
-- The report page computes a SHA-256 digest from the rendered audit payload for verification.
+The report page loads from stored evaluation when available and falls back to a built-in demo tender automatically.
 
-## Hackathon Delivery Status
+---
 
-- Phase 1: Real PDF parsing and criteria extraction - complete.
-- Phase 2: Real simulation engine with live eligibility filtering - complete.
-- Phase 3: Audit report generation with hash verification and sign-off - complete.
-- Phase 4: README - complete.
+## Delivery Status
+
+| Phase | Feature | Status |
+|---|---|---|
+| 1 | Real PDF parsing and criteria extraction | ✅ Complete |
+| 2 | Rule-based evaluation with confidence scoring | ✅ Complete |
+| 3 | Collusion detection and cross-document flags | ✅ Complete |
+| 4 | Reverse simulation engine | ✅ Complete |
+| 5 | SHA-256 audit report with officer sign-off | ✅ Complete |
+| 6 | OCR fallback for scanned documents | ✅ Complete |
+
+---
 
 ## Browser Compatibility
 
-The app is designed for modern desktop browsers with JavaScript enabled. For the best experience, use a current Chromium-based browser.
+Designed for modern desktop browsers with JavaScript enabled. Best experience on a current Chromium-based browser.
+
+---
+
+> NyayaBid AI does not just evaluate tenders — it helps prevent unfair ones before they are published.
