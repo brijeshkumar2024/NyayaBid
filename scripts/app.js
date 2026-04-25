@@ -183,6 +183,19 @@
     });
   }
 
+  // ── Flowchart modal ────────────────────────────────────────────────────
+  function initFlowchartModal() {
+    const modal    = document.getElementById('flowchart-modal');
+    const openBtn  = document.getElementById('open-flowchart');
+    const closeBtn = document.getElementById('close-flowchart');
+    if (!modal || !openBtn) return;
+    openBtn.addEventListener('click', function () { modal.classList.add('show'); });
+    if (closeBtn) closeBtn.addEventListener('click', function () { modal.classList.remove('show'); });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) modal.classList.remove('show');
+    });
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────
   function boot() {
     root.NyayaBid.app = {
@@ -222,6 +235,7 @@
       });
     }
 
+    initFlowchartModal();
     initDashboardPage();
   }
 
