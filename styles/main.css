@@ -705,7 +705,7 @@ th {
   cursor: pointer;
 }
 
-dialog.modal-overlay { display: none; }
+dialog.modal-overlay { display: none; border: 0; padding: 0; }
 
 .modal-overlay {
   position: fixed;
