@@ -78,10 +78,22 @@
     const auditOpenBtn = document.getElementById('open-audit-trail');
     const auditCloseBtn = document.getElementById('close-audit-trail');
     if (auditModal && auditOpenBtn && auditCloseBtn) {
-      auditOpenBtn.addEventListener('click',  function () { auditModal.classList.add('show'); });
-      auditCloseBtn.addEventListener('click', function () { auditModal.classList.remove('show'); });
+      auditOpenBtn.addEventListener('click', function () {
+        auditModal.showModal();
+      });
+      auditCloseBtn.addEventListener('click', function () {
+        auditModal.close();
+      });
       auditModal.addEventListener('click', function (e) {
-        if (e.target === auditModal) auditModal.classList.remove('show');
+        const rect = auditModal.getBoundingClientRect();
+        if (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        ) {
+          auditModal.close();
+        }
       });
     }
 
@@ -189,10 +201,7 @@
     // Settings button — present on every page via sidebar
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
-      settingsBtn.addEventListener('click', function () {
-        console.log('Settings button clicked');
-        openSettingsModal();
-      });
+      settingsBtn.addEventListener('click', openSettingsModal);
     }
 
     // Settings close buttons — works for both dashboard's rich modal and

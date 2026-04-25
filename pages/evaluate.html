@@ -900,22 +900,21 @@
       // ── Smart extraction: PDF.js first, OCR fallback if no text found ────────
       async function extractDocument(file) {
         setAiStatus('active', 'Analyzing document...');
+        let extracted;
         try {
-          const extracted = await extractTextFromPdfFile(file);
-          const hasText = extracted.rawText && extracted.rawText.trim().length > 80;
-          if (!hasText) {
-            // Scanned PDF — fall back to OCR
-            setAiStatus('active', 'No text layer found — switching to OCR mode…');
-            toast('Scanned PDF detected — running OCR fallback.', 'warn');
-            return await extractViaOCR(file);
-          }
-          return extracted;
+          extracted = await extractTextFromPdfFile(file);
         } catch (pdfError) {
-          // PDF.js failed entirely — try OCR as last resort
-          console.warn('NyayaBid PDF.js failed, trying OCR:', pdfError);
+          console.warn('NyayaBid PDF.js failed, switching to OCR:', pdfError);
           setAiStatus('active', 'PDF parsing failed — attempting OCR fallback…');
           return await extractViaOCR(file);
         }
+        const hasText = extracted.rawText && extracted.rawText.trim().length > 80;
+        if (!hasText) {
+          setAiStatus('active', 'No text layer found — switching to OCR mode…');
+          toast('Scanned PDF detected — running OCR fallback.', 'warn');
+          return await extractViaOCR(file);
+        }
+        return extracted;
       }
 
       function isCompleteEvaluationRows(rowsToCheck) {
@@ -1387,7 +1386,6 @@ Contact: ${data.tender.contact}
       renderVendorCards();
       syncOverrideButtonState();
     })();
-  </script>
   </script>
   <script src="../scripts/app.js"></script>
 </body>
