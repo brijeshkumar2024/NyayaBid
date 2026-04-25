@@ -23,7 +23,7 @@
           <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
           <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
           <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
-          <a class="sidebar-link" data-icon="settings" data-nav="settings" href="javascript:void(0)">Settings</a>
+          <button id="settings-btn">⚙ Settings</button>
         </nav>
       </div>
       <div class="version-tag">NyayaBid AI v1.0</div>
@@ -139,6 +139,15 @@
         </section>
       </article>
     </main>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <span id="settings-close">&times;</span>
+      <h2>Settings</h2>
+      <!-- settings fields -->
+      <p>Global settings are available in this modal.</p>
+    </div>
   </div>
 
   <div id="global-toast-root" class="toast-root"></div>
@@ -423,8 +432,8 @@
               <td><span class="badge ${entry.result.turnoverPass ? 'badge-pass' : 'badge-fail'}">${entry.result.turnoverPass ? 'Pass' : 'Fail'}</span></td>
               <td><span class="badge ${entry.result.expPass ? 'badge-pass' : 'badge-fail'}">${entry.result.expPass ? 'Pass' : 'Fail'}</span></td>
               <td><span class="badge ${entry.result.gstPass ? 'badge-pass' : 'badge-fail'}">${entry.result.gstPass ? 'Pass' : 'Fail'}</span></td>
-              <td>${entry.result.confidence}%</td>
-              <td><span class="badge ${entry.finalStatus === 'Eligible' ? 'badge-pass' : 'badge-fail'}">${escapeHtml(entry.finalStatus)}</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:56px;height:7px;border-radius:999px;background:#e2e8f0;overflow:hidden;"><div style="height:100%;border-radius:999px;background:${entry.result.confidence>=80?'#16a34a':entry.result.confidence>=60?'#d97706':'#dc2626'};width:${entry.result.confidence}%;"></div></div><span>${entry.result.confidence}%</span></div></td>
+              <td><span class="badge ${entry.finalStatus === 'Eligible' ? 'badge-pass' : 'badge-fail'}">${entry.finalStatus==='Eligible'?'Meets all criteria':'Does not meet threshold'}</span></td>
               <td>${escapeHtml(overrideText)}</td>
               <td>${escapeHtml(reasonParts.join('; '))}</td>
             </tr>
@@ -636,5 +645,6 @@
       renderReport('stored');
     })();
   </script>
+  <script src="../scripts/app.js"></script>
 </body>
 </html>

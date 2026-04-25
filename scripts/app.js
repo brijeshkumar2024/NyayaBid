@@ -17,6 +17,51 @@
     }, 3000);
   }
 
+  function openSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    console.log('Opening settings modal');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+  }
+
+  function closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+  }
+
+  globalThis.openSettingsModal = openSettingsModal;
+  globalThis.closeSettingsModal = closeSettingsModal;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('settings-btn');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        console.log('Settings button clicked');
+        openSettingsModal();
+      });
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const closeBtn = document.getElementById('settings-close') || document.getElementById('close-settings');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeSettingsModal);
+    }
+    const closeBtnFooter = document.getElementById('settings-close-footer');
+    if (closeBtnFooter) {
+      closeBtnFooter.addEventListener('click', closeSettingsModal);
+    }
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeSettingsModal();
+      });
+    }
+  });
+
   // ── Dashboard page ─────────────────────────────────────────────────────
   function initDashboardPage() {
     const page = document.querySelector('[data-page="dashboard"]');
@@ -51,7 +96,7 @@
 
     // Count-up animation for metric cards
     document.querySelectorAll('[data-countup]').forEach(function (el) {
-      const target = parseInt(el.dataset.countup, 10);
+      const target = Number.parseInt(el.dataset.countup, 10);
       let current = 0;
       const step = Math.ceil(target / 20);
       const timer = setInterval(function () {
@@ -74,9 +119,7 @@
     }
 
     // Settings modal
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsLink = document.getElementById('settings-link');
-    const settingsClose = document.getElementById('close-settings');
+    const settingsClose = document.getElementById('settings-close') || document.getElementById('close-settings');
     const settingsCloseFooter = document.getElementById('settings-close-footer');
     const settingsSave = document.getElementById('settings-save');
     const settingsReset = document.getElementById('settings-reset');
@@ -84,18 +127,8 @@
     const confidenceSlider = document.getElementById('settings-confidence-threshold');
     const confidenceValue = document.getElementById('settings-confidence-value');
 
-    function openSettingsModal() {
-      if (settingsModal) settingsModal.classList.add('show');
-    }
-
-    if (settingsLink) settingsLink.addEventListener('click', openSettingsModal);
-    if (settingsClose) settingsClose.addEventListener('click', function () { settingsModal.classList.remove('show'); });
-    if (settingsCloseFooter) settingsCloseFooter.addEventListener('click', function () { settingsModal.classList.remove('show'); });
-    if (settingsModal) {
-      settingsModal.addEventListener('click', function (e) {
-        if (e.target === settingsModal) settingsModal.classList.remove('show');
-      });
-    }
+    if (settingsClose) settingsClose.addEventListener('click', closeSettingsModal);
+    if (settingsCloseFooter) settingsCloseFooter.addEventListener('click', closeSettingsModal);
     if (confidenceSlider && confidenceValue) {
       confidenceSlider.addEventListener('input', function () {
         confidenceValue.textContent = confidenceSlider.value + '%';
@@ -104,7 +137,7 @@
     if (settingsSave) {
       settingsSave.addEventListener('click', function () {
         showToast('Settings saved successfully.', 'success');
-        if (settingsModal) settingsModal.classList.remove('show');
+        closeSettingsModal();
       });
     }
     if (settingsReset) {
@@ -115,12 +148,14 @@
     if (settingsClearData) {
       settingsClearData.addEventListener('click', function () {
         if (!root.confirm('This will clear all evaluation data. Are you sure?')) return;
-        try { localStorage.clear(); } catch (e) { /* ignore */ }
+        try {
+          localStorage.clear();
+        } catch (e) {
+          console.error('NyayaBid settings clear failed:', e);
+        }
         showToast('Session data cleared.', 'success');
       });
     }
-
-    root.NyayaBid.app.openSettingsModal = openSettingsModal;
   }
 
   // ── Shared UI helpers ──────────────────────────────────────────────────
@@ -182,7 +217,7 @@
 
   // ── Boot ───────────────────────────────────────────────────────────────
   function boot() {
-    root.NyayaBid.app = { showToast: showToast };
+    root.NyayaBid.app = { showToast: showToast, openSettingsModal: openSettingsModal, closeSettingsModal: closeSettingsModal };
     enablePageFadeIn();
     bindKeyboardShortcuts();
     addGlobalFooterHint();

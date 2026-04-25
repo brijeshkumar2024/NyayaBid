@@ -327,7 +327,7 @@
           <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
           <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
           <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
-          <a class="sidebar-link" data-icon="settings" data-nav="settings" href="javascript:void(0)">Settings</a>
+          <button id="settings-btn">⚙ Settings</button>
         </nav>
       </div>
       <div class="version-tag">NyayaBid AI v1.0</div>
@@ -383,7 +383,7 @@
               </div>
               <div id="upload-loader" class="upload-loader hidden">
                 <div class="upload-loader-spinner"></div>
-                <div class="upload-loader-text">Analysing document…</div>
+                <div class="upload-loader-text">Analyzing document...</div>
                 <div class="upload-loader-sub">Extracting text from all pages</div>
               </div>
               <input id="tender-file-input" type="file" accept="application/pdf" class="hidden" aria-label="Tender file input">
@@ -550,6 +550,15 @@
     </main>
   </div>
 
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <span id="settings-close">&times;</span>
+      <h2>Settings</h2>
+      <!-- settings fields -->
+      <p>Global settings are available in this modal.</p>
+    </div>
+  </div>
+
   <div id="global-toast-root" class="toast-root"></div>
 
   <!-- pdf.js CDN -->
@@ -678,7 +687,7 @@
           {
             found: criteria.gstMandatory !== null && criteria.gstMandatory !== undefined,
             label: criteria.gstMandatory === true
-              ? 'GST found: Mandatory'
+              ? 'GST found: Valid'
               : criteria.gstMandatory === false
                 ? 'GST found: Not required'
                 : 'GST: not found'
@@ -877,7 +886,7 @@
 
       // ── Smart extraction: PDF.js first, OCR fallback if no text found ────────
       async function extractDocument(file) {
-        setAiStatus('active', 'AI is analyzing the document…');
+        setAiStatus('active', 'Analyzing document...');
         try {
           const extracted = await extractTextFromPdfFile(file);
           const hasText = extracted.rawText && extracted.rawText.trim().length > 80;
@@ -1094,6 +1103,7 @@
         refs.resultsBody.innerHTML = rowsToRender.map(function (entry) {
           const override = overridesToRender.find(function (item) { return item.vendorId === entry.vendor.id; });
           const finalStatus = override ? override.newStatus : entry.result.status;
+          const finalStatusLabel = finalStatus === 'Eligible' ? 'Vendor meets required criteria' : finalStatus;
           let statusClass = 'badge-fail';
           if (override) statusClass = 'badge-override';
           else if (finalStatus === 'Eligible') statusClass = 'badge-pass';
@@ -1111,7 +1121,7 @@
                 <div class="confidence-text">${entry.result.confidence}%</div>
               </td>
               <td>
-                <span class="badge ${statusClass}">${override ? 'Overridden' : finalStatus}</span>
+                <span class="badge ${statusClass}">${override ? 'Overridden' : finalStatusLabel}</span>
               </td>
               <td class="reason-cell"><details><summary>View</summary><div>${entry.result.reasons.join('<br>')}</div></details></td>
             </tr>
@@ -1145,7 +1155,7 @@
 
       function runEvaluation(criteriaOverride) {
         try {
-          setAiStatus('active', 'Matching vendor data against extracted criteria…');
+          setAiStatus('active', 'Evaluating vendors...');
           rows = evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
           if (!isCompleteEvaluationRows(rows)) {
             toast('Evaluation could not be completed. Please try again.', 'warn');
@@ -1267,11 +1277,12 @@ Contact: ${data.tender.contact}
         if (refs.rawTextPanel) refs.rawTextPanel.open = true;
         showLoader();
         setStep(1);
-        setAiStatus('active', 'AI is analyzing the document…');
+        setAiStatus('active', 'Analyzing document...');
         try {
           const extracted = await extractDocument(file);
           extractedDocument.rawText = extracted.rawText;
           extractedDocument.pages = extracted.pages;
+          setAiStatus('active', 'Extracting criteria...');
           const criteria = parseTenderCriteria(extracted.pages);
           applyCriteriaToFields(criteria, extracted.rawText);
           renderExtractionChips(criteria);
@@ -1309,7 +1320,7 @@ Contact: ${data.tender.contact}
           return;
         }
         setStep(2);
-        setAiStatus('active', 'Evaluating vendors against extracted criteria…');
+        setAiStatus('active', 'Evaluating vendors...');
         runEvaluationTimer(function () {
           runEvaluation(builtCriteria.criteriaOverride);
           setStep(3);
@@ -1365,5 +1376,6 @@ Contact: ${data.tender.contact}
       syncOverrideButtonState();
     })();
   </script>
+  <script src="../scripts/app.js"></script>
 </body>
 </html>

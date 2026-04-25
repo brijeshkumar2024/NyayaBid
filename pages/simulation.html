@@ -138,7 +138,7 @@
           <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
           <a class="sidebar-link is-active" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
           <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
-          <a class="sidebar-link" data-icon="settings" data-nav="settings" href="javascript:void(0)">Settings</a>
+          <button id="settings-btn">⚙ Settings</button>
         </nav>
       </div>
       <div class="version-tag">NyayaBid AI v1.0</div>
@@ -244,6 +244,15 @@
         </article>
       </section>
     </main>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <span id="settings-close">&times;</span>
+      <h2>Settings</h2>
+      <!-- settings fields -->
+      <p>Global settings are available in this modal.</p>
+    </div>
   </div>
 
   <div id="global-toast-root" class="toast-root"></div>
@@ -520,7 +529,7 @@
                   <td>${entry.vendor.experience}yr</td>
                   <td>${entry.vendor.gst ? 'Yes' : 'No'}</td>
                   <td>${entry.vendor.msme ? 'Yes' : 'No'}</td>
-                  <td class="status-cell"><span class="badge badge-pass">Eligible</span></td>
+                  <td class="status-cell"><span class="badge badge-pass">Meets all criteria</span></td>
                 </tr>
               `;
             }).join('')
@@ -667,5 +676,6 @@
       });
     })();
   </script>
+  <script src="../scripts/app.js"></script>
 </body>
 </html>
