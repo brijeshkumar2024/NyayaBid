@@ -275,7 +275,7 @@
       const vendors = [
         { name: 'Bharat Infra Pvt Ltd', city: 'Delhi', turnover: 18, experience: 12, gst: true, msme: false },
         { name: 'GreenBuild Contractors', city: 'Mumbai', turnover: 12, experience: 8, gst: true, msme: false },
-        { name: 'Aakash Civil Works', city: 'Patna', turnover: 3, experience: 4, gst: false, msme: true },
+        { name: 'Mohanty Civil Works', city: 'Odisha', turnover: 3, experience: 4, gst: false, msme: true },
         { name: 'Sunrise Technologies', city: 'Bengaluru', turnover: 7, experience: 6, gst: true, msme: true },
         { name: 'Trimurti Construction', city: 'Chennai', turnover: 22, experience: 15, gst: true, msme: false },
         { name: 'Kaveri Builders', city: 'Hyderabad', turnover: 5, experience: 5, gst: true, msme: true },
@@ -323,16 +323,9 @@
       };
 
       function toast(message, type) {
-        const rootEl = document.getElementById('global-toast-root');
-        if (!rootEl) return;
-        const el = document.createElement('div');
-        el.className = `toast ${type || ''}`;
-        el.textContent = message;
-        rootEl.appendChild(el);
-        setTimeout(function () {
-          el.style.opacity = '0';
-          setTimeout(function () { el.remove(); }, 220);
-        }, 2800);
+        if (globalThis.NyayaBid && globalThis.NyayaBid.app) {
+          globalThis.NyayaBid.app.showToast(message, type);
+        }
       }
 
       function clampNumber(value, config) {

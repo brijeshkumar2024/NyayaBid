@@ -63,7 +63,7 @@
       collusionRisk: false
     },
     {
-      id: 'V004', name: 'Aakash Civil Works', city: 'Nagpur, Maharashtra',
+      id: 'V004', name: 'Mohanty Civil Works', city: 'Odisha, India',
       cin: 'U45209MH2018PTC990124', turnover: 3, experience: 4, gst: false, msme: true,
       gstNo: 'Not Available', bidValue: 389000000, crossDocFlag: false, collusionRisk: true,
       collusionReason: 'Registered address matches V002 (Sunrise Tech Solutions)'
@@ -84,7 +84,7 @@
     { name: 'Bharat Infra Pvt Ltd', city: 'Mumbai', turnover: 18, exp: 12, gst: true, msme: false },
     { name: 'Sunrise Tech Solutions', city: 'Pune', turnover: 7, exp: 5, gst: true, msme: true },
     { name: 'GreenBuild Contractors', city: 'Delhi', turnover: 12, exp: 9, gst: true, msme: false },
-    { name: 'Aakash Civil Works', city: 'Nagpur', turnover: 3, exp: 4, gst: false, msme: true },
+    { name: 'Mohanty Civil Works', city: 'Odisha', turnover: 3, exp: 4, gst: false, msme: true },
     { name: 'Pioneer Systems Ltd', city: 'Chennai', turnover: 15, exp: 11, gst: true, msme: false },
     { name: 'Sahyadri Constructions', city: 'Kolhapur', turnover: 5, exp: 6, gst: true, msme: true },
     { name: 'NovaTech Engineering', city: 'Bengaluru', turnover: 9, exp: 8, gst: true, msme: false },
@@ -104,7 +104,7 @@
     },
     {
       id: 'F-COLLUSION',
-      vendor: 'Aakash Civil Works',
+      vendor: 'Mohanty Civil Works',
       type: 'Collusion Risk Detected',
       level: 'red',
       detail: 'Registered office address matches exactly with Vendor V002 (Sunrise Tech Solutions, Pune). Possible proxy bidder arrangement.',

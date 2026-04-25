@@ -26,7 +26,7 @@
   }
 
   function collusionNarrative() {
-    return 'Aakash Civil Works was flagged by the collusion detector because its registered office address matched exactly with Sunrise Tech Solutions. In procurement risk analytics, exact address overlap among active bidders is treated as a strong indicator of potential proxy participation. The system recommends temporary disqualification and referral for CVC review before commercial bid opening.';
+    return 'Mohanty Civil Works was flagged by the collusion detector because its registered office address matched exactly with Sunrise Tech Solutions. In procurement risk analytics, exact address overlap among active bidders is treated as a strong indicator of potential proxy participation. The system recommends temporary disqualification and referral for CVC review before commercial bid opening.';
   }
 
   root.NyayaBid.collusion = {

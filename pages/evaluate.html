@@ -778,16 +778,9 @@
       }
 
       function toast(message, type) {
-        const rootEl = document.getElementById('global-toast-root');
-        if (!rootEl) return;
-        const toastEl = document.createElement('div');
-        toastEl.className = `toast ${type || ''}`;
-        toastEl.textContent = message;
-        rootEl.appendChild(toastEl);
-        setTimeout(function () {
-          toastEl.style.opacity = '0';
-          setTimeout(function () { toastEl.remove(); }, 240);
-        }, 3000);
+        if (root.NyayaBid && root.NyayaBid.app) {
+          root.NyayaBid.app.showToast(message, type);
+        }
       }
 
       function normalizeWhitespace(text) {
@@ -878,8 +871,9 @@
         }
         setAiStatus('active', 'Running OCR on scanned document… this may take a moment.');
         const url = URL.createObjectURL(file);
+        const OCR_TIMEOUT_MS = 30000;
         try {
-          const result = await Tesseract.recognize(url, 'eng', {
+          const ocrPromise = Tesseract.recognize(url, 'eng', {
             logger: function (m) {
               if (m.status === 'recognizing text') {
                 const pct = Math.round((m.progress || 0) * 100);
@@ -887,6 +881,12 @@
               }
             }
           });
+          const timeoutPromise = new Promise(function (_, reject) {
+            setTimeout(function () {
+              reject(new Error('OCR taking too long. Please upload clearer document.'));
+            }, OCR_TIMEOUT_MS);
+          });
+          const result = await Promise.race([ocrPromise, timeoutPromise]);
           const text = (result.data && result.data.text) ? result.data.text.trim() : '';
           const lines = text.split('\n').filter(function (l) { return l.trim().length > 0; }).map(function (l, i) {
             return { lineNumber: i + 1, text: l.trim() };
@@ -1272,7 +1272,6 @@ Contact: ${data.tender.contact}
         toast('Demo tender loaded successfully.', 'success');
       }
 
-      renderVendorCards();
       populateOverrideVendors(data.vendors);
 
       refs.choosePdf.addEventListener('click', function () {
@@ -1388,6 +1387,7 @@ Contact: ${data.tender.contact}
       renderVendorCards();
       syncOverrideButtonState();
     })();
+  </script>
   </script>
   <script src="../scripts/app.js"></script>
 </body>

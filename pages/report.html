@@ -224,15 +224,9 @@
       };
 
       function showToast(message, type) {
-        if (!refs.toastRoot) return;
-        const toast = document.createElement('div');
-        toast.className = `toast ${type || ''}`;
-        toast.textContent = message;
-        refs.toastRoot.appendChild(toast);
-        setTimeout(function () {
-          toast.style.opacity = '0';
-          setTimeout(function () { toast.remove(); }, 240);
-        }, 2800);
+        if (root.NyayaBid && root.NyayaBid.app) {
+          root.NyayaBid.app.showToast(message, type);
+        }
       }
 
       function escapeHtml(value) {

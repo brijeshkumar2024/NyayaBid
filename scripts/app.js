@@ -21,14 +21,13 @@
   function openSettingsModal() {
     const modal = document.getElementById('settings-modal');
     if (!modal) return;
-    console.log('Opening settings modal');
-    modal.classList.add('show');
+    modal.showModal();
   }
 
   function closeSettingsModal() {
     const modal = document.getElementById('settings-modal');
     if (!modal) return;
-    modal.classList.remove('show');
+    modal.close();
   }
 
   // Expose globally so any inline handler can also call them
@@ -168,9 +167,6 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         closeSettingsModal();
-        document.querySelectorAll('.modal-overlay.show').forEach(function (m) {
-          m.classList.remove('show');
-        });
       }
     });
   }
@@ -206,11 +202,14 @@
       if (el) el.addEventListener('click', closeSettingsModal);
     });
 
-    // Click-outside-to-close
+    // Click-outside-to-close (dialog backdrop click)
     const settingsModal = document.getElementById('settings-modal');
     if (settingsModal) {
       settingsModal.addEventListener('click', function (e) {
-        if (e.target === settingsModal) closeSettingsModal();
+        const rect = settingsModal.getBoundingClientRect();
+        const clickedBackdrop = e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top || e.clientY > rect.bottom;
+        if (clickedBackdrop) closeSettingsModal();
       });
     }
 

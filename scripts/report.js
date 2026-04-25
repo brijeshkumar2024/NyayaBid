@@ -122,7 +122,7 @@
     document.getElementById('collusion-text').textContent = root.NyayaBid.collusion.collusionNarrative();
 
     const recommendations = [
-      '1. DISQUALIFY Aakash Civil Works pending CVC investigation for suspected proxy bidding (shared address with Sunrise Tech Solutions).',
+      '1. DISQUALIFY Mohanty Civil Works pending CVC investigation for suspected proxy bidding (shared address with Sunrise Tech Solutions).',
       '2. REQUEST re-submission from GreenBuild Contractors for GST certificate with notarized copy and date verification.',
       '3. AWARD to Bharat Infra Pvt Ltd (Score: 92/100) subject to officer verification of financial statements.',
       '4. CONSIDER revising tender criteria — current threshold limits competition to 3 vendors. Recommend reducing turnover requirement to ₹7 Crore to achieve CAG-recommended minimum of 5 bidders.'
