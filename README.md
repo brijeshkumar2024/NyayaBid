@@ -137,3 +137,13 @@ Designed for modern desktop browsers with JavaScript enabled. Best experience on
 ---
 
 > NyayaBid AI does not just evaluate tenders — it helps prevent unfair ones before they are published.
+
+## Future Scope
+
+- **Backend Integration** with secure database and role-based access control for multi-user procurement workflows
+- **Integration with GeM and CPPP APIs** for real tender and bidder data
+- **Advanced AI models** for semantic understanding of tender clauses beyond rule-based extraction
+- **Face and document verification** for bidder identity validation
+- **Blockchain-backed audit trail** for tamper-proof, immutable logging
+- **Multilingual support** for regional language tender documents
+- **Mobile-friendly interface** for field officers and on-ground verification
