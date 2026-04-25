@@ -148,6 +148,23 @@
         <button id="gfr-toggle" type="button" class="btn btn-secondary">View GFR Reference</button>
       </section>
 
+      <div class="step-flow" id="step-flow-bar" aria-label="Evaluation progress">
+        <div class="step-flow-item active" id="sf-step-1">
+          <span class="step-flow-num">1</span>
+          <span class="step-flow-label">Upload Tender</span>
+        </div>
+        <span class="step-flow-arrow" aria-hidden="true">›</span>
+        <div class="step-flow-item" id="sf-step-2">
+          <span class="step-flow-num">2</span>
+          <span class="step-flow-label">Extract Criteria</span>
+        </div>
+        <span class="step-flow-arrow" aria-hidden="true">›</span>
+        <div class="step-flow-item" id="sf-step-3">
+          <span class="step-flow-num">3</span>
+          <span class="step-flow-label">Evaluate Vendors</span>
+        </div>
+      </div>
+
       <section class="eval-layout">
         <div>
           <!-- ═══════════════════════════════════════════════════════════════
@@ -159,11 +176,22 @@
             <span class="step-label">Step 1</span>
             <h3 class="section-title">Tender Upload Section</h3>
             <div class="upload-zone">
-              <p>Upload Tender Document (PDF)</p>
+              <div class="empty-state" id="upload-empty-state">
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-title">Upload a tender PDF to begin evaluation</div>
+                <div class="empty-state-sub">The browser will extract criteria automatically — no server required.</div>
+              </div>
+              <div id="upload-loader" class="upload-loader hidden">
+                <div class="upload-loader-spinner"></div>
+                <div class="upload-loader-text">Analysing document…</div>
+                <div class="upload-loader-sub">Extracting text from all pages</div>
+              </div>
               <input id="tender-file-input" type="file" accept="application/pdf" class="hidden" aria-label="Tender file input">
-              <button id="choose-pdf" class="btn btn-primary" type="button">📄 Upload Tender PDF</button>
+              <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
+                <button id="choose-pdf" class="btn btn-primary" type="button">📄 Upload Tender PDF</button>
+                <button id="load-demo-tender" class="btn btn-secondary" type="button">Use Demo Tender</button>
+              </div>
               <p id="uploaded-file-name" class="uploaded-file-name"></p>
-              <p class="demo-tender-row">Or use demo tender → <button id="load-demo-tender" class="btn btn-secondary" type="button">Use Demo Tender</button></p>
             </div>
 
             <div class="criteria-extraction-card">
@@ -383,6 +411,35 @@
       let extractedDocument = { fileName: '', rawText: '', pages: [] };
       let rows = [];
       let overrides = [];
+
+      // ── Step flow helpers ──────────────────────────────────────────────
+      const sfSteps = [
+        document.getElementById('sf-step-1'),
+        document.getElementById('sf-step-2'),
+        document.getElementById('sf-step-3')
+      ];
+
+      function setStep(activeIndex) {
+        sfSteps.forEach(function (el, i) {
+          if (!el) return;
+          el.classList.remove('active', 'done');
+          if (i < activeIndex) el.classList.add('done');
+          else if (i === activeIndex) el.classList.add('active');
+        });
+      }
+
+      // ── Loader helpers ─────────────────────────────────────────────────
+      const uploadEmptyState = document.getElementById('upload-empty-state');
+      const uploadLoader     = document.getElementById('upload-loader');
+
+      function showLoader() {
+        if (uploadEmptyState) uploadEmptyState.classList.add('hidden');
+        if (uploadLoader)     uploadLoader.classList.remove('hidden');
+      }
+
+      function hideLoader() {
+        if (uploadLoader) uploadLoader.classList.add('hidden');
+      }
 
       function toast(message, type) {
         const rootEl = document.getElementById('global-toast-root');
@@ -804,6 +861,8 @@ Contact: ${data.tender.contact}
         refs.tenderCriteriaCard.classList.add('hidden');
         if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'Reading PDF pages...';
         if (refs.rawTextPanel) refs.rawTextPanel.open = true;
+        showLoader();
+        setStep(1);
         try {
           const extracted = await extractTextFromPdfFile(file);
           extractedDocument.rawText = extracted.rawText;
@@ -811,16 +870,23 @@ Contact: ${data.tender.contact}
           const criteria = parseTenderCriteria(extracted.pages);
           applyCriteriaToFields(criteria, extracted.rawText);
           refs.fileName.textContent = 'Loaded: ' + file.name;
+          hideLoader();
+          setStep(2);
           toast('Criteria extracted from document.', 'success');
         } catch (error) {
           refs.fileName.textContent = '';
           if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'PDF extraction failed.';
           if (refs.rawTextPanel) refs.rawTextPanel.open = true;
+          hideLoader();
+          setStep(0);
           toast('Could not read PDF: ' + error.message, 'warn');
         }
       });
 
-      refs.demoButton.addEventListener('click', openDemoTender);
+      refs.demoButton.addEventListener('click', function () {
+        openDemoTender();
+        setStep(2);
+      });
 
       refs.runButton.addEventListener('click', function () {
         const builtCriteria = buildCurrentCriteria();
@@ -828,8 +894,10 @@ Contact: ${data.tender.contact}
           toast(`Please enter missing criteria manually before running evaluation: ${builtCriteria.missing}.`, 'warn');
           return;
         }
+        setStep(2);
         runEvaluationTimer(function () {
           runEvaluation(builtCriteria.criteriaOverride);
+          setStep(3);
         });
       });
 

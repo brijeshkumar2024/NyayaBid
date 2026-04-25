@@ -199,6 +199,7 @@
 
         <article class="card sim-results">
           <div id="competition-banner" class="sim-banner" aria-live="polite"></div>
+          <div id="live-explanation" class="live-explanation" aria-live="polite"></div>
 
           <div class="metric-grid sim-metrics">
             <div class="metric-card card"><div class="metric-label">Eligible Vendors</div><div class="metric-value" id="metric-eligible">0 / 10</div></div>
@@ -469,6 +470,24 @@
 
         refs.banner.className = banner.className;
         refs.banner.textContent = banner.text;
+
+        // Live explanation text
+        var liveExpl = document.getElementById('live-explanation');
+        if (liveExpl) {
+          if (eligibleCount >= 5) {
+            liveExpl.className = 'live-explanation healthy';
+            liveExpl.textContent = eligibleCount + ' vendors qualify — healthy competition. CAG risk is low.';
+          } else if (eligibleCount === 2) {
+            liveExpl.className = 'live-explanation moderate';
+            liveExpl.textContent = 'Only 2 vendors qualify — high CAG risk. Consider relaxing criteria to improve competition.';
+          } else if (eligibleCount <= 1) {
+            liveExpl.className = 'live-explanation critical';
+            liveExpl.textContent = eligibleCount + ' vendor qualifies — critical CAG risk. This tender cannot proceed without criteria revision.';
+          } else {
+            liveExpl.className = 'live-explanation moderate';
+            liveExpl.textContent = eligibleCount + ' vendors qualify — moderate competition. CAG recommends a minimum of 5 bidders.';
+          }
+        }
 
         refs.filteredSummary.textContent = `Showing ${eligibleCount} eligible vendors out of ${evaluated.length} total vendors.`;
 
