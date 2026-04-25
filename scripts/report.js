@@ -2,13 +2,44 @@
   const root = globalThis;
 
   function getStoredEvaluation() {
-    const raw = localStorage.getItem('nyayabid-evaluation-data');
+    let raw = null;
+    try {
+      raw = localStorage.getItem('nyayabid-evaluation-data');
+    } catch (error) {
+      console.error('NyayaBid report localStorage read failed:', error);
+      return null;
+    }
     if (!raw) return null;
     try {
       return JSON.parse(raw);
-    } catch {
+    } catch (error) {
+      console.error('NyayaBid report payload parse failed:', error);
       return null;
     }
+  }
+
+  function showNoEvaluationMessage() {
+    const summaryBody = document.getElementById('summary-body');
+    const sourceBody = document.getElementById('source-body');
+    const vendorBody = document.getElementById('vendor-detail-body');
+    const flagsBody = document.getElementById('flags-body');
+    const overrideBody = document.getElementById('override-log-body');
+    const recommendations = document.getElementById('recommendations-list');
+    const collusionText = document.getElementById('collusion-text');
+    const message = 'No evaluation found. Please run evaluation first.';
+
+    if (summaryBody) summaryBody.innerHTML = `<tr><td colspan="2">${message}</td></tr>`;
+    if (sourceBody) sourceBody.innerHTML = `<tr><td colspan="3">${message}</td></tr>`;
+    if (vendorBody) vendorBody.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
+    if (flagsBody) flagsBody.innerHTML = `<tr><td colspan="4">${message}</td></tr>`;
+    if (overrideBody) overrideBody.innerHTML = `<tr><td colspan="4">${message}</td></tr>`;
+    if (recommendations) recommendations.innerHTML = `<li>${message}</li>`;
+    if (collusionText) collusionText.textContent = message;
+
+    const sourceBadge = document.getElementById('report-source-badge');
+    const modeBadge = document.getElementById('report-mode-badge');
+    if (sourceBadge) sourceBadge.textContent = 'No evaluation data';
+    if (modeBadge) modeBadge.textContent = 'Action required';
   }
 
   function renderReport() {
@@ -18,8 +49,12 @@
     const data = root.NyayaBid.data;
     const utils = root.NyayaBid.utils;
     const payload = getStoredEvaluation();
-    const rows = payload?.rows || root.NyayaBid.evaluation.runBatchEvaluation(data.vendors);
-    const overrides = payload?.overrides || [];
+    if (!payload) {
+      showNoEvaluationMessage();
+      return;
+    }
+    const rows = Array.isArray(payload.rows) ? payload.rows : root.NyayaBid.evaluation.runBatchEvaluation(data.vendors);
+    const overrides = Array.isArray(payload.overrides) ? payload.overrides : [];
     const flags = root.NyayaBid.collusion.getFlagCards(data.vendors, overrides);
 
     document.getElementById('report-date').textContent = utils.formatDate(new Date());

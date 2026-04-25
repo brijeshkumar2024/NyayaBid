@@ -236,23 +236,66 @@
       }
 
       function getStoredEvaluation() {
-        const raw = localStorage.getItem('nyayabid-evaluation-data');
+        let raw = null;
+        try {
+          raw = localStorage.getItem('nyayabid-evaluation-data');
+        } catch (error) {
+          console.error('NyayaBid report localStorage read failed:', error);
+          return null;
+        }
         if (!raw) return null;
         try {
           return JSON.parse(raw);
-        } catch {
+        } catch (error) {
+          console.error('NyayaBid report payload parse failed:', error);
           return null;
         }
       }
 
       function getStoredSignoff() {
-        const raw = localStorage.getItem('nyayabid-report-signoff');
+        let raw = null;
+        try {
+          raw = localStorage.getItem('nyayabid-report-signoff');
+        } catch (error) {
+          console.error('NyayaBid signoff localStorage read failed:', error);
+          return null;
+        }
         if (!raw) return null;
         try {
           return JSON.parse(raw);
-        } catch {
+        } catch (error) {
+          console.error('NyayaBid signoff payload parse failed:', error);
           return null;
         }
+      }
+
+      function renderNoEvaluationFound() {
+        // Graceful empty-state rendering for missing evaluation payload.
+        const message = 'No evaluation found. Please run evaluation first.';
+        refs.reportId.textContent = 'N/A';
+        refs.reportHash.textContent = 'N/A';
+        refs.reportDocument.textContent = 'N/A';
+        refs.reportGenerationSource.textContent = 'N/A';
+        refs.reportGeneratedAt.textContent = new Date().toLocaleString('en-IN');
+        refs.reportSourceBadge.textContent = 'No evaluation data';
+        refs.reportModeBadge.textContent = 'Action required';
+        refs.reportStatus.textContent = 'DRAFT';
+        refs.reportStatus.className = 'badge badge-flag';
+
+        refs.metaTenderId.textContent = '-';
+        refs.metaTitle.textContent = '-';
+        refs.metaAuthority.textContent = '-';
+
+        refs.summaryBody.innerHTML = `<tr><td colspan="2">${escapeHtml(message)}</td></tr>`;
+        refs.sourceBody.innerHTML = `<tr><td colspan="3">${escapeHtml(message)}</td></tr>`;
+        refs.criteriaBody.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
+        refs.vendorBody.innerHTML = `<tr><td colspan="9">${escapeHtml(message)}</td></tr>`;
+        refs.flagsBody.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
+        refs.overrideBody.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
+        refs.collusionText.textContent = message;
+        refs.recommendationsList.innerHTML = `<li>${escapeHtml(message)}</li>`;
+        refs.signatureBlock.classList.add('hidden');
+        showToast(message, 'warn');
       }
 
       function resolveOverrides(overrides, rows) {
@@ -469,43 +512,53 @@
       }
 
       async function renderReport(sourceMode) {
-        const state = sourceMode === 'demo' ? buildDemoState() : buildStoredState() || buildDemoState();
+        try {
+          let state = null;
+          if (sourceMode === 'demo') {
+            state = buildDemoState();
+          } else {
+            state = buildStoredState();
+            if (!state) {
+              renderNoEvaluationFound();
+              return;
+            }
+          }
 
-        const flags = collusion.getFlagCards(data.vendors, state.overrides);
-        const generatedAt = new Date();
-        const sourceLabel = state.mode === 'stored' ? 'Live evaluation payload' : 'Built-in demo tender';
-        const hashPayload = {
-          mode: state.mode,
-          tender: state.tender,
-          criteria: state.criteria,
-          rows: state.finalRows.map(function (entry) {
-            return {
-              vendorId: entry.vendor.id,
-              name: entry.vendor.name,
-              city: entry.vendor.city,
-              finalStatus: entry.finalStatus,
-              originalStatus: entry.result.status,
-              confidence: entry.result.confidence,
-              override: entry.override ? {
-                vendorId: entry.override.vendorId,
-                newStatus: entry.override.newStatus,
-                justification: entry.override.justification,
-                timestamp: entry.override.timestamp
-              } : null
-            };
-          }),
-          flags: flags.map(function (flag) {
-            return {
-              vendor: flag.vendor,
-              type: flag.type,
-              level: flag.level,
-              detail: flag.detail
-            };
-          }),
-          documentName: state.documentName
-        };
+          const flags = collusion.getFlagCards(data.vendors, state.overrides);
+          const generatedAt = new Date();
+          const sourceLabel = state.mode === 'stored' ? 'Live evaluation payload' : 'Built-in demo tender';
+          const hashPayload = {
+            mode: state.mode,
+            tender: state.tender,
+            criteria: state.criteria,
+            rows: state.finalRows.map(function (entry) {
+              return {
+                vendorId: entry.vendor.id,
+                name: entry.vendor.name,
+                city: entry.vendor.city,
+                finalStatus: entry.finalStatus,
+                originalStatus: entry.result.status,
+                confidence: entry.result.confidence,
+                override: entry.override ? {
+                  vendorId: entry.override.vendorId,
+                  newStatus: entry.override.newStatus,
+                  justification: entry.override.justification,
+                  timestamp: entry.override.timestamp
+                } : null
+              };
+            }),
+            flags: flags.map(function (flag) {
+              return {
+                vendor: flag.vendor,
+                type: flag.type,
+                level: flag.level,
+                detail: flag.detail
+              };
+            }),
+            documentName: state.documentName
+          };
 
-        const reportHash = await sha256Hex(JSON.stringify(hashPayload));
+          const reportHash = await sha256Hex(JSON.stringify(hashPayload));
 
         refs.reportId.textContent = state.mode === 'stored' ? `NBR-${data.tender.id}` : `NBR-${DEMO_TENDER.id}`;
         refs.reportHash.textContent = reportHash === 'Unavailable in this browser' ? reportHash : `SHA-256: ${reportHash}`;
@@ -531,10 +584,14 @@
 
         applySignoff(getStoredSignoff());
 
-        showToast(state.mode === 'stored'
-          ? 'Stored evaluation loaded into the audit report.'
-          : 'Demo tender loaded into the audit report.',
-        'success');
+          showToast(state.mode === 'stored'
+            ? 'Stored evaluation loaded into the audit report.'
+            : 'Demo tender loaded into the audit report.',
+          'success');
+        } catch (error) {
+          console.error('NyayaBid report render failed:', error);
+          renderNoEvaluationFound();
+        }
       }
 
       refs.downloadButton.addEventListener('click', function () {
@@ -550,25 +607,30 @@
       });
 
       refs.finalizeBtn.addEventListener('click', function () {
-        const officer = refs.officerName.value.trim();
-        const designation = refs.officerDesignation.value.trim();
-        const remarks = refs.officerRemarks.value.trim();
-        if (!officer || !designation || !remarks) {
-          showToast('Please complete officer sign-off details before finalizing.', 'warn');
-          return;
-        }
+        try {
+          const officer = refs.officerName.value.trim();
+          const designation = refs.officerDesignation.value.trim();
+          const remarks = refs.officerRemarks.value.trim();
+          if (!officer || !designation || !remarks) {
+            showToast('Please complete officer sign-off details before finalizing.', 'warn');
+            return;
+          }
 
-        const now = new Date();
-        const signoff = {
-          officer,
-          designation,
-          remarks,
-          date: refs.signDate.value,
-          finalizedAt: now.toISOString()
-        };
-        localStorage.setItem('nyayabid-report-signoff', JSON.stringify(signoff));
-        applySignoff(signoff);
-        showToast('Report finalized and logged to audit trail.', 'success');
+          const now = new Date();
+          const signoff = {
+            officer,
+            designation,
+            remarks,
+            date: refs.signDate.value,
+            finalizedAt: now.toISOString()
+          };
+          localStorage.setItem('nyayabid-report-signoff', JSON.stringify(signoff));
+          applySignoff(signoff);
+          showToast('Report finalized and logged to audit trail.', 'success');
+        } catch (error) {
+          console.error('NyayaBid report finalize failed:', error);
+          showToast('Unable to finalize report. Please try again.', 'warn');
+        }
       });
 
       renderReport('stored');

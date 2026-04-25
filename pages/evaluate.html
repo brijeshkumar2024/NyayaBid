@@ -118,6 +118,200 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* ── AI perception layer ───────────────────────────────────────────── */
+
+    .ai-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e40af;
+      min-height: 40px;
+    }
+
+    .ai-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
+      flex-shrink: 0;
+      animation: aiPulse 1.2s ease-in-out infinite;
+    }
+
+    .ai-status-dot.idle { background: #94a3b8; animation: none; }
+    .ai-status-dot.done { background: #16a34a; animation: none; }
+    .ai-status-dot.warn { background: #f59e0b; animation: none; }
+
+    @keyframes aiPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    .extraction-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 4px;
+    }
+
+    .extraction-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      animation: chipIn 280ms ease both;
+    }
+
+    @keyframes chipIn {
+      from { opacity: 0; transform: translateY(6px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chip-found {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .chip-missing {
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
+    }
+
+    .chip-icon { font-size: 13px; }
+
+    .vendor-result-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      animation: fadeInUp 260ms ease both;
+    }
+
+    .vendor-result-card.card-eligible {
+      border-left: 4px solid #16a34a;
+      background: #f0fdf4;
+    }
+
+    .vendor-result-card.card-rejected {
+      border-left: 4px solid #dc2626;
+      background: #fef2f2;
+    }
+
+    .vendor-result-card.card-flagged {
+      border-left: 4px solid #f59e0b;
+      background: #fffbeb;
+    }
+
+    .vendor-result-card.card-overridden {
+      border-left: 4px solid #8b5cf6;
+      background: #faf5ff;
+    }
+
+    .vrc-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .vrc-verdict {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .vrc-verdict.eligible  { color: #166534; }
+    .vrc-verdict.rejected  { color: #b91c1c; }
+    .vrc-verdict.flagged   { color: #92400e; }
+    .vrc-verdict.overridden { color: #6d28d9; }
+
+    .vrc-reason {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .vrc-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .vrc-check {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .vrc-check.pass { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .vrc-check.fail { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+    .vrc-check.flag { background: #fef3c7; border-color: #fde68a; color: #92400e; }
+
+    .vrc-confidence {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      min-width: 90px;
+    }
+
+    .vrc-confidence-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .vrc-confidence-score {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .vrc-confidence-score.high { color: #16a34a; }
+    .vrc-confidence-score.mid  { color: #d97706; }
+    .vrc-confidence-score.low  { color: #dc2626; }
+
+    .vrc-bar-wrap {
+      width: 80px;
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .vrc-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .vrc-bar-fill.high { background: #16a34a; }
+    .vrc-bar-fill.mid  { background: #d97706; }
+    .vrc-bar-fill.low  { background: #dc2626; }
   </style>
 </head>
 <body data-page="evaluate" data-active-nav="evaluate">
@@ -175,6 +369,12 @@
           <section class="card panel step-block">
             <span class="step-label">Step 1</span>
             <h3 class="section-title">Tender Upload Section</h3>
+
+            <div id="ai-status-bar" class="ai-status-bar">
+              <span id="ai-status-dot" class="ai-status-dot idle"></span>
+              <span id="ai-status-text">Ready — upload a tender PDF or use the demo tender to begin.</span>
+            </div>
+
             <div class="upload-zone">
               <div class="empty-state" id="upload-empty-state">
                 <div class="empty-state-icon">📄</div>
@@ -237,6 +437,8 @@
               </details>
 
               <p class="criteria-note">The Run Evaluation button reads the live values in these fields, so any manual edits are included in the scoring step.</p>
+
+              <div id="extraction-chips" class="extraction-chips" aria-live="polite"></div>
             </div>
 
             <!-- Criteria extracted from uploaded PDF — hidden until extraction runs -->
@@ -288,6 +490,8 @@
             <h3 class="section-title">Evaluation Results</h3>
 
             <div id="evaluation-time-banner" class="evaluation-time-banner hidden">Evaluation completed in 1.3 seconds. Manual audit of same documents: est. 3–5 working days.</div>
+
+            <div id="ai-result-cards" class="ai-result-cards" aria-live="polite"></div>
 
             <div class="table-wrap">
               <table class="results-table">
@@ -348,21 +552,23 @@
 
   <div id="global-toast-root" class="toast-root"></div>
 
-  <!-- pdf.js CDN — used by Document Intelligence for PDF text extraction -->
+  <!-- pdf.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <!-- FIX: null-guard before setting workerSrc — CDN may be slow or blocked -->
   <script>
     if (typeof pdfjsLib !== 'undefined') {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
   </script>
+  <!-- Tesseract.js CDN — OCR fallback for scanned/image PDFs -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <script src="../scripts/data.js"></script>
   <script src="../scripts/evaluation.js"></script>
   <script src="../scripts/collusion.js"></script>
   <script>
     (function () {
+      'use strict';
       const root = globalThis;
       const data = root.NyayaBid.data;
       const evaluation = root.NyayaBid.evaluation;
@@ -439,6 +645,114 @@
 
       function hideLoader() {
         if (uploadLoader) uploadLoader.classList.add('hidden');
+      }
+
+      // ── AI status bar ────────────────────────────────────────────────
+      const aiStatusDot  = document.getElementById('ai-status-dot');
+      const aiStatusText = document.getElementById('ai-status-text');
+
+      function setAiStatus(text, state) {
+        if (aiStatusText) aiStatusText.textContent = text;
+        if (aiStatusDot) {
+          aiStatusDot.className = 'ai-status-dot' + (state && state !== 'active' ? ' ' + state : '');
+        }
+      }
+
+      // ── Extraction chips ─────────────────────────────────────────────
+      function renderExtractionChips(criteria) {
+        var chips = document.getElementById('extraction-chips');
+        if (!chips) return;
+        var items = [
+          {
+            found: Number.isFinite(criteria.minTurnover),
+            label: Number.isFinite(criteria.minTurnover)
+              ? 'Turnover detected: ₹' + criteria.minTurnover + ' Cr'
+              : 'Turnover: not found'
+          },
+          {
+            found: Number.isFinite(criteria.minExperience),
+            label: Number.isFinite(criteria.minExperience)
+              ? 'Experience detected: ' + criteria.minExperience + ' years'
+              : 'Experience: not found'
+          },
+          {
+            found: criteria.gstMandatory !== null && criteria.gstMandatory !== undefined,
+            label: criteria.gstMandatory === true
+              ? 'GST found: Mandatory'
+              : criteria.gstMandatory === false
+                ? 'GST found: Not required'
+                : 'GST: not found'
+          },
+          {
+            found: criteria.msmeApplicable !== null && criteria.msmeApplicable !== undefined,
+            label: criteria.msmeApplicable === true
+              ? 'MSME relaxation: Applicable'
+              : criteria.msmeApplicable === false
+                ? 'MSME: Not mentioned'
+                : 'MSME: not found'
+          }
+        ];
+        chips.innerHTML = items.map(function (item, i) {
+          return '<span class="extraction-chip ' + (item.found ? 'chip-found' : 'chip-missing') + '" style="animation-delay:' + (i * 80) + 'ms">'
+            + '<span class="chip-icon">' + (item.found ? '✓' : '⚠') + '</span>'
+            + item.label + '</span>';
+        }).join('');
+      }
+
+      // ── AI result cards ──────────────────────────────────────────────
+      function verdictText(entry, override) {
+        if (override) return 'Decision overridden by officer';
+        if (entry.result.status === 'Eligible') {
+          if (entry.vendor.crossDocFlag) return 'Vendor meets criteria — document anomaly flagged for review';
+          return 'Vendor meets all required criteria';
+        }
+        return 'Vendor does not meet the minimum eligibility threshold';
+      }
+
+      function verdictClass(entry, override) {
+        if (override) return 'overridden';
+        if (entry.result.status === 'Eligible') return entry.vendor.crossDocFlag ? 'flagged' : 'eligible';
+        return 'rejected';
+      }
+
+      function renderAiResultCards(rowsToRender, overridesToRender) {
+        var container = document.getElementById('ai-result-cards');
+        if (!container) return;
+        container.innerHTML = rowsToRender.map(function (entry, idx) {
+          var override  = overridesToRender.find(function (item) { return item.vendorId === entry.vendor.id; });
+          var vClass    = verdictClass(entry, override);
+          var vText     = verdictText(entry, override);
+          var conf      = entry.result.confidence;
+          var confClass = conf >= 80 ? 'high' : conf >= 60 ? 'mid' : 'low';
+          var checks = [
+            { label: 'Turnover',    pass: entry.result.turnoverPass, flag: false },
+            { label: 'Experience',  pass: entry.result.expPass,      flag: false },
+            { label: 'GST',         pass: entry.result.gstPass,      flag: false },
+            { label: entry.vendor.crossDocFlag  ? 'Doc Flag'       : 'Docs Clear',   pass: !entry.vendor.crossDocFlag,  flag: entry.vendor.crossDocFlag },
+            { label: entry.vendor.collusionRisk ? 'Collusion Risk' : 'No Collusion', pass: !entry.vendor.collusionRisk, flag: entry.vendor.collusionRisk }
+          ];
+          var reasonText = entry.result.reasons.join(' • ');
+          return '<div class="vendor-result-card card-' + vClass + '" style="animation-delay:' + (idx * 60) + 'ms">'
+            + '<div>'
+            + '<div class="vrc-name">' + entry.vendor.name + ' — ' + entry.vendor.city + '</div>'
+            + '<div class="vrc-verdict ' + vClass + '">' + vText + '</div>'
+            + '<div class="vrc-reason">' + reasonText + '</div>'
+            + '<div class="vrc-checks">'
+            + checks.map(function (c) {
+                return '<span class="vrc-check ' + (c.flag ? 'flag' : c.pass ? 'pass' : 'fail') + '">' + c.label + '</span>';
+              }).join('')
+            + '</div></div>'
+            + '<div class="vrc-confidence">'
+            + '<span class="vrc-confidence-label">AI Confidence</span>'
+            + '<span class="vrc-confidence-score ' + confClass + '">' + conf + '%</span>'
+            + '<div class="vrc-bar-wrap"><div class="vrc-bar-fill ' + confClass + '" style="width:0%" data-target="' + conf + '"></div></div>'
+            + '</div></div>';
+        }).join('');
+        requestAnimationFrame(function () {
+          container.querySelectorAll('.vrc-bar-fill').forEach(function (bar) {
+            bar.style.width = bar.dataset.target + '%';
+          });
+        });
       }
 
       function toast(message, type) {
@@ -533,6 +847,81 @@
           pages.push({ pageNumber, lines: groupItemsIntoLines(content.items) });
         }
         return { pages, rawText: buildRawTextOutput(pages) };
+      }
+
+      // ── OCR fallback for scanned/image PDFs ────────────────────────────
+      async function extractViaOCR(file) {
+        if (typeof Tesseract === 'undefined') {
+          throw new TypeError('OCR library not loaded. Please check your internet connection.');
+        }
+        setAiStatus('active', 'Running OCR on scanned document… this may take a moment.');
+        const url = URL.createObjectURL(file);
+        try {
+          const result = await Tesseract.recognize(url, 'eng', {
+            logger: function (m) {
+              if (m.status === 'recognizing text') {
+                const pct = Math.round((m.progress || 0) * 100);
+                setAiStatus('active', 'OCR in progress… ' + pct + '%');
+              }
+            }
+          });
+          const text = (result.data && result.data.text) ? result.data.text.trim() : '';
+          const lines = text.split('\n').filter(function (l) { return l.trim().length > 0; }).map(function (l, i) {
+            return { lineNumber: i + 1, text: l.trim() };
+          });
+          return { pages: [{ pageNumber: 1, lines: lines }], rawText: text, isOCR: true };
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      // ── Smart extraction: PDF.js first, OCR fallback if no text found ────────
+      async function extractDocument(file) {
+        setAiStatus('active', 'AI is analyzing the document…');
+        try {
+          const extracted = await extractTextFromPdfFile(file);
+          const hasText = extracted.rawText && extracted.rawText.trim().length > 80;
+          if (!hasText) {
+            // Scanned PDF — fall back to OCR
+            setAiStatus('active', 'No text layer found — switching to OCR mode…');
+            toast('Scanned PDF detected — running OCR fallback.', 'warn');
+            return await extractViaOCR(file);
+          }
+          return extracted;
+        } catch (pdfError) {
+          // PDF.js failed entirely — try OCR as last resort
+          console.warn('NyayaBid PDF.js failed, trying OCR:', pdfError);
+          setAiStatus('active', 'PDF parsing failed — attempting OCR fallback…');
+          return await extractViaOCR(file);
+        }
+      }
+
+      function isCompleteEvaluationRows(rowsToCheck) {
+        if (!Array.isArray(rowsToCheck) || rowsToCheck.length !== data.vendors.length) return false;
+        return rowsToCheck.every(function (entry) {
+          return entry && entry.vendor && entry.result && typeof entry.result.status === 'string';
+        });
+      }
+
+      function persistEvaluationSafely(criteriaOverride) {
+        try {
+          if (!isCompleteEvaluationRows(rows)) {
+            // Prevent partial payload writes that can break downstream report rendering.
+            throw new TypeError('Evaluation results are incomplete; payload not persisted.');
+          }
+          const payload = {
+            rows,
+            overrides: Array.isArray(overrides) ? overrides : [],
+            criteria: criteriaOverride || null,
+            document: extractedDocument || { fileName: '', rawText: '', pages: [] }
+          };
+          localStorage.setItem('nyayabid-evaluation-data', JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.error('NyayaBid evaluation save failed:', error);
+          toast('Unable to save evaluation data. Please re-run evaluation.', 'warn');
+          return false;
+        }
       }
 
       function extractTurnover(pages) {
@@ -755,19 +1144,34 @@
       }
 
       function runEvaluation(criteriaOverride) {
-        rows = evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
-        renderResults(rows, overrides);
-        renderFlags(overrides);
-        populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
-        refs.resultsBlock.classList.remove('hidden');
-        refs.timeBanner.classList.remove('hidden');
-        refs.uncertaintyBanner.classList.add('hidden');
-        const uncertainVendor = rows.find(function (entry) { return entry.result.confidence < 70; });
-        if (uncertainVendor) {
-          refs.uncertaintyText.textContent = `Vendor: ${uncertainVendor.vendor.name} — Confidence Score: ${uncertainVendor.result.confidence}% — System is uncertain about this evaluation. Manual review by procurement officer recommended before finalizing decision.`;
-          refs.uncertaintyBanner.classList.remove('hidden');
+        try {
+          setAiStatus('active', 'Matching vendor data against extracted criteria…');
+          rows = evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
+          if (!isCompleteEvaluationRows(rows)) {
+            toast('Evaluation could not be completed. Please try again.', 'warn');
+            setAiStatus('warn', 'Evaluation incomplete — please try again.');
+            return;
+          }
+          renderAiResultCards(rows, overrides);
+          renderResults(rows, overrides);
+          renderFlags(overrides);
+          populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
+          refs.resultsBlock.classList.remove('hidden');
+          refs.timeBanner.classList.remove('hidden');
+          refs.uncertaintyBanner.classList.add('hidden');
+          const uncertainVendor = rows.find(function (entry) { return entry.result.confidence < 70; });
+          if (uncertainVendor) {
+            refs.uncertaintyText.textContent = 'Vendor: ' + uncertainVendor.vendor.name + ' — Confidence Score: ' + uncertainVendor.result.confidence + '% — System is uncertain about this evaluation. Manual review by procurement officer recommended before finalizing decision.';
+            refs.uncertaintyBanner.classList.remove('hidden');
+          }
+          const eligibleCount = rows.filter(function (e) { return e.result.status === 'Eligible'; }).length;
+          setAiStatus('done', 'Evaluation complete — ' + eligibleCount + ' of ' + rows.length + ' vendors eligible. Report ready.');
+          persistEvaluationSafely(criteriaOverride);
+        } catch (error) {
+          console.error('NyayaBid runEvaluation failed:', error);
+          setAiStatus('warn', 'Evaluation failed — please try again.');
+          toast('Evaluation failed. Please try again.', 'warn');
         }
-        localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({ rows, overrides, criteria: criteriaOverride, document: extractedDocument }));
       }
 
       function runEvaluationTimer(onDone) {
@@ -863,38 +1267,49 @@ Contact: ${data.tender.contact}
         if (refs.rawTextPanel) refs.rawTextPanel.open = true;
         showLoader();
         setStep(1);
+        setAiStatus('active', 'AI is analyzing the document…');
         try {
-          const extracted = await extractTextFromPdfFile(file);
+          const extracted = await extractDocument(file);
           extractedDocument.rawText = extracted.rawText;
           extractedDocument.pages = extracted.pages;
           const criteria = parseTenderCriteria(extracted.pages);
           applyCriteriaToFields(criteria, extracted.rawText);
-          refs.fileName.textContent = 'Loaded: ' + file.name;
+          renderExtractionChips(criteria);
+          refs.fileName.textContent = (extracted.isOCR ? '[OCR] Loaded: ' : 'Loaded: ') + file.name;
           hideLoader();
           setStep(2);
+          const foundCount = [Number.isFinite(criteria.minTurnover), Number.isFinite(criteria.minExperience),
+            criteria.gstMandatory !== null, criteria.msmeApplicable !== null].filter(Boolean).length;
+          setAiStatus('done', 'Extraction complete — ' + foundCount + '/4 criteria detected' + (extracted.isOCR ? ' (via OCR)' : '') + '. Review and run evaluation.');
           toast('Criteria extracted from document.', 'success');
         } catch (error) {
+          console.error('NyayaBid tender upload failed:', error);
           refs.fileName.textContent = '';
-          if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'PDF extraction failed.';
+          if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'Failed to read document. Please upload a valid PDF.';
           if (refs.rawTextPanel) refs.rawTextPanel.open = true;
           hideLoader();
           setStep(0);
-          toast('Could not read PDF: ' + error.message, 'warn');
+          setAiStatus('warn', 'Could not read document — ' + (error.message || 'unknown error'));
+          toast('Could not read document: ' + (error.message || 'unknown error'), 'warn');
         }
       });
 
       refs.demoButton.addEventListener('click', function () {
         openDemoTender();
         setStep(2);
+        renderExtractionChips({ minTurnover: 10, minExperience: 7, gstMandatory: true, msmeApplicable: true });
+        setAiStatus('done', 'Demo tender loaded — 4/4 criteria pre-filled. Click Run Evaluation to proceed.');
       });
 
       refs.runButton.addEventListener('click', function () {
         const builtCriteria = buildCurrentCriteria();
         if (!builtCriteria.ok) {
-          toast(`Please enter missing criteria manually before running evaluation: ${builtCriteria.missing}.`, 'warn');
+          toast('Please enter missing criteria manually before running evaluation: ' + builtCriteria.missing + '.', 'warn');
+          setAiStatus('warn', 'Missing criteria: ' + builtCriteria.missing);
           return;
         }
         setStep(2);
+        setAiStatus('active', 'Evaluating vendors against extracted criteria…');
         runEvaluationTimer(function () {
           runEvaluation(builtCriteria.criteriaOverride);
           setStep(3);
@@ -918,21 +1333,32 @@ Contact: ${data.tender.contact}
       });
 
       refs.submitOverride.addEventListener('click', function () {
-        const vendorId = refs.overrideVendor.value;
-        const newStatus = refs.overrideStatus.value;
-        const justification = refs.overrideJustification.value.trim();
-        const consent = refs.overrideConsent.checked;
-        if (!vendorId || !newStatus || justification.length < 50 || !consent) {
-          toast('Override form incomplete. Please satisfy all requirements.', 'warn');
-          return;
+        try {
+          const vendorId = refs.overrideVendor.value;
+          const newStatus = refs.overrideStatus.value;
+          const justification = refs.overrideJustification.value.trim();
+          const consent = refs.overrideConsent.checked;
+          if (!vendorId || !newStatus || justification.length < 50 || !consent) {
+            toast('Override form incomplete. Please satisfy all requirements.', 'warn');
+            return;
+          }
+          const vendor = data.vendors.find(function (entry) { return entry.id === vendorId; });
+          if (!vendor) {
+            toast('Selected vendor was not found.', 'warn');
+            return;
+          }
+          overrides.push({ vendorId, vendorName: vendor.name, newStatus, justification, timestamp: new Date().toISOString() });
+          renderAiResultCards(rows, overrides);
+          renderResults(rows, overrides);
+          renderFlags(overrides);
+          const currentCriteria = buildCurrentCriteria();
+          persistEvaluationSafely(currentCriteria.ok ? currentCriteria.criteriaOverride : null);
+          refs.overrideSuccess.classList.remove('hidden');
+          toast('Override logged. Justification recorded in audit trail.', 'success');
+        } catch (error) {
+          console.error('NyayaBid override submission failed:', error);
+          toast('Failed to submit override. Please try again.', 'warn');
         }
-        const vendor = data.vendors.find(function (entry) { return entry.id === vendorId; });
-        overrides.push({ vendorId, vendorName: vendor.name, newStatus, justification, timestamp: new Date().toISOString() });
-        renderResults(rows, overrides);
-        renderFlags(overrides);
-        localStorage.setItem('nyayabid-evaluation-data', JSON.stringify({ rows, overrides, criteria: buildCurrentCriteria().criteriaOverride, document: extractedDocument }));
-        refs.overrideSuccess.classList.remove('hidden');
-        toast('Override logged. Justification recorded in audit trail.', 'success');
       });
 
       renderVendorCards();

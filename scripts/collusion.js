@@ -2,18 +2,27 @@
   const root = globalThis;
 
   function getFlagCards(vendors, overrides) {
-    const baseFlags = root.NyayaBid.data.seedFlags.slice();
-    const manual = (overrides || []).map(function (entry, idx) {
-      return {
-        id: `F-OVERRIDE-${idx + 1}`,
-        vendor: entry.vendorName,
-        type: 'Manual Override',
-        level: 'amber',
-        detail: `Manual Override — ${entry.vendorName} — by Officer`,
-        recommendedAction: `Override status changed to ${entry.newStatus}. Justification recorded in audit trail.`
-      };
-    });
-    return baseFlags.concat(manual);
+    try {
+      const baseSeedFlags = root.NyayaBid?.data?.seedFlags || [];
+      const baseFlags = Array.isArray(baseSeedFlags) ? baseSeedFlags.slice() : [];
+      const manualOverrides = Array.isArray(overrides) ? overrides : [];
+      const manual = manualOverrides.map(function (entry, idx) {
+        const vendorName = entry?.vendorName || 'Unknown Vendor';
+        const newStatus = entry?.newStatus || 'Unknown';
+        return {
+          id: `F-OVERRIDE-${idx + 1}`,
+          vendor: vendorName,
+          type: 'Manual Override',
+          level: 'amber',
+          detail: `Manual Override — ${vendorName} — by Officer`,
+          recommendedAction: `Override status changed to ${newStatus}. Justification recorded in audit trail.`
+        };
+      });
+      return baseFlags.concat(manual);
+    } catch (error) {
+      console.error('NyayaBid collusion flag generation error:', error);
+      return [];
+    }
   }
 
   function collusionNarrative() {
