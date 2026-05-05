@@ -3,1390 +3,612 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NyayaBid AI | Evaluate Tender</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <title>NyayaBid AI | Evaluate</title>
+  <!-- Fonts omitted for offline demo; CSS uses system fallbacks -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="../styles/main.css">
-  <link rel="stylesheet" href="../styles/dashboard.css">
-  <style>
-    .criteria-extraction-card {
-      margin-top: 1rem;
-      padding: 1rem;
-      border-radius: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.24);
-      background: rgba(15, 23, 42, 0.35);
-      box-shadow: 0 18px 42px rgba(2, 6, 23, 0.16);
-    }
-
-    .criteria-extraction-head h4,
-    .criteria-extraction-head p {
-      margin: 0;
-    }
-
-    .criteria-extraction-head p {
-      margin-top: 0.35rem;
-      color: rgba(226, 232, 240, 0.8);
-      font-size: 0.93rem;
-    }
-
-    .criteria-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.85rem;
-      margin-top: 1rem;
-    }
-
-    .criteria-field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    .criteria-field label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #e2e8f0;
-    }
-
-    .criteria-input,
-    .criteria-select {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      background: rgba(15, 23, 42, 0.88);
-      color: #f8fafc;
-      padding: 0.85rem 0.95rem;
-      font: inherit;
-      outline: none;
-    }
-
-    .criteria-input::placeholder {
-      color: rgba(148, 163, 184, 0.95);
-    }
-
-    .criteria-source {
-      min-height: 1.15rem;
-      font-size: 0.84rem;
-      color: #93c5fd;
-    }
-
-    .criteria-source.missing {
-      color: #fbbf24;
-    }
-
-    .raw-text-panel {
-      margin-top: 1rem;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.24);
-      background: rgba(2, 6, 23, 0.5);
-      overflow: hidden;
-    }
-
-    .raw-text-panel summary {
-      cursor: pointer;
-      list-style: none;
-      padding: 0.95rem 1rem;
-      font-weight: 700;
-      color: #e2e8f0;
-    }
-
-    .raw-text-panel summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .raw-text-output {
-      margin: 0;
-      padding: 0 1rem 1rem;
-      max-height: 360px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: #cbd5e1;
-      font-size: 0.88rem;
-      line-height: 1.55;
-    }
-
-    .criteria-note {
-      margin-top: 0.85rem;
-      font-size: 0.9rem;
-      color: rgba(226, 232, 240, 0.78);
-    }
-
-    @media (max-width: 900px) {
-      .criteria-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* ── AI perception layer ───────────────────────────────────────────── */
-
-    .ai-status-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: #f0f7ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      margin-bottom: 14px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #1e40af;
-      min-height: 40px;
-    }
-
-    .ai-status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #3b82f6;
-      flex-shrink: 0;
-      animation: aiPulse 1.2s ease-in-out infinite;
-    }
-
-    .ai-status-dot.idle { background: #94a3b8; animation: none; }
-    .ai-status-dot.done { background: #16a34a; animation: none; }
-    .ai-status-dot.warn { background: #f59e0b; animation: none; }
-
-    @keyframes aiPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.4; transform: scale(0.75); }
-    }
-
-    .extraction-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 12px 0 4px;
-    }
-
-    .extraction-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid transparent;
-      animation: chipIn 280ms ease both;
-    }
-
-    @keyframes chipIn {
-      from { opacity: 0; transform: translateY(6px) scale(0.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .chip-found {
-      background: #f0fdf4;
-      border-color: #86efac;
-      color: #166534;
-    }
-
-    .chip-missing {
-      background: #fffbeb;
-      border-color: #fde68a;
-      color: #92400e;
-    }
-
-    .chip-icon { font-size: 13px; }
-
-    .vendor-result-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      background: #fff;
-      padding: 16px 18px;
-      margin-bottom: 10px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: start;
-      animation: fadeInUp 260ms ease both;
-    }
-
-    .vendor-result-card.card-eligible {
-      border-left: 4px solid #16a34a;
-      background: #f0fdf4;
-    }
-
-    .vendor-result-card.card-rejected {
-      border-left: 4px solid #dc2626;
-      background: #fef2f2;
-    }
-
-    .vendor-result-card.card-flagged {
-      border-left: 4px solid #f59e0b;
-      background: #fffbeb;
-    }
-
-    .vendor-result-card.card-overridden {
-      border-left: 4px solid #8b5cf6;
-      background: #faf5ff;
-    }
-
-    .vrc-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-
-    .vrc-verdict {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .vrc-verdict.eligible  { color: #166534; }
-    .vrc-verdict.rejected  { color: #b91c1c; }
-    .vrc-verdict.flagged   { color: #92400e; }
-    .vrc-verdict.overridden { color: #6d28d9; }
-
-    .vrc-reason {
-      font-size: 13px;
-      color: #475569;
-      line-height: 1.5;
-      margin-bottom: 10px;
-    }
-
-    .vrc-checks {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .vrc-check {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-    }
-
-    .vrc-check.pass { background: #dcfce7; border-color: #86efac; color: #166534; }
-    .vrc-check.fail { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
-    .vrc-check.flag { background: #fef3c7; border-color: #fde68a; color: #92400e; }
-
-    .vrc-confidence {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
-      min-width: 90px;
-    }
-
-    .vrc-confidence-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .vrc-confidence-score {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    .vrc-confidence-score.high { color: #16a34a; }
-    .vrc-confidence-score.mid  { color: #d97706; }
-    .vrc-confidence-score.low  { color: #dc2626; }
-
-    .vrc-bar-wrap {
-      width: 80px;
-      height: 6px;
-      border-radius: 999px;
-      background: #e2e8f0;
-      overflow: hidden;
-    }
-
-    .vrc-bar-fill {
-      height: 100%;
-      border-radius: 999px;
-      transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .vrc-bar-fill.high { background: #16a34a; }
-    .vrc-bar-fill.mid  { background: #d97706; }
-    .vrc-bar-fill.low  { background: #dc2626; }
-  </style>
 </head>
-<body data-page="evaluate" data-active-nav="evaluate">
-  <div class="site-shell">
-    <aside class="sidebar" aria-label="Primary navigation">
+<body data-page="evaluate">
+  <div class="app-shell">
+    <aside class="sidebar">
       <div class="sidebar-top">
         <a class="brand" href="../index.html">
-          <img src="../assets/logo.svg" alt="NyayaBid AI logo" width="120" height="28">
-          <div class="brand-text"><strong>NyayaBid AI</strong><span>Explainable Tender Evaluation</span></div>
+          <span class="brand-mark">N</span>
+          <span class="brand-copy">
+            <strong>NyayaBid AI</strong>
+            <span>Evaluation engine</span>
+          </span>
         </a>
         <nav class="sidebar-nav">
-          <a class="sidebar-link" data-icon="overview" data-nav="overview" href="dashboard.html">Overview</a>
-          <a class="sidebar-link" data-icon="evaluate" data-nav="evaluate" href="evaluate.html">Evaluate Tender</a>
-          <a class="sidebar-link" data-icon="simulate" data-nav="simulate" href="simulation.html">Reverse Simulation</a>
-          <a class="sidebar-link" data-icon="report" data-nav="report" href="report.html">Audit Reports</a>
-          <button id="settings-btn">⚙ Settings</button>
+          <a class="nav-item" href="../index.html">Home</a>
+          <a class="nav-item" href="dashboard.html">Dashboard</a>
+          <a class="nav-item active" href="evaluate.html">Evaluate</a>
+          <a class="nav-item" href="simulation.html">Simulate</a>
+          <a class="nav-item" href="report.html">Report</a>
         </nav>
       </div>
-      <div class="version-tag">NyayaBid AI v1.0</div>
+      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Offline-first demo mode</div></div>
     </aside>
 
-    <main class="main-content">
-      <section class="page-header">
-        <div class="page-title">
-          <h1>Evaluation Engine</h1>
-          <p>Step-by-step explainable assessment for tender eligibility.</p>
-        </div>
-        <button id="gfr-toggle" type="button" class="btn btn-secondary">View GFR Reference</button>
-      </section>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-      <div class="step-flow" id="step-flow-bar" aria-label="Evaluation progress">
-        <div class="step-flow-item active" id="sf-step-1">
-          <span class="step-flow-num">1</span>
-          <span class="step-flow-label">Upload Tender</span>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Tender Evaluation</h1>
+          <p>Everything works locally. AI extraction is optional, not required.</p>
         </div>
-        <span class="step-flow-arrow" aria-hidden="true">›</span>
-        <div class="step-flow-item" id="sf-step-2">
-          <span class="step-flow-num">2</span>
-          <span class="step-flow-label">Extract Criteria</span>
-        </div>
-        <span class="step-flow-arrow" aria-hidden="true">›</span>
-        <div class="step-flow-item" id="sf-step-3">
-          <span class="step-flow-num">3</span>
-          <span class="step-flow-label">Evaluate Vendors</span>
+        <div class="button-row">
+          <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
+          <button class="btn btn-secondary" id="uploadTenderBtn" type="button">Upload PDF</button>
+          <button class="btn btn-secondary" id="demoTenderBtn" type="button">Use Demo Tender</button>
+          <button class="btn btn-secondary" id="loadVendorsBtn" type="button">Load Demo Vendors</button>
         </div>
       </div>
 
-      <section class="eval-layout">
-        <div>
-          <!-- ═══════════════════════════════════════════════════════════════
-               DOCUMENT INTELLIGENCE (DEMO)
-               New section — reads PDFs and images, maps data to evaluation.
-               Does NOT modify any existing evaluation logic.
-          ════════════════════════════════════════════════════════════════════ -->
-          <section class="card panel step-block">
-            <span class="step-label">Step 1</span>
-            <h3 class="section-title">Tender Upload Section</h3>
+      <input id="tenderFileInput" type="file" accept="application/pdf" hidden>
 
-            <div id="ai-status-bar" class="ai-status-bar">
-              <span id="ai-status-dot" class="ai-status-dot idle"></span>
-              <span id="ai-status-text">Ready — upload a tender PDF or use the demo tender to begin.</span>
+      <section class="section grid-2">
+        <article class="card">
+          <div class="card-header"><h3>Section A - Tender Criteria</h3></div>
+          <div class="chips" id="criteriaChips"></div>
+          <div class="placeholder" id="criteriaPlaceholder">Upload a PDF or load the demo tender to populate criteria.</div>
+
+          <div class="card mt-18" id="manualCriteriaCard" hidden>
+            <div class="card-header"><h4>Manual Criteria</h4></div>
+            <div class="grid-2">
+              <div class="form-group"><label for="manualTenderId">Tender ID</label><input id="manualTenderId" type="text" value="TND-2024-001"></div>
+              <div class="form-group"><label for="manualTenderTitle">Tender Title</label><input id="manualTenderTitle" type="text" value="Road Construction Works"></div>
+              <div class="form-group"><label for="manualMinTurnover">Minimum Turnover (Cr)</label><input id="manualMinTurnover" type="number" value="10"></div>
+              <div class="form-group"><label for="manualMinExperience">Minimum Experience (Years)</label><input id="manualMinExperience" type="number" value="5"></div>
+              <div class="form-group"><label><input id="manualGstMandatory" type="checkbox" checked> GST Mandatory</label></div>
+              <div class="form-group"><label><input id="manualIsoRequired" type="checkbox"> ISO Required</label></div>
+              <div class="form-group"><label><input id="manualMsmeAllowed" type="checkbox" checked> MSME Allowed</label></div>
             </div>
+            <button class="btn btn-secondary" id="applyManualCriteriaBtn" type="button">Apply Manual Criteria</button>
+          </div>
+        </article>
 
-            <div class="upload-zone">
-              <div class="empty-state" id="upload-empty-state">
-                <div class="empty-state-icon">📄</div>
-                <div class="empty-state-title">Upload a tender PDF to begin evaluation</div>
-                <div class="empty-state-sub">The browser will extract criteria automatically — no server required.</div>
-              </div>
-              <div id="upload-loader" class="upload-loader hidden">
-                <div class="upload-loader-spinner"></div>
-                <div class="upload-loader-text">Analyzing document...</div>
-                <div class="upload-loader-sub">Extracting text from all pages</div>
-              </div>
-              <input id="tender-file-input" type="file" accept="application/pdf" class="hidden" aria-label="Tender file input">
-              <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
-                <button id="choose-pdf" class="btn btn-primary" type="button">📄 Upload Tender PDF</button>
-                <button id="load-demo-tender" class="btn btn-secondary" type="button">Use Demo Tender</button>
-              </div>
-              <p id="uploaded-file-name" class="uploaded-file-name"></p>
-            </div>
+        <article class="card">
+          <div class="card-header"><h3>Section B - Tender Summary</h3></div>
+          <div class="metric-strip">
+            <div class="metric-card"><strong id="summaryTenderId">-</strong><p>Tender ID</p></div>
+            <div class="metric-card"><strong id="summaryTenderTitle">-</strong><p>Tender title</p></div>
+            <div class="metric-card"><strong id="summaryConfidence">-</strong><p>Demo confidence</p></div>
+          </div>
+          <div class="alert alert-warning mt-16">
+            Local parsing is the default. This prevents any file:// fetch or CORS failure from breaking the workflow.
+          </div>
+        </article>
+      </section>
 
-            <div class="criteria-extraction-card">
-              <div class="criteria-extraction-head">
-                <h4>Extracted Tender Criteria</h4>
-                <p>Upload a PDF and the browser will extract text from every page, detect criteria, and surface the source line for each item.</p>
-              </div>
-
-              <div class="criteria-grid">
-                <div class="criteria-field">
-                  <label for="criteria-min-turnover">Minimum Annual Turnover (Cr)</label>
-                  <input id="criteria-min-turnover" class="criteria-input" type="number" step="0.01" min="0" placeholder="Not found — please enter manually">
-                  <span id="criteria-min-turnover-source" class="criteria-source missing">Not found — please enter manually</span>
-                </div>
-                <div class="criteria-field">
-                  <label for="criteria-min-experience">Minimum Experience (Years)</label>
-                  <input id="criteria-min-experience" class="criteria-input" type="number" step="0.1" min="0" placeholder="Not found — please enter manually">
-                  <span id="criteria-min-experience-source" class="criteria-source missing">Not found — please enter manually</span>
-                </div>
-                <div class="criteria-field">
-                  <label for="criteria-gst-mandatory">GST Requirement</label>
-                  <select id="criteria-gst-mandatory" class="criteria-select">
-                    <option value="">Not found — please enter manually</option>
-                    <option value="yes">Yes, GST is mandatory</option>
-                    <option value="no">No GST requirement found</option>
-                  </select>
-                  <span id="criteria-gst-mandatory-source" class="criteria-source missing">Not found — please enter manually</span>
-                </div>
-                <div class="criteria-field">
-                  <label for="criteria-msme-applicable">MSME Applicability</label>
-                  <select id="criteria-msme-applicable" class="criteria-select">
-                    <option value="">Not found — please enter manually</option>
-                    <option value="yes">Yes, MSME relaxation is mentioned</option>
-                    <option value="no">No MSME relaxation mentioned</option>
-                  </select>
-                  <span id="criteria-msme-applicable-source" class="criteria-source missing">Not found — please enter manually</span>
-                </div>
-              </div>
-
-              <details id="raw-text-panel" class="raw-text-panel">
-                <summary>View extracted raw text</summary>
-                <pre id="raw-text-output" class="raw-text-output">Upload a tender PDF to see extracted text here.</pre>
-              </details>
-
-              <p class="criteria-note">The Run Evaluation button reads the live values in these fields, so any manual edits are included in the scoring step.</p>
-
-              <div id="extraction-chips" class="extraction-chips" aria-live="polite"></div>
-            </div>
-
-            <!-- Criteria extracted from uploaded PDF — hidden until extraction runs -->
-            <article id="tender-info-card" class="tender-card hidden">
-              <!-- populated by app.js: demo tender text OR extracted criteria card -->
-            </article>
-
-            <!-- Extracted criteria card — shown after PDF parsing -->
-            <div id="tender-criteria-card" class="tender-criteria-card hidden">
-              <div class="tcrit-header">
-                <span class="tcrit-badge">✅ Criteria extracted from document</span>
-                <span id="tcrit-filename" class="tcrit-filename"></span>
-              </div>
-              <div class="tcrit-grid">
-                <div class="tcrit-field">
-                  <span class="tcrit-label">Min Annual Turnover</span>
-                  <span id="tcrit-turnover" class="tcrit-value">—</span>
-                </div>
-                <div class="tcrit-field">
-                  <span class="tcrit-label">Min Experience</span>
-                  <span id="tcrit-experience" class="tcrit-value">—</span>
-                </div>
-                <div class="tcrit-field">
-                  <span class="tcrit-label">GST Mandatory</span>
-                  <span id="tcrit-gst" class="tcrit-value">—</span>
-                </div>
-                <div class="tcrit-field">
-                  <span class="tcrit-label">MSME Mentioned</span>
-                  <span id="tcrit-msme" class="tcrit-value">—</span>
-                </div>
-              </div>
-              <p class="tcrit-note">These criteria will be used when you click Run Evaluation below.</p>
-            </div>
-          </section>
-
-          <section class="card panel step-block">
-            <span class="step-label">Step 2</span>
-            <h3 class="section-title">Vendor Documents</h3>
-            <div id="vendor-cards" class="vendor-grid"></div>
-            <button id="run-evaluation" class="btn btn-primary run-eval-btn" type="button">Run Evaluation</button>
-            <div id="evaluation-progress" class="evaluation-progress hidden">
-              <div class="evaluation-progress-track"><div id="evaluation-progress-fill" class="evaluation-progress-fill"></div></div>
-              <div id="evaluation-progress-stage" class="evaluation-progress-stage">Preparing...</div>
-            </div>
-          </section>
-
-          <section id="evaluation-results-block" class="card results-card hidden">
-            <span class="step-label">Step 3</span>
-            <h3 class="section-title">Evaluation Results</h3>
-
-            <div id="evaluation-time-banner" class="evaluation-time-banner hidden">Evaluation completed in 1.3 seconds. Manual audit of same documents: est. 3–5 working days.</div>
-
-            <div id="ai-result-cards" class="ai-result-cards" aria-live="polite"></div>
-
-            <div class="table-wrap">
-              <table class="results-table">
-                <thead>
-                  <tr>
-                    <th>Vendor Name</th>
-                    <th>Turnover Check</th>
-                    <th>Experience Check</th>
-                    <th>GST Check</th>
-                    <th>Cross-Doc Status</th>
-                    <th>Collusion Risk</th>
-                    <th>Confidence</th>
-                    <th>Final Status</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody id="evaluation-results-body"></tbody>
-              </table>
-            </div>
-
-            <div class="step-block step-block-top">
-              <span class="step-label">Step 4</span>
-              <h3 class="section-title">Flags Raised</h3>
-              <div id="flags-container" class="flags-container"></div>
-            </div>
-
-            <div id="uncertainty-banner" class="uncertainty-banner hidden">
-              <p id="uncertainty-text"></p>
-              <button class="btn btn-secondary" type="button">Send for Review</button>
-            </div>
-
-            <div class="override-panel">
-              <button id="override-toggle" class="override-toggle" type="button">Manual Override <span>+</span></button>
-              <div id="override-content" class="override-content hidden">
-                <p class="override-warning">Overriding system recommendations requires written justification. This action is logged and cannot be undone.</p>
-                <div class="form-grid">
-                  <div class="form-field"><label for="override-vendor">Select vendor to override</label><select id="override-vendor"></select></div>
-                  <div class="form-field"><label for="override-status">Change status to</label><select id="override-status"><option value="">Select status</option><option value="Eligible">Eligible</option><option value="Rejected">Rejected</option></select></div>
-                  <div class="form-field full"><label for="override-justification">Written justification (minimum 50 characters)</label><textarea id="override-justification" rows="4"></textarea></div>
-                  <div class="form-field full checkbox-row"><input id="override-consent" type="checkbox"><label for="override-consent">I confirm this override is in compliance with GFR Rule 175</label></div>
-                </div>
-                <button id="submit-override" class="btn btn-primary" type="button" disabled>Submit Override</button>
-                <p id="override-success" class="hidden override-success">Override logged. Justification recorded in audit trail.</p>
-              </div>
-            </div>
-          </section>
+      <section class="section card">
+        <div class="card-header">
+          <h3>Section B - Vendor Documents</h3>
+          <div class="button-row">
+            <button class="btn btn-secondary" id="clearVendorsBtn" type="button">Clear Vendors</button>
+          </div>
         </div>
+        <div class="summary-banner mt-16" id="confidenceNarrative">Load a tender and vendors to see the evaluation narrative.</div>
+        <div id="vendorGrid" class="vendor-grid"></div>
+      </section>
 
-        <aside id="gfr-reference-panel" class="gfr-panel hidden" aria-label="GFR reference panel">
-          <h4>GFR Reference Panel</h4>
-          <article class="gfr-rule"><strong>GFR Rule 175 — Evaluation of Bids</strong><p>The procuring entity shall evaluate bids only on the criteria disclosed in the bid document.</p></article>
-          <article class="gfr-rule"><strong>GFR Rule 160 — Eligibility</strong><p>A bidder shall be eligible to participate if they meet the technical and financial qualification criteria.</p></article>
-          <article class="gfr-rule"><strong>CVC Guidelines — Collusion</strong><p>Identical bids or bids from firms with common ownership shall be treated as evidence of bid rigging.</p></article>
-        </aside>
+      <section class="section card">
+        <div class="card-header">
+          <h3>Section C - Run Evaluation</h3>
+          <button class="btn btn-primary" id="runEvaluationBtn" type="button">Run Evaluation</button>
+        </div>
+        <div class="alert alert-success mb-16" id="evaluationSummary" hidden></div>
+        <div class="alert alert-neutral mb-16" id="auditHashPreview">Audit hash will be generated after evaluation.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Turnover</th>
+                <th>Experience</th>
+                <th>GST</th>
+                <th>ISO</th>
+                <th>MSME</th>
+                <th>Confidence</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Why?</th>
+                <th>Criteria Detail</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr><td colspan="11"><div class="empty-state">No evaluation run yet.</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section card">
+        <div class="card-header"><h3>Risk Detection</h3></div>
+        <div class="risk-panel" id="riskPanel">
+          <div class="risk-head">
+            <div>
+              <div class="mini-muted">Collusion / anomaly score</div>
+              <div class="risk-score low" id="riskScore">0</div>
+            </div>
+            <span class="badge badge-neutral" id="riskBadge">LOW</span>
+          </div>
+          <div class="confidence-bar"><div class="confidence-fill confidence-low" id="riskBar"></div></div>
+          <div class="summary-banner" id="riskNarrative">No risk flags detected yet.</div>
+          <div class="risk-list" id="riskList">
+            <div class="empty-state">No risk flags yet.</div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
-  <dialog id="settings-modal" class="modal-overlay" aria-label="System settings">
-    <div class="modal-card settings-modal-card">
-      <button id="settings-close" class="modal-close" type="button" aria-label="Close settings">&times;</button>
-      <h3 class="settings-title">System Settings</h3>
-      <div class="settings-section">
-        <h4>Evaluation</h4>
-        <div class="policy-list">
-          <div>Confidence threshold: <strong>70%</strong></div>
-          <div>GFR alignment: <strong>Enabled</strong></div>
-          <div>MSME relaxation: <strong>−25% turnover</strong></div>
-        </div>
-      </div>
-      <div class="settings-section">
-        <h4>Data</h4>
-        <button id="settings-clear-data" class="btn settings-clear-btn" type="button">Clear Session Data</button>
-      </div>
-      <div class="settings-footer">
-        <button id="settings-close-footer" class="btn settings-close-btn" type="button">Close</button>
-      </div>
-    </div>
-  </dialog>
-
-  <div id="global-toast-root" class="toast-root"></div>
-
-  <!-- pdf.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <div id="toast-root" class="toast-root"></div>
+  <script src="../scripts/utils.js"></script>
   <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const demoCriteria = { ...DEMO_TENDER };
+    let currentCriteria = null;
+    let currentVendors = [];
+    let currentRisk = { score: 0, level: 'LOW', findings: [], suspiciousVendors: [], badgeClass: 'badge-eligible' };
+    const autoDemoRequested = new URLSearchParams(globalThis.location.search).has('autoDemo') || (typeof getSafe === 'function' ? getSafe('nyayabid-full-demo', '') === '1' : localStorage.getItem('nyayabid-full-demo') === '1');
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
-  </script>
-  <!-- Tesseract.js CDN — OCR fallback for scanned/image PDFs -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  <script src="../scripts/data.js"></script>
-  <script src="../scripts/evaluation.js"></script>
-  <script src="../scripts/collusion.js"></script>
-  <script>
-    (function () {
-      'use strict';
-      const root = globalThis;
-      const data = root.NyayaBid.data;
-      const evaluation = root.NyayaBid.evaluation;
-      const collusion = root.NyayaBid.collusion;
+    function showManualCriteria(show = true) {
+      document.getElementById('manualCriteriaCard').hidden = !show;
+    }
 
-      const refs = {
-        choosePdf: document.getElementById('choose-pdf'),
-        fileInput: document.getElementById('tender-file-input'),
-        fileName: document.getElementById('uploaded-file-name'),
-        demoButton: document.getElementById('load-demo-tender'),
-        tenderCard: document.getElementById('tender-info-card'),
-        tenderCriteriaCard: document.getElementById('tender-criteria-card'),
-        turnoverInput: document.getElementById('criteria-min-turnover'),
-        experienceInput: document.getElementById('criteria-min-experience'),
-        gstInput: document.getElementById('criteria-gst-mandatory'),
-        msmeInput: document.getElementById('criteria-msme-applicable'),
-        turnoverSource: document.getElementById('criteria-min-turnover-source'),
-        experienceSource: document.getElementById('criteria-min-experience-source'),
-        gstSource: document.getElementById('criteria-gst-mandatory-source'),
-        msmeSource: document.getElementById('criteria-msme-applicable-source'),
-        rawTextOutput: document.getElementById('raw-text-output'),
-        rawTextPanel: document.getElementById('raw-text-panel'),
-        runButton: document.getElementById('run-evaluation'),
-        resultsBlock: document.getElementById('evaluation-results-block'),
-        resultsBody: document.getElementById('evaluation-results-body'),
-        flagsContainer: document.getElementById('flags-container'),
-        gfrToggle: document.getElementById('gfr-toggle'),
-        gfrPanel: document.getElementById('gfr-reference-panel'),
-        overrideToggle: document.getElementById('override-toggle'),
-        overrideContent: document.getElementById('override-content'),
-        overrideVendor: document.getElementById('override-vendor'),
-        overrideStatus: document.getElementById('override-status'),
-        overrideJustification: document.getElementById('override-justification'),
-        overrideConsent: document.getElementById('override-consent'),
-        submitOverride: document.getElementById('submit-override'),
-        overrideSuccess: document.getElementById('override-success'),
-        uncertaintyBanner: document.getElementById('uncertainty-banner'),
-        uncertaintyText: document.getElementById('uncertainty-text'),
-        timeBanner: document.getElementById('evaluation-time-banner'),
-        progress: document.getElementById('evaluation-progress'),
-        progressFill: document.getElementById('evaluation-progress-fill'),
-        progressStage: document.getElementById('evaluation-progress-stage'),
-        gfrBanner: document.getElementById('global-toast-root')
-      };
-
-      let extractedDocument = { fileName: '', rawText: '', pages: [] };
-      let rows = [];
-      let overrides = [];
-
-      // ── Step flow helpers ──────────────────────────────────────────────
-      const sfSteps = [
-        document.getElementById('sf-step-1'),
-        document.getElementById('sf-step-2'),
-        document.getElementById('sf-step-3')
+    function setCriteria(criteria) {
+      currentCriteria = { ...criteria };
+      const chips = [
+        `Tender: ${criteria.tenderId}`,
+        `Title: ${criteria.tenderTitle}`,
+        `Min Turnover: ₹${criteria.minTurnoverCr} Cr`,
+        `Experience: ${criteria.minExperienceYears}+ yrs`,
+        `GST: ${criteria.gstMandatory ? 'Mandatory' : 'Optional'}`,
+        `ISO: ${criteria.isoCertRequired ? 'Required' : 'Not required'}`,
+        `MSME: ${criteria.msmeAllowed ? 'Allowed' : 'Restricted'}`
       ];
 
-      function setStep(activeIndex) {
-        sfSteps.forEach(function (el, i) {
-          if (!el) return;
-          el.classList.remove('active', 'done');
-          if (i < activeIndex) el.classList.add('done');
-          else if (i === activeIndex) el.classList.add('active');
-        });
+      document.getElementById('criteriaChips').innerHTML = chips.map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join('');
+      document.getElementById('criteriaPlaceholder').style.display = 'none';
+      document.getElementById('summaryTenderId').textContent = criteria.tenderId;
+      document.getElementById('summaryTenderTitle').textContent = criteria.tenderTitle;
+      document.getElementById('summaryConfidence').textContent = 'Local';
+
+      document.getElementById('manualTenderId').value = criteria.tenderId || '';
+      document.getElementById('manualTenderTitle').value = criteria.tenderTitle || '';
+      document.getElementById('manualMinTurnover').value = criteria.minTurnoverCr ?? '';
+      document.getElementById('manualMinExperience').value = criteria.minExperienceYears ?? '';
+      document.getElementById('manualGstMandatory').checked = Boolean(criteria.gstMandatory);
+      document.getElementById('manualIsoRequired').checked = Boolean(criteria.isoCertRequired);
+      document.getElementById('manualMsmeAllowed').checked = Boolean(criteria.msmeAllowed);
+      document.getElementById('confidenceNarrative').textContent = 'Tender criteria loaded. Load vendors to calculate confidence, explainability, and risk.';
+    }
+
+    function renderVendorGrid() {
+      const grid = document.getElementById('vendorGrid');
+      if (!currentVendors.length) {
+        grid.innerHTML = '<div class="empty-state">No vendors loaded. Click “Load Demo Vendors” to begin.</div>';
+        return;
       }
 
-      // ── Loader helpers ─────────────────────────────────────────────────
-      const uploadEmptyState = document.getElementById('upload-empty-state');
-      const uploadLoader     = document.getElementById('upload-loader');
+      const suspiciousSet = new Set(currentRisk.suspiciousVendors || []);
 
-      function showLoader() {
-        if (uploadEmptyState) uploadEmptyState.classList.add('hidden');
-        if (uploadLoader)     uploadLoader.classList.remove('hidden');
-      }
-
-      function hideLoader() {
-        if (uploadLoader) uploadLoader.classList.add('hidden');
-      }
-
-      // ── AI status bar ────────────────────────────────────────────────
-      const aiStatusDot  = document.getElementById('ai-status-dot');
-      const aiStatusText = document.getElementById('ai-status-text');
-
-      function setAiStatus(text, state) {
-        if (aiStatusText) aiStatusText.textContent = text;
-        if (aiStatusDot) {
-          aiStatusDot.className = 'ai-status-dot' + (state && state !== 'active' ? ' ' + state : '');
-        }
-      }
-
-      // ── Extraction chips ─────────────────────────────────────────────
-      function renderExtractionChips(criteria) {
-        var chips = document.getElementById('extraction-chips');
-        if (!chips) return;
-        var items = [
-          {
-            found: Number.isFinite(criteria.minTurnover),
-            label: Number.isFinite(criteria.minTurnover)
-              ? 'Turnover detected: ₹' + criteria.minTurnover + ' Cr'
-              : 'Turnover: not found'
-          },
-          {
-            found: Number.isFinite(criteria.minExperience),
-            label: Number.isFinite(criteria.minExperience)
-              ? 'Experience detected: ' + criteria.minExperience + ' years'
-              : 'Experience: not found'
-          },
-          {
-            found: criteria.gstMandatory !== null && criteria.gstMandatory !== undefined,
-            label: criteria.gstMandatory === true
-              ? 'GST found: Valid'
-              : criteria.gstMandatory === false
-                ? 'GST found: Not required'
-                : 'GST: not found'
-          },
-          {
-            found: criteria.msmeApplicable !== null && criteria.msmeApplicable !== undefined,
-            label: criteria.msmeApplicable === true
-              ? 'MSME relaxation: Applicable'
-              : criteria.msmeApplicable === false
-                ? 'MSME: Not mentioned'
-                : 'MSME: not found'
-          }
-        ];
-        chips.innerHTML = items.map(function (item, i) {
-          return '<span class="extraction-chip ' + (item.found ? 'chip-found' : 'chip-missing') + '" style="animation-delay:' + (i * 80) + 'ms">'
-            + '<span class="chip-icon">' + (item.found ? '✓' : '⚠') + '</span>'
-            + item.label + '</span>';
-        }).join('');
-      }
-
-      // ── AI result cards ──────────────────────────────────────────────
-      function verdictText(entry, override) {
-        if (override) return 'Decision overridden by officer';
-        if (entry.result.status === 'Eligible') {
-          if (entry.vendor.crossDocFlag) return 'Vendor meets criteria — document anomaly flagged for review';
-          return 'Vendor meets all required criteria';
-        }
-        return 'Vendor does not meet the minimum eligibility threshold';
-      }
-
-      function verdictClass(entry, override) {
-        if (override) return 'overridden';
-        if (entry.result.status === 'Eligible') return entry.vendor.crossDocFlag ? 'flagged' : 'eligible';
-        return 'rejected';
-      }
-
-      function renderAiResultCards(rowsToRender, overridesToRender) {
-        var container = document.getElementById('ai-result-cards');
-        if (!container) return;
-        container.innerHTML = rowsToRender.map(function (entry, idx) {
-          var override  = overridesToRender.find(function (item) { return item.vendorId === entry.vendor.id; });
-          var vClass    = verdictClass(entry, override);
-          var vText     = verdictText(entry, override);
-          var conf      = entry.result.confidence;
-          var confClass = conf >= 80 ? 'high' : conf >= 60 ? 'mid' : 'low';
-          var checks = [
-            { label: 'Turnover',    pass: entry.result.turnoverPass, flag: false },
-            { label: 'Experience',  pass: entry.result.expPass,      flag: false },
-            { label: 'GST',         pass: entry.result.gstPass,      flag: false },
-            { label: entry.vendor.crossDocFlag  ? 'Doc Flag'       : 'Docs Clear',   pass: !entry.vendor.crossDocFlag,  flag: entry.vendor.crossDocFlag },
-            { label: entry.vendor.collusionRisk ? 'Collusion Risk' : 'No Collusion', pass: !entry.vendor.collusionRisk, flag: entry.vendor.collusionRisk }
-          ];
-          var reasonText = entry.result.reasons.join(' • ');
-          return '<div class="vendor-result-card card-' + vClass + '" style="animation-delay:' + (idx * 60) + 'ms">'
-            + '<div>'
-            + '<div class="vrc-name">' + entry.vendor.name + ' — ' + entry.vendor.city + '</div>'
-            + '<div class="vrc-verdict ' + vClass + '">' + vText + '</div>'
-            + '<div class="vrc-reason">' + reasonText + '</div>'
-            + '<div class="vrc-checks">'
-            + checks.map(function (c) {
-                return '<span class="vrc-check ' + (c.flag ? 'flag' : c.pass ? 'pass' : 'fail') + '">' + c.label + '</span>';
-              }).join('')
-            + '</div></div>'
-            + '<div class="vrc-confidence">'
-            + '<span class="vrc-confidence-label">AI Confidence</span>'
-            + '<span class="vrc-confidence-score ' + confClass + '">' + conf + '%</span>'
-            + '<div class="vrc-bar-wrap"><div class="vrc-bar-fill ' + confClass + '" style="width:0%" data-target="' + conf + '"></div></div>'
-            + '</div></div>';
-        }).join('');
-        requestAnimationFrame(function () {
-          container.querySelectorAll('.vrc-bar-fill').forEach(function (bar) {
-            bar.style.width = bar.dataset.target + '%';
-          });
-        });
-      }
-
-      function toast(message, type) {
-        if (root.NyayaBid && root.NyayaBid.app) {
-          root.NyayaBid.app.showToast(message, type);
-        }
-      }
-
-      function normalizeWhitespace(text) {
-        return String(text || '').replace(/\s+/g, ' ').trim();
-      }
-
-      function compareTextItems(a, b) {
-        if (Math.abs(b.y - a.y) > 2) return b.y - a.y;
-        return a.x - b.x;
-      }
-
-      function compareLineItems(a, b) {
-        return a.x - b.x;
-      }
-
-      function formatSource(source) {
-        if (!source) return 'Not found — please enter manually';
-        return `Source: Page ${source.page}, Line ${source.line}`;
-      }
-
-      function setSource(element, source) {
-        if (!element) return;
-        element.textContent = formatSource(source);
-        element.classList.toggle('missing', !source);
-      }
-
-      function groupItemsIntoLines(items) {
-        const pageItems = [];
-        for (const item of items) {
-          const text = item.str || '';
-          if (!normalizeWhitespace(text).length) continue;
-          pageItems.push({
-            text,
-            x: item.transform && Number.isFinite(item.transform[4]) ? item.transform[4] : 0,
-            y: item.transform && Number.isFinite(item.transform[5]) ? item.transform[5] : 0
-          });
-        }
-        pageItems.sort(compareTextItems);
-        const lines = [];
-        for (const item of pageItems) {
-          const current = lines.at(-1);
-          if (!current || Math.abs(current.y - item.y) > 2.5) {
-            lines.push({ y: item.y, items: [item] });
-            continue;
-          }
-          current.items.push(item);
-        }
-        return lines.map(function (line, index) {
-          line.items.sort(compareLineItems);
-          return {
-            lineNumber: index + 1,
-            text: line.items.map(function (entry) { return entry.text; }).join(' ').replace(/\s+/g, ' ').trim()
-          };
-        });
-      }
-
-      function buildRawTextOutput(pages) {
-        const output = [];
-        for (const page of pages) {
-          output.push(`Page ${page.pageNumber}`);
-          for (const line of page.lines) {
-            output.push(`Line ${line.lineNumber}: ${line.text}`);
-          }
-          output.push('');
-        }
-        return output.join('\n').trim();
-      }
-
-      async function extractTextFromPdfFile(file) {
-        if (typeof pdfjsLib === 'undefined') {
-          throw new TypeError('PDF.js failed to load. Please refresh and try again.');
-        }
-        const buffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
-        const pages = [];
-        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-          const page = await pdf.getPage(pageNumber);
-          const content = await page.getTextContent();
-          pages.push({ pageNumber, lines: groupItemsIntoLines(content.items) });
-        }
-        return { pages, rawText: buildRawTextOutput(pages) };
-      }
-
-      // ── OCR fallback for scanned/image PDFs ────────────────────────────
-      async function extractViaOCR(file) {
-        if (typeof Tesseract === 'undefined') {
-          throw new TypeError('OCR library not loaded. Please check your internet connection.');
-        }
-        setAiStatus('active', 'Running OCR on scanned document… this may take a moment.');
-        const url = URL.createObjectURL(file);
-        const OCR_TIMEOUT_MS = 30000;
-        try {
-          const ocrPromise = Tesseract.recognize(url, 'eng', {
-            logger: function (m) {
-              if (m.status === 'recognizing text') {
-                const pct = Math.round((m.progress || 0) * 100);
-                setAiStatus('active', 'OCR in progress… ' + pct + '%');
-              }
-            }
-          });
-          const timeoutPromise = new Promise(function (_, reject) {
-            setTimeout(function () {
-              reject(new Error('OCR taking too long. Please upload clearer document.'));
-            }, OCR_TIMEOUT_MS);
-          });
-          const result = await Promise.race([ocrPromise, timeoutPromise]);
-          const text = (result.data && result.data.text) ? result.data.text.trim() : '';
-          const lines = text.split('\n').filter(function (l) { return l.trim().length > 0; }).map(function (l, i) {
-            return { lineNumber: i + 1, text: l.trim() };
-          });
-          return { pages: [{ pageNumber: 1, lines: lines }], rawText: text, isOCR: true };
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      }
-
-      // ── Smart extraction: PDF.js first, OCR fallback if no text found ────────
-      async function extractDocument(file) {
-        setAiStatus('active', 'Analyzing document...');
-        let extracted;
-        try {
-          extracted = await extractTextFromPdfFile(file);
-        } catch (pdfError) {
-          console.warn('NyayaBid PDF.js failed, switching to OCR:', pdfError);
-          setAiStatus('active', 'PDF parsing failed — attempting OCR fallback…');
-          return await extractViaOCR(file);
-        }
-        const hasText = extracted.rawText && extracted.rawText.trim().length > 80;
-        if (!hasText) {
-          setAiStatus('active', 'No text layer found — switching to OCR mode…');
-          toast('Scanned PDF detected — running OCR fallback.', 'warn');
-          return await extractViaOCR(file);
-        }
-        return extracted;
-      }
-
-      function isCompleteEvaluationRows(rowsToCheck) {
-        if (!Array.isArray(rowsToCheck) || rowsToCheck.length !== data.vendors.length) return false;
-        return rowsToCheck.every(function (entry) {
-          return entry && entry.vendor && entry.result && typeof entry.result.status === 'string';
-        });
-      }
-
-      function persistEvaluationSafely(criteriaOverride) {
-        try {
-          if (!isCompleteEvaluationRows(rows)) {
-            // Prevent partial payload writes that can break downstream report rendering.
-            throw new TypeError('Evaluation results are incomplete; payload not persisted.');
-          }
-          const payload = {
-            rows,
-            overrides: Array.isArray(overrides) ? overrides : [],
-            criteria: criteriaOverride || null,
-            document: extractedDocument || { fileName: '', rawText: '', pages: [] }
-          };
-          localStorage.setItem('nyayabid-evaluation-data', JSON.stringify(payload));
-          return true;
-        } catch (error) {
-          console.error('NyayaBid evaluation save failed:', error);
-          toast('Unable to save evaluation data. Please re-run evaluation.', 'warn');
-          return false;
-        }
-      }
-
-      function extractTurnover(pages) {
-        const keywordRegex = /turnover|annual|financial|minimum/i;
-        const numberRegex = /(\d+(?:\.\d+)?)(?:\s*(crore|cr|lakhs?|lakh|lacs?|lac))?/i;
-        for (const page of pages) {
-          for (let index = 0; index < page.lines.length; index += 1) {
-            const current = page.lines[index];
-            const next = page.lines[index + 1];
-            const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
-            if (!keywordRegex.test(windowText)) continue;
-            const keywordIndex = windowText.toLowerCase().indexOf('turnover');
-            const tail = keywordIndex >= 0 ? windowText.slice(keywordIndex) : windowText;
-            const match = numberRegex.exec(tail);
-            if (!match) continue;
-            const amount = Number.parseFloat(match[1].replace(/,/g, ''));
-            const unit = String(match[2] || 'crore').toLowerCase();
-            const croreValue = unit.startsWith('lakh') || unit.startsWith('lac') ? amount / 100 : amount;
-            if (!Number.isFinite(croreValue)) continue;
-            return { minTurnover: Math.round(croreValue * 100) / 100, turnoverSource: { page: page.pageNumber, line: current.lineNumber } };
-          }
-        }
-        return { minTurnover: null, turnoverSource: null };
-      }
-
-      function extractExperience(pages) {
-        const keywordRegex = /experience|prior work|completed projects|similar works/i;
-        const numberRegex = /(\d+(?:\.\d+)?)(?:\s*(years?|yrs?))/i;
-        for (const page of pages) {
-          for (let index = 0; index < page.lines.length; index += 1) {
-            const current = page.lines[index];
-            const next = page.lines[index + 1];
-            const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
-            if (!keywordRegex.test(windowText)) continue;
-            const keywordIndex = windowText.toLowerCase().search(/experience|prior work|completed projects|similar works/);
-            const tail = keywordIndex >= 0 ? windowText.slice(keywordIndex) : windowText;
-            const match = numberRegex.exec(tail);
-            if (!match) continue;
-            const years = Number.parseFloat(match[1].replace(/,/g, ''));
-            if (!Number.isFinite(years)) continue;
-            return { minExperience: Math.round(years * 100) / 100, experienceSource: { page: page.pageNumber, line: current.lineNumber } };
-          }
-        }
-        return { minExperience: null, experienceSource: null };
-      }
-
-      function extractGst(pages) {
-        const keywordRegex = /gst|gstin|gst registration|registered under gst/i;
-        const negativeRegex = /not\s+required|not\s+mandatory|no\s+gst|without\s+gst/i;
-        for (const page of pages) {
-          for (let index = 0; index < page.lines.length; index += 1) {
-            const current = page.lines[index];
-            const next = page.lines[index + 1];
-            const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
-            if (!keywordRegex.test(windowText)) continue;
-            return { gstMandatory: !negativeRegex.test(windowText), gstSource: { page: page.pageNumber, line: current.lineNumber } };
-          }
-        }
-        return { gstMandatory: null, gstSource: null };
-      }
-
-      function extractMsme(pages) {
-        const keywordRegex = /msme|udyam|micro|small enterprise/i;
-        const negativeRegex = /not\s+applicable|does\s+not\s+apply|no\s+msme/i;
-        for (const page of pages) {
-          for (let index = 0; index < page.lines.length; index += 1) {
-            const current = page.lines[index];
-            const next = page.lines[index + 1];
-            const windowText = normalizeWhitespace([current.text, next ? next.text : ''].join(' '));
-            if (!keywordRegex.test(windowText)) continue;
-            return { msmeApplicable: !negativeRegex.test(windowText), msmeSource: { page: page.pageNumber, line: current.lineNumber } };
-          }
-        }
-        return { msmeApplicable: null, msmeSource: null };
-      }
-
-      function parseTenderCriteria(pages) {
-        return {
-          ...extractTurnover(pages),
-          ...extractExperience(pages),
-          ...extractGst(pages),
-          ...extractMsme(pages)
-        };
-      }
-
-      function applyCriteriaToFields(criteria, rawText) {
-        if (refs.turnoverInput) {
-          refs.turnoverInput.value = Number.isFinite(criteria.minTurnover) ? String(criteria.minTurnover) : '';
-          refs.turnoverInput.placeholder = Number.isFinite(criteria.minTurnover) ? `₹${criteria.minTurnover} Crore` : 'Not found — please enter manually';
-        }
-        if (refs.experienceInput) {
-          refs.experienceInput.value = Number.isFinite(criteria.minExperience) ? String(criteria.minExperience) : '';
-          refs.experienceInput.placeholder = Number.isFinite(criteria.minExperience) ? `${criteria.minExperience} Years` : 'Not found — please enter manually';
-        }
-        if (refs.gstInput) {
-          if (criteria.gstMandatory === true) refs.gstInput.value = 'yes';
-          else if (criteria.gstMandatory === false) refs.gstInput.value = 'no';
-          else refs.gstInput.value = '';
-        }
-        if (refs.msmeInput) {
-          if (criteria.msmeApplicable === true) refs.msmeInput.value = 'yes';
-          else if (criteria.msmeApplicable === false) refs.msmeInput.value = 'no';
-          else refs.msmeInput.value = '';
-        }
-        setSource(refs.turnoverSource, criteria.turnoverSource);
-        setSource(refs.experienceSource, criteria.experienceSource);
-        setSource(refs.gstSource, criteria.gstSource);
-        setSource(refs.msmeSource, criteria.msmeSource);
-        if (refs.rawTextOutput) refs.rawTextOutput.textContent = rawText || 'Upload a tender PDF to see extracted text here.';
-        if (refs.rawTextPanel) refs.rawTextPanel.open = true;
-      }
-
-      function buildCurrentCriteria() {
-        const missing = [];
-        const turnoverValue = refs.turnoverInput ? Number(refs.turnoverInput.value) : Number.NaN;
-        const experienceValue = refs.experienceInput ? Number(refs.experienceInput.value) : Number.NaN;
-        const gstValue = refs.gstInput ? refs.gstInput.value : '';
-        const msmeValue = refs.msmeInput ? refs.msmeInput.value : '';
-        if (!Number.isFinite(turnoverValue)) missing.push('Minimum annual turnover');
-        if (!Number.isFinite(experienceValue)) missing.push('Minimum experience');
-        if (!gstValue) missing.push('GST requirement');
-        if (!msmeValue) missing.push('MSME applicability');
-        if (missing.length) return { ok: false, missing: missing.join(', ') };
-        return {
-          ok: true,
-          criteriaOverride: {
-            minTurnover: turnoverValue,
-            minExperience: experienceValue,
-            gstMandatory: gstValue === 'yes',
-            msmeRelaxation: msmeValue === 'yes' ? 0.75 : 1
-          }
-        };
-      }
-
-      function renderVendorCards() {
-        const holder = document.getElementById('vendor-cards');
-        if (!holder) return;
-        holder.innerHTML = data.vendors.map(function (vendor) {
-          const docs = vendor.documents.map(function (doc) {
-            return `<span class="doc-pill">✓ ${doc}</span>`;
-          }).join(' ');
-          return `
-            <article class="vendor-card vendor-neutral" data-vendor-card="${vendor.id}">
-              <div class="vendor-card-head">
-                <div>
-                  <h4>Vendor: ${vendor.name}</h4>
-                  <p>CIN: ${vendor.cin}</p>
-                  <p>City: ${vendor.city}</p>
-                  <p>Annual Turnover: ₹${vendor.turnover} Crore (FY 2022-23)</p>
-                  <p>Experience: ${vendor.experience} Years</p>
-                  <p>GST No: ${vendor.gstNo}</p>
-                  <p>MSME: ${vendor.msme ? 'Yes' : 'No'}</p>
-                  <p>Bid Value: ${root.NyayaBid.utils.formatINR(vendor.bidValue)}</p>
-                </div>
-                <span class="badge badge-pass">Loaded</span>
-              </div>
-              <div class="doc-row">Documents: ${docs}</div>
-            </article>
-          `;
-        }).join('');
-      }
-
-      function confidenceClass(score) {
-        if (score >= 80) return 'high';
-        if (score >= 60) return 'mid';
-        return 'low';
-      }
-
-      function renderResults(rowsToRender, overridesToRender) {
-        refs.resultsBody.innerHTML = rowsToRender.map(function (entry) {
-          const override = overridesToRender.find(function (item) { return item.vendorId === entry.vendor.id; });
-          const finalStatus = override ? override.newStatus : entry.result.status;
-          const finalStatusLabel = finalStatus === 'Eligible' ? 'Vendor meets required criteria' : finalStatus;
-          let statusClass = 'badge-fail';
-          if (override) statusClass = 'badge-override';
-          else if (finalStatus === 'Eligible') statusClass = 'badge-pass';
-          const barClass = confidenceClass(entry.result.confidence);
-          return `
-            <tr data-vendor-row="${entry.vendor.id}">
-              <td>${entry.vendor.name}</td>
-              <td><span class="badge ${entry.result.turnoverPass ? 'badge-pass' : 'badge-fail'}">${entry.result.turnoverPass ? 'Pass' : 'Fail'}</span></td>
-              <td><span class="badge ${entry.result.expPass ? 'badge-pass' : 'badge-fail'}">${entry.result.expPass ? 'Pass' : 'Fail'}</span></td>
-              <td><span class="badge ${entry.result.gstPass ? 'badge-pass' : 'badge-fail'}">${entry.result.gstPass ? 'Pass' : 'Fail'}</span></td>
-              <td><span class="badge ${entry.vendor.crossDocFlag ? 'badge-flag' : 'badge-pass'}">${entry.vendor.crossDocFlag ? 'Flag' : 'Pass'}</span></td>
-              <td><span class="badge ${entry.vendor.collusionRisk ? 'badge-risk' : 'badge-safe'}">${entry.vendor.collusionRisk ? 'Risk' : 'Safe'}</span></td>
-              <td>
-                <div class="confidence-meter"><div class="confidence-fill ${barClass}" style="width:${entry.result.confidence}%;"></div></div>
-                <div class="confidence-text">${entry.result.confidence}%</div>
-              </td>
-              <td>
-                <span class="badge ${statusClass}">${override ? 'Overridden' : finalStatusLabel}</span>
-              </td>
-              <td class="reason-cell"><details><summary>View</summary><div>${entry.result.reasons.join('<br>')}</div></details></td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      function renderFlags(overridesToRender) {
-        const flags = collusion.getFlagCards(data.vendors, overridesToRender);
-        refs.flagsContainer.innerHTML = flags.map(function (flag) {
-          const danger = flag.level === 'red' ? 'danger' : '';
-          const levelBadge = flag.level === 'red' ? 'badge-risk' : 'badge-flag';
-          return `
-            <article class="flag-card ${danger}">
-              <div class="flag-card-head">
-                <h4>Vendor: ${flag.vendor}</h4>
-                <span class="badge ${levelBadge}">${flag.type}</span>
-              </div>
-              <p>${flag.detail}</p>
-              <p class="flag-reco">Recommended Action: ${flag.recommendedAction}</p>
-            </article>
-          `;
-        }).join('');
-      }
-
-      function populateOverrideVendors(vendorsList) {
-        refs.overrideVendor.innerHTML = '<option value="">-- Select Vendor --</option>' + vendorsList.map(function (vendor) {
-          return `<option value="${vendor.id}">${vendor.name}</option>`;
-        }).join('');
-      }
-
-      function runEvaluation(criteriaOverride) {
-        try {
-          setAiStatus('active', 'Evaluating vendors...');
-          rows = evaluation.runBatchEvaluation(data.vendors, criteriaOverride);
-          if (!isCompleteEvaluationRows(rows)) {
-            toast('Evaluation could not be completed. Please try again.', 'warn');
-            setAiStatus('warn', 'Evaluation incomplete — please try again.');
-            return;
-          }
-          renderAiResultCards(rows, overrides);
-          renderResults(rows, overrides);
-          renderFlags(overrides);
-          populateOverrideVendors(rows.map(function (entry) { return entry.vendor; }));
-          refs.resultsBlock.classList.remove('hidden');
-          refs.timeBanner.classList.remove('hidden');
-          refs.uncertaintyBanner.classList.add('hidden');
-          const uncertainVendor = rows.find(function (entry) { return entry.result.confidence < 70; });
-          if (uncertainVendor) {
-            refs.uncertaintyText.textContent = 'Vendor: ' + uncertainVendor.vendor.name + ' — Confidence Score: ' + uncertainVendor.result.confidence + '% — System is uncertain about this evaluation. Manual review by procurement officer recommended before finalizing decision.';
-            refs.uncertaintyBanner.classList.remove('hidden');
-          }
-          const eligibleCount = rows.filter(function (e) { return e.result.status === 'Eligible'; }).length;
-          setAiStatus('done', 'Evaluation complete — ' + eligibleCount + ' of ' + rows.length + ' vendors eligible. Report ready.');
-          persistEvaluationSafely(criteriaOverride);
-        } catch (error) {
-          console.error('NyayaBid runEvaluation failed:', error);
-          setAiStatus('warn', 'Evaluation failed — please try again.');
-          toast('Evaluation failed. Please try again.', 'warn');
-        }
-      }
-
-      function runEvaluationTimer(onDone) {
-        refs.progress.classList.remove('hidden');
-        refs.progressFill.style.width = '0%';
-        const stages = ['Extracting documents...', 'Applying GFR rules...', 'Running cross-verification...', 'Detecting patterns...', 'Generating decisions...'];
-        refs.progressStage.textContent = stages[0];
-        let idx = 0;
-        const interval = setInterval(function () {
-          idx += 1;
-          refs.progressStage.textContent = stages[Math.min(idx, stages.length - 1)];
-        }, 300);
-        const start = performance.now();
-        function frame(now) {
-          const progress = Math.min((now - start) / 1500, 1);
-          refs.progressFill.style.width = `${Math.round(progress * 100)}%`;
-          if (progress < 1) {
-            requestAnimationFrame(frame);
-            return;
-          }
-          clearInterval(interval);
-          setTimeout(function () {
-            refs.progress.classList.add('hidden');
-            onDone();
-          }, 120);
-        }
-        requestAnimationFrame(frame);
-      }
-
-      function syncOverrideButtonState() {
-        const submitDisabled = !(refs.overrideVendor.value && refs.overrideStatus.value && refs.overrideJustification.value.trim().length >= 50 && refs.overrideConsent.checked);
-        refs.submitOverride.disabled = submitDisabled;
-      }
-
-      function openDemoTender() {
-        extractedDocument = { fileName: 'Demo Tender', rawText: data.tender.criteriaText.join('\n'), pages: [] };
-        if (refs.turnoverInput) refs.turnoverInput.value = '10';
-        if (refs.experienceInput) refs.experienceInput.value = '7';
-        if (refs.gstInput) refs.gstInput.value = 'yes';
-        if (refs.msmeInput) refs.msmeInput.value = 'yes';
-        setSource(refs.turnoverSource, { page: 1, line: 1 });
-        setSource(refs.experienceSource, { page: 1, line: 2 });
-        setSource(refs.gstSource, { page: 1, line: 3 });
-        setSource(refs.msmeSource, { page: 1, line: 4 });
-        if (refs.rawTextOutput) refs.rawTextOutput.textContent = data.tender.criteriaText.join('\n');
-        if (refs.rawTextPanel) refs.rawTextPanel.open = true;
-        refs.tenderCard.innerHTML = `
-          <div class="gov-doc-card">
-            <pre>
-GOVERNMENT OF INDIA
-Delhi Public Works Department
-
-NOTICE INVITING TENDER
-Tender ID: ${data.tender.id}
-Title: ${data.tender.title}
-
-Estimated Cost: ${root.NyayaBid.utils.formatINR(data.tender.estimatedCost)}
-EMD Required: ${root.NyayaBid.utils.formatINR(data.tender.emdRequired)}
-Bid Submission Deadline: ${root.NyayaBid.utils.formatDate(data.tender.bidSubmissionDeadline)}
-Opening Date: ${root.NyayaBid.utils.formatDate(data.tender.openingDate)}
-
-ELIGIBILITY CRITERIA (as per GFR Rule 160):
-✓ Minimum Annual Turnover: ₹10 Crore (last 3 FYs)
-✓ Minimum Experience: 7 Years in similar works
-✓ GST Registration: Mandatory
-✓ MSME: Relaxed criteria applicable (−25% turnover)
-
-Reference: ${data.tender.reference}
-Contact: ${data.tender.contact}
-            </pre>
+      grid.innerHTML = currentVendors.map((vendor) => `
+        <article class="vendor-card ${suspiciousSet.has(vendor.name) ? 'risk-suspicious' : ''}">
+          <div class="vendor-head">
+            <div>
+              <h3 class="vendor-title">${escapeHtml(vendor.name)}</h3>
+              <div class="mini-muted">${escapeHtml(vendor.city)} · Bid ₹${Number(vendor.bidValue).toLocaleString('en-IN')}</div>
+            </div>
+            <span class="badge ${suspiciousSet.has(vendor.name) ? 'badge-warning' : 'badge-neutral'}">${suspiciousSet.has(vendor.name) ? 'Suspicious' : `Confidence ${vendor.confidence}%`}</span>
           </div>
+          <div class="vendor-meta">
+            <div>Turnover <strong>₹${vendor.turnoverCr} Cr</strong></div>
+            <div>Experience <strong>${vendor.experienceYears} yrs</strong></div>
+            <div>GST <strong>${vendor.gstValid ? 'Valid' : 'Invalid'}</strong></div>
+            <div>GST No. <strong>${escapeHtml(vendor.gstNumber)}</strong></div>
+            <div>ISO <strong>${vendor.isoValid ? 'Valid' : 'Not valid'}</strong></div>
+            <div>MSME <strong>${vendor.isMSME ? 'Yes' : 'No'}</strong></div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function loadDemoTender() {
+      setCriteria({ ...demoCriteria });
+      showManualCriteria(false);
+      showToast('Demo tender loaded', 'success');
+    }
+
+    function loadDemoVendors() {
+      currentVendors = DEMO_VENDORS.map((vendor) => ({ ...vendor }));
+      renderVendorGrid();
+      showToast('Demo vendors loaded', 'success');
+    }
+
+    function applyManualCriteria() {
+      const criteria = {
+        tenderId: document.getElementById('manualTenderId').value.trim() || 'TND-2024-001',
+        tenderTitle: document.getElementById('manualTenderTitle').value.trim() || 'Road Construction Works',
+        minTurnoverCr: Number(document.getElementById('manualMinTurnover').value) || 10,
+        minExperienceYears: Number(document.getElementById('manualMinExperience').value) || 5,
+        gstMandatory: document.getElementById('manualGstMandatory').checked,
+        isoCertRequired: document.getElementById('manualIsoRequired').checked,
+        msmeAllowed: document.getElementById('manualMsmeAllowed').checked
+      };
+      setCriteria(criteria);
+      showManualCriteria(true);
+      showToast('Manual criteria applied', 'success');
+    }
+
+    async function parseTenderFile(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = '';
+      const pageCount = Math.min(pdf.numPages, 5);
+      for (let index = 1; index <= pageCount; index += 1) {
+        const page = await pdf.getPage(index);
+        const content = await page.getTextContent();
+        text += content.items.map((item) => item.str).join(' ') + '\n';
+      }
+      return text;
+    }
+
+    function parseCriteriaFromText(text) {
+      if (!text) return null;
+      const lower = text.toLowerCase();
+      const turnoverMatch = text.match(/(?:turnover|annual turnover|minimum turnover)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
+      const experienceMatch = text.match(/(?:experience|years of experience|min experience)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
+
+      const criteria = {
+        tenderId: (text.match(/TND[-\s]?\d{4}[-\s]?\d+/i)?.[0] || 'TND-2024-001').replaceAll(' ', '-'),
+        tenderTitle: text.match(/(?:tender title|name of work|project title)[:-]\s*([^\n]+)/i)?.[1]?.trim() || 'Road Construction Works',
+        minTurnoverCr: turnoverMatch ? Number(turnoverMatch[1]) : 10,
+        minExperienceYears: experienceMatch ? Number(experienceMatch[1]) : 5,
+        gstMandatory: /gst[^\n]{0,40}(mandatory|required|yes)/i.test(lower),
+        isoCertRequired: /iso[^\n]{0,40}(mandatory|required|yes)/i.test(lower),
+        msmeAllowed: !/msme[^\n]{0,40}(not allowed|restricted)/i.test(lower)
+      };
+
+      if (!turnoverMatch && !experienceMatch) return null;
+      return criteria;
+    }
+
+    function buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass) {
+      return [
+        {
+          criterion: 'Min Annual Turnover',
+          required: `₹${criteria.minTurnoverCr} Cr`,
+          found: `₹${vendor.turnoverCr} Cr`,
+          passed: turnoverPass,
+          reason: turnoverPass ? 'Turnover meets minimum requirement' : `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr`
+        },
+        {
+          criterion: 'Minimum Experience',
+          required: `${criteria.minExperienceYears} years`,
+          found: `${vendor.experienceYears} years`,
+          passed: experiencePass,
+          reason: experiencePass ? 'Experience meets requirement' : `Experience below required ${criteria.minExperienceYears} years`
+        },
+        {
+          criterion: 'GST Registration',
+          required: criteria.gstMandatory ? 'Valid GST' : 'Optional',
+          found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing',
+          passed: gstPass,
+          reason: vendor.gstValid ? 'Valid GST registration found' : 'GST certificate invalid or missing'
+        },
+        {
+          criterion: 'ISO Certificate',
+          required: criteria.isoCertRequired ? 'Valid ISO' : 'Optional',
+          found: vendor.isoValid ? 'Valid' : 'Not valid',
+          passed: isoPass,
+          reason: isoPass ? 'ISO requirement satisfied' : 'ISO certificate missing'
+        }
+      ];
+    }
+
+    function formatConfidenceLabel(score) {
+      if (score >= 75) return 'High Confidence';
+      if (score >= 50) return 'Needs Review';
+      return 'Low Confidence';
+    }
+
+    function updateConfidenceNarrative(results) {
+      const eligibleCount = results.filter((result) => result.status === 'Eligible').length;
+      const reviewCount = results.filter((result) => result.status === 'Needs Review').length;
+      const lowConfidenceCount = results.filter((result) => result.confidenceScore < 50).length;
+      document.getElementById('confidenceNarrative').textContent = `Out of ${results.length} vendors, ${eligibleCount} were eligible, ${reviewCount} require review, and ${lowConfidenceCount} are low confidence.`;
+    }
+
+    function resolveVendorStatus(eligible, needsReview) {
+      if (needsReview) return 'Needs Review';
+      return eligible ? 'Eligible' : 'Not Eligible';
+    }
+
+    function resolveVendorReason(vendor, criteria, turnoverPass, experiencePass, gstPass, eligible) {
+      if (eligible) return 'Vendor meets all mandatory criteria.';
+      if (!gstPass) return 'GST certificate invalid or missing.';
+      if (!turnoverPass) return `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr.`;
+      if (!experiencePass) return `Experience below required ${criteria.minExperienceYears} years.`;
+      return `${vendor.name} requires manual review due to low document confidence.`;
+    }
+
+    function evaluateVendor(vendor, criteria) {
+      const turnoverPass = Number(vendor.turnoverCr) >= Number(criteria.minTurnoverCr);
+      const experiencePass = Number(vendor.experienceYears) >= Number(criteria.minExperienceYears);
+      const gstPass = !criteria.gstMandatory || Boolean(vendor.gstValid);
+      const isoPass = !criteria.isoCertRequired || Boolean(vendor.isoValid);
+      const eligible = turnoverPass && experiencePass && gstPass && isoPass;
+      const confidence = calculateConfidence(vendor, criteria);
+      const needsReview = confidence.score < 50 || (!vendor.gstValid && vendor.name === 'GreenBuild Contractors');
+      const status = resolveVendorStatus(eligible, needsReview);
+      const reason = resolveVendorReason(vendor, criteria, turnoverPass, experiencePass, gstPass, eligible);
+
+      return {
+        ...vendor,
+        turnoverPass,
+        experiencePass,
+        gstPass,
+        isoPass,
+        eligible,
+        needsReview,
+        status,
+        confidenceScore: confidence.score,
+        confidenceLabel: confidence.label,
+        confidenceMeta: confidence,
+        reason,
+        criterionResults: buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass)
+      };
+    }
+
+    function renderResults(results) {
+      const tbody = document.getElementById('resultsBody');
+      tbody.innerHTML = results.map((result) => {
+        let statusClass = 'badge-ineligible';
+        if (result.status === 'Eligible') statusClass = 'badge-eligible';
+        if (result.status === 'Needs Review') statusClass = 'badge-review';
+
+        let confidenceClass = 'confidence-low';
+        if (result.confidenceScore >= 75) confidenceClass = 'confidence-high';
+        else if (result.confidenceScore >= 50) confidenceClass = 'confidence-medium';
+
+        const explanation = generateExplanation(result);
+        const detail = result.criterionResults.map((criterion) => `${criterion.criterion}: ${criterion.passed ? 'Pass' : 'Fail'}`).join('<br>');
+        return `
+          <tr class="${result.needsReview ? 'vendor-row-review' : ''}">
+            <td><strong>${escapeHtml(result.name)}</strong></td>
+            <td>${result.turnoverPass ? '✓' : '✗'} ₹${result.turnoverCr} Cr</td>
+            <td>${result.experiencePass ? '✓' : '✗'} ${result.experienceYears} yrs</td>
+            <td>${result.gstPass ? '✓' : '✗'} ${result.gstValid ? escapeHtml(result.gstNumber) : 'Invalid'}</td>
+            <td>${result.isoPass ? '✓' : '✗'} ${result.isoValid ? 'Valid' : 'Invalid'}</td>
+            <td>${result.isMSME ? 'Yes' : 'No'}</td>
+            <td>
+              <div class="confidence-value ${confidenceClass}">${result.confidenceScore}%</div>
+              <div class="mini-muted">${escapeHtml(result.confidenceLabel)}</div>
+              <div class="confidence-bar">
+                <div class="confidence-fill ${confidenceClass}" data-width="${Math.max(0, Math.min(100, result.confidenceScore))}"></div>
+              </div>
+            </td>
+            <td><span class="badge ${statusClass}">${result.status}</span></td>
+            <td>${escapeHtml(result.reason)}</td>
+            <td>
+              <details class="why-panel">
+                <summary>Why?</summary>
+                <div class="why-body">
+                  <div class="why-line"><strong>Summary:</strong> ${escapeHtml(explanation.summary)}</div>
+                  <div>
+                    <div class="why-line"><strong>Key failures:</strong></div>
+                    <div class="why-list">${(explanation.keyFailures.length ? explanation.keyFailures : ['None']).map((item) => `<span class="criterion-chip ${item === 'None' ? 'criterion-pass' : 'criterion-fail'}">${escapeHtml(item)}</span>`).join('')}</div>
+                  </div>
+                  <div>
+                    <div class="why-line"><strong>What could make them eligible:</strong></div>
+                    <div class="why-list">${explanation.improvement.map((item) => `<span class="criterion-chip criterion-pass">${escapeHtml(item)}</span>`).join('')}</div>
+                  </div>
+                </div>
+              </details>
+            </td>
+            <td class="mini-muted">${detail}</td>
+          </tr>
         `;
-        refs.tenderCard.classList.remove('hidden');
-        refs.tenderCriteriaCard.classList.add('hidden');
-        toast('Demo tender loaded successfully.', 'success');
+      }).join('');
+
+      tbody.querySelectorAll('.confidence-fill').forEach((fill) => {
+        fill.style.width = `${fill.dataset.width}%`;
+      });
+    }
+
+    function renderRiskFlags(results) {
+      const risk = detectCollusionRisk(results);
+      currentRisk = risk;
+
+      document.getElementById('riskScore').textContent = String(risk.score);
+      document.getElementById('riskScore').className = `risk-score ${risk.level.toLowerCase()}`;
+      document.getElementById('riskBadge').textContent = risk.level;
+      document.getElementById('riskBadge').className = `badge ${risk.badgeClass}`;
+      document.getElementById('riskBar').style.width = `${risk.score}%`;
+      document.getElementById('riskBar').className = `confidence-fill confidence-${risk.level.toLowerCase()}`;
+      document.getElementById('riskNarrative').textContent = risk.findings.length
+        ? `Risk score ${risk.score}/100 (${risk.level}). ${risk.findings[0].title}: ${risk.findings[0].detail}`
+        : 'No collusion patterns detected. Risk remains low.';
+
+      document.getElementById('riskList').innerHTML = risk.findings.length
+        ? risk.findings.map((flag) => `<div class="alert alert-warning"><strong>${escapeHtml(flag.title)}</strong><div class="mini-muted mt-8">${escapeHtml(flag.detail)}</div></div>`).join('')
+        : '<div class="empty-state">No risk flags detected.</div>';
+
+      renderVendorGrid();
+      return risk;
+    }
+
+    async function persistEvaluation(results, risk) {
+      const evaluation = {
+        tender: currentCriteria,
+        criteria: currentCriteria,
+        vendors: currentVendors,
+        results,
+        flags: risk.findings,
+        risk,
+        summary: {
+          eligibleCount: results.filter((result) => result.status === 'Eligible').length,
+          reviewCount: results.filter((result) => result.status === 'Needs Review').length,
+          rejectedCount: results.filter((result) => result.status === 'Not Eligible').length
+        },
+        timeline: [
+          { step: 'Criteria extracted', time: new Date().toISOString() },
+          { step: 'Vendors processed', time: new Date().toISOString() },
+          { step: 'Evaluation completed', time: new Date().toISOString() },
+          { step: 'Flags raised', time: new Date().toISOString() },
+          { step: 'Report generated', time: new Date().toISOString() }
+        ],
+        generatedAt: new Date().toISOString()
+      };
+
+      evaluation.auditHash = await buildAuditHash({
+        criteria: evaluation.criteria,
+        vendors: evaluation.vendors,
+        results: evaluation.results
+      });
+
+      if (typeof setStorage === 'function') setStorage('last-evaluation', evaluation); else localStorage.setItem('last-evaluation', JSON.stringify(evaluation));
+
+      const dashboardData = getStorage('all-tenders', { tenders: [], auditLog: [] });
+      dashboardData.tenders = Array.isArray(dashboardData.tenders) ? dashboardData.tenders : [];
+      dashboardData.auditLog = Array.isArray(dashboardData.auditLog) ? dashboardData.auditLog : [];
+      dashboardData.tenders.unshift({
+        id: currentCriteria.tenderId,
+        title: currentCriteria.tenderTitle,
+        vendors: currentVendors.length,
+        eligible: evaluation.summary.eligibleCount,
+        flagged: risk.findings.length,
+        rejected: evaluation.summary.rejectedCount,
+        status: 'Completed',
+        date: new Date().toISOString().slice(0, 10)
+      });
+      dashboardData.auditLog.unshift({
+        time: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        action: `Evaluation completed — ${currentCriteria.tenderId}`,
+        officer: 'System'
+      });
+      if (typeof setStorage === 'function') setStorage('all-tenders', dashboardData); else localStorage.setItem('all-tenders', JSON.stringify(dashboardData));
+      logAction('EVALUATION_COMPLETED', 'System', { tenderId: currentCriteria.tenderId, eligibleCount: evaluation.summary.eligibleCount, auditHash: evaluation.auditHash });
+      return evaluation;
+    }
+
+    async function runEvaluation(options = {}) {
+      const runButton = document.getElementById('runEvaluationBtn');
+      setButtonLoading(runButton, true, 'Evaluating...');
+      if (!currentCriteria) {
+        showToast('Load a tender or apply manual criteria first.', 'warning');
+        showManualCriteria(true);
+        setButtonLoading(runButton, false);
+        return;
+      }
+      if (!currentVendors.length) {
+        showToast('Load demo vendors before running the evaluation.', 'warning');
+        setButtonLoading(runButton, false);
+        return;
       }
 
-      populateOverrideVendors(data.vendors);
+      const results = currentVendors.map((vendor) => evaluateVendor(vendor, currentCriteria));
+      updateConfidenceNarrative(results);
+      const risk = renderRiskFlags(results);
+      renderResults(results);
+      const evaluation = await persistEvaluation(results, risk);
 
-      refs.choosePdf.addEventListener('click', function () {
-        refs.fileInput.click();
-      });
+      const eligibleCount = results.filter((result) => result.status === 'Eligible').length;
+      const reviewCount = results.filter((result) => result.status === 'Needs Review').length;
+      const summary = `Out of ${results.length} vendors, ${eligibleCount} were eligible, ${reviewCount} require review. Risk level: ${risk.level}.`;
+      const summaryBox = document.getElementById('evaluationSummary');
+      summaryBox.textContent = summary;
+      summaryBox.style.display = 'block';
+      document.getElementById('auditHashPreview').textContent = `Audit Hash: ${evaluation.auditHash.slice(0, 16).toUpperCase()}... (tamper-proof)`;
+      showToast('Evaluation completed successfully', 'success');
+      document.getElementById('resultsBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-      refs.fileInput.addEventListener('change', async function () {
-        const file = refs.fileInput.files && refs.fileInput.files[0];
-        if (!file) return;
-        extractedDocument = { fileName: file.name, rawText: '', pages: [] };
-        refs.fileName.textContent = 'Reading… ' + file.name;
-        refs.tenderCard.classList.add('hidden');
-        refs.tenderCriteriaCard.classList.add('hidden');
-        if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'Reading PDF pages...';
-        if (refs.rawTextPanel) refs.rawTextPanel.open = true;
-        showLoader();
-        setStep(1);
-        setAiStatus('active', 'Analyzing document...');
+      if (options.autoAdvance) {
         try {
-          const extracted = await extractDocument(file);
-          extractedDocument.rawText = extracted.rawText;
-          extractedDocument.pages = extracted.pages;
-          setAiStatus('active', 'Extracting criteria...');
-          const criteria = parseTenderCriteria(extracted.pages);
-          applyCriteriaToFields(criteria, extracted.rawText);
-          renderExtractionChips(criteria);
-          refs.fileName.textContent = (extracted.isOCR ? '[OCR] Loaded: ' : 'Loaded: ') + file.name;
-          hideLoader();
-          setStep(2);
-          const foundCount = [Number.isFinite(criteria.minTurnover), Number.isFinite(criteria.minExperience),
-            criteria.gstMandatory !== null, criteria.msmeApplicable !== null].filter(Boolean).length;
-          setAiStatus('done', 'Extraction complete — ' + foundCount + '/4 criteria detected' + (extracted.isOCR ? ' (via OCR)' : '') + '. Review and run evaluation.');
-          toast('Criteria extracted from document.', 'success');
-        } catch (error) {
-          console.error('NyayaBid tender upload failed:', error);
-          refs.fileName.textContent = '';
-          if (refs.rawTextOutput) refs.rawTextOutput.textContent = 'Failed to read document. Please upload a valid PDF.';
-          if (refs.rawTextPanel) refs.rawTextPanel.open = true;
-          hideLoader();
-          setStep(0);
-          setAiStatus('warn', 'Could not read document — ' + (error.message || 'unknown error'));
-          toast('Could not read document: ' + (error.message || 'unknown error'), 'warn');
+          if (typeof setStorage === 'function') setStorage('nyayabid-full-demo', '0'); else localStorage.removeItem('nyayabid-full-demo');
+        } catch (e) {
+          console.warn('Clearing demo flag failed', e);
         }
-      });
-
-      refs.demoButton.addEventListener('click', function () {
-        openDemoTender();
-        setStep(2);
-        renderExtractionChips({ minTurnover: 10, minExperience: 7, gstMandatory: true, msmeApplicable: true });
-        setAiStatus('done', 'Demo tender loaded — 4/4 criteria pre-filled. Click Run Evaluation to proceed.');
-      });
-
-      refs.runButton.addEventListener('click', function () {
-        const builtCriteria = buildCurrentCriteria();
-        if (!builtCriteria.ok) {
-          toast('Please enter missing criteria manually before running evaluation: ' + builtCriteria.missing + '.', 'warn');
-          setAiStatus('warn', 'Missing criteria: ' + builtCriteria.missing);
-          return;
-        }
-        setStep(2);
-        setAiStatus('active', 'Evaluating vendors...');
-        runEvaluationTimer(function () {
-          runEvaluation(builtCriteria.criteriaOverride);
-          setStep(3);
-        });
-      });
-
-      refs.gfrToggle.addEventListener('click', function () {
-        refs.gfrPanel.classList.toggle('hidden');
-      });
-
-      refs.overrideToggle.addEventListener('click', function () {
-        const open = !refs.overrideContent.classList.contains('hidden');
-        refs.overrideContent.classList.toggle('hidden', open);
-        refs.overrideToggle.querySelector('span').textContent = open ? '+' : '−';
-      });
-
-      ['override-vendor', 'override-status', 'override-justification', 'override-consent'].forEach(function (id) {
-        const node = document.getElementById(id);
-        node.addEventListener('input', syncOverrideButtonState);
-        node.addEventListener('change', syncOverrideButtonState);
-      });
-
-      refs.submitOverride.addEventListener('click', function () {
-        try {
-          const vendorId = refs.overrideVendor.value;
-          const newStatus = refs.overrideStatus.value;
-          const justification = refs.overrideJustification.value.trim();
-          const consent = refs.overrideConsent.checked;
-          if (!vendorId || !newStatus || justification.length < 50 || !consent) {
-            toast('Override form incomplete. Please satisfy all requirements.', 'warn');
-            return;
+        globalThis.setTimeout(() => {
+          try {
+            globalThis.location.href = 'report.html?autoDemo=1';
+          } catch (e) {
+            console.error('Navigation failed', e);
+            showToast('Navigation failed', 'warning');
           }
-          const vendor = data.vendors.find(function (entry) { return entry.id === vendorId; });
-          if (!vendor) {
-            toast('Selected vendor was not found.', 'warn');
-            return;
-          }
-          overrides.push({ vendorId, vendorName: vendor.name, newStatus, justification, timestamp: new Date().toISOString() });
-          renderAiResultCards(rows, overrides);
-          renderResults(rows, overrides);
-          renderFlags(overrides);
-          const currentCriteria = buildCurrentCriteria();
-          persistEvaluationSafely(currentCriteria.ok ? currentCriteria.criteriaOverride : null);
-          refs.overrideSuccess.classList.remove('hidden');
-          toast('Override logged. Justification recorded in audit trail.', 'success');
-        } catch (error) {
-          console.error('NyayaBid override submission failed:', error);
-          toast('Failed to submit override. Please try again.', 'warn');
-        }
-      });
+        }, 1200);
+      }
 
-      renderVendorCards();
-      syncOverrideButtonState();
-    })();
+      setButtonLoading(runButton, false);
+    }
+
+    document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+    document.getElementById('sidebarOverlay').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
+
+    document.getElementById('uploadTenderBtn').addEventListener('click', () => document.getElementById('tenderFileInput').click());
+    document.getElementById('demoTenderBtn').addEventListener('click', loadDemoTender);
+    document.getElementById('loadVendorsBtn').addEventListener('click', loadDemoVendors);
+    document.getElementById('clearVendorsBtn').addEventListener('click', () => {
+      currentVendors = [];
+      renderVendorGrid();
+      showToast('Vendors cleared', 'warning');
+    });
+    document.getElementById('applyManualCriteriaBtn').addEventListener('click', applyManualCriteria);
+    document.getElementById('runEvaluationBtn').addEventListener('click', runEvaluation);
+
+    document.getElementById('tenderFileInput').addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await parseTenderFile(file);
+        const parsed = parseCriteriaFromText(text);
+        if (parsed) {
+          setCriteria(parsed);
+          showManualCriteria(false);
+          showToast('Tender criteria extracted locally', 'success');
+        } else {
+          showManualCriteria(true);
+          showToast('Could not extract criteria. Use manual inputs.', 'warning');
+        }
+      } catch (error) {
+        console.error(error);
+        showManualCriteria(true);
+        showToast('Tender extraction failed. Use manual inputs.', 'warning');
+      }
+    });
+
+    showManualCriteria(false);
+    setCriteria({ ...demoCriteria });
+    renderVendorGrid();
+
+    if (autoDemoRequested) {
+      globalThis.setTimeout(async () => {
+        loadDemoTender();
+        loadDemoVendors();
+        await runEvaluation({ autoAdvance: true });
+      }, 120);
+    }
   </script>
-  <script src="../scripts/app.js"></script>
 </body>
 </html>
