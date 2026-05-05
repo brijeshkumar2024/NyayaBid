@@ -35,7 +35,10 @@
           <a class="nav-item" href="report.html">Report</a>
         </nav>
       </div>
-      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Offline-first demo mode</div></div>
+      <div class="sidebar-bottom">
+        <div class="version-tag">v1.0 | Offline-first demo mode</div>
+        <button class="btn btn-secondary btn-sm reset-demo-action" style="margin-top: 10px; width: 100%; color: #fca5a5; border-color: rgba(239,68,68,0.35);">↺ Reset Demo</button>
+      </div>
     </aside>
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -248,8 +251,8 @@
       const criteria = {
         tenderId: document.getElementById('manualTenderId').value.trim() || 'TND-2024-001',
         tenderTitle: document.getElementById('manualTenderTitle').value.trim() || 'Road Construction Works',
-        minTurnoverCr: Number(document.getElementById('manualMinTurnover').value) || 10,
-        minExperienceYears: Number(document.getElementById('manualMinExperience').value) || 5,
+        minTurnoverCr: document.getElementById('manualMinTurnover').value !== '' ? Number(document.getElementById('manualMinTurnover').value) : 10,
+        minExperienceYears: document.getElementById('manualMinExperience').value !== '' ? Number(document.getElementById('manualMinExperience').value) : 5,
         gstMandatory: document.getElementById('manualGstMandatory').checked,
         isoCertRequired: document.getElementById('manualIsoRequired').checked,
         msmeAllowed: document.getElementById('manualMsmeAllowed').checked

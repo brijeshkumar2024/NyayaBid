@@ -37,6 +37,7 @@
       </div>
       <div class="sidebar-bottom">
         <div class="version-tag">v1.0 | Procurement monitoring</div>
+        <button class="btn btn-secondary btn-sm reset-demo-action" style="margin-top: 10px; width: 100%; color: #fca5a5; border-color: rgba(239,68,68,0.35);">↺ Reset Demo</button>
       </div>
     </aside>
 
@@ -73,7 +74,17 @@
       </section>
 
       <section class="section card">
-        <div class="card-header"><h3>Recent Tenders</h3></div>
+        <div class="card-header">
+          <h3>Recent Tenders</h3>
+          <div class="button-row" style="flex-wrap: nowrap;">
+            <input type="text" id="dashboardSearch" placeholder="Search ID or Title..." class="input" style="max-width: 180px; padding: 8px;">
+            <select id="dashboardFilter" class="input" style="max-width: 120px; padding: 8px;">
+              <option value="All">All</option>
+              <option value="Completed">Completed</option>
+              <option value="Under Review">Under Review</option>
+            </select>
+          </div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -144,7 +155,16 @@
       document.getElementById('kpiFlags').textContent = totalFlags;
       document.getElementById('kpiVendors').textContent = totalVendors;
 
-      const tenderRows = tenders.map((tender) => `
+      const searchTerm = (document.getElementById('dashboardSearch')?.value || '').toLowerCase();
+      const filterStatus = document.getElementById('dashboardFilter')?.value || 'All';
+      
+      const filteredTenders = tenders.filter(tender => {
+        const matchesSearch = !searchTerm || (tender.title || '').toLowerCase().includes(searchTerm) || (tender.id || '').toLowerCase().includes(searchTerm);
+        const matchesStatus = filterStatus === 'All' || tender.status === filterStatus;
+        return matchesSearch && matchesStatus;
+      });
+
+      const tenderRows = filteredTenders.map((tender) => `
         <tr>
           <td><strong>${tender.id}</strong></td>
           <td>${tender.title}</td>
@@ -248,7 +268,14 @@
           }
         }
       });
+        }
+      } catch (e) {
+        console.error('risk chart render failed', e);
+      }
     }
+
+    document.getElementById('dashboardSearch')?.addEventListener('input', renderDashboard);
+    document.getElementById('dashboardFilter')?.addEventListener('change', renderDashboard);
 
     document.getElementById('refreshBtn').addEventListener('click', renderDashboard);
     document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));

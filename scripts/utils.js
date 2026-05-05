@@ -90,7 +90,10 @@ function ensureAllTendersSeeded() {
     return existing;
   } catch (e) {
     console.error('ensureAllTendersSeeded failed', e);
-    const fallbackSeed = [{ id: 'demo-1', title: DEMO_TENDER.tenderTitle, tender: DEMO_TENDER, evaluations: [], created: new Date().toISOString() }];
+    const fallbackSeed = {
+      tenders: [{ id: 'demo-1', title: DEMO_TENDER.tenderTitle, tender: DEMO_TENDER, vendors: 0, eligible: 0, flagged: 0, rejected: 0, status: 'Completed', date: new Date().toISOString() }],
+      auditLog: []
+    };
     setStorage('all-tenders', fallbackSeed);
     showToast('Recovered tenders using demo data', 'warning');
     return fallbackSeed;
@@ -380,3 +383,11 @@ globalThis.DEMO_VENDORS = DEMO_VENDORS;
 globalThis.setStorage = setStorage;
 globalThis.getSafe = getSafe;
 globalThis.ensureAllTendersSeeded = ensureAllTendersSeeded;
+
+globalThis.addEventListener('click', (e) => {
+  if (e.target.closest('.reset-demo-action')) {
+    if (globalThis.confirm('Clear all demo data and restart trial?')) {
+      try { localStorage.clear(); globalThis.location.reload(); } catch (err) {}
+    }
+  }
+});

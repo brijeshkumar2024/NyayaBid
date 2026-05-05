@@ -32,7 +32,10 @@
           <a class="nav-item active" href="report.html">Report</a>
         </nav>
       </div>
-      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Final sign-off</div></div>
+      <div class="sidebar-bottom">
+        <div class="version-tag">v1.0 | Final sign-off</div>
+        <button class="btn btn-secondary btn-sm reset-demo-action" style="margin-top: 10px; width: 100%; color: #fca5a5; border-color: rgba(239,68,68,0.35);">↺ Reset Demo</button>
+      </div>
     </aside>
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -347,15 +350,9 @@
       document.getElementById('reportStatusBadge').textContent = report.status;
 
       const reportDataForHash = {
-        reportId: report.reportId,
-        tender: report.tender,
         criteria: report.criteria,
         vendors: report.vendors,
-        results: report.results,
-        flags: report.flags,
-        overrideLog: report.overrideLog,
-        signOff: report.signOff || null,
-        status: report.status
+        results: report.results
       };
 
       const computedHash = await buildAuditHash(reportDataForHash);
