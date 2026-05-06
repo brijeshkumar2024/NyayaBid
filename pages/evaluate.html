@@ -254,7 +254,7 @@
         `Min Turnover: ₹${currentTender.minTurnoverCr} Cr`,
         `Min Experience: ${currentTender.minExperienceYears} years`,
         currentTender.gstMandatory ? 'GST: Mandatory' : 'GST: Optional',
-        ...currentTender.otherCriteria
+        ...(Array.isArray(currentTender.otherCriteria) ? currentTender.otherCriteria : [])
       ];
       document.getElementById('criteriaChips').innerHTML = chips.map(c => `<div class="chip">${c}</div>`).join('');
       
