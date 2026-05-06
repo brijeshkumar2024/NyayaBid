@@ -2,22 +2,172 @@
 const DEMO_TENDER = {
   id: 'TND-2024-CRPF-001',
   title: 'Road Construction & Maintenance Works',
-  authority: 'Delhi Public Works Department',
-  date: '2024-01-15',
+  authority: 'Delhi Public Works Department (DPWD)',
+  tenderId: 'TND-2024-CRPF-001',
+  category: 'Infrastructure & Civil Engineering',
+  estimatedValue: '₹42 Crore',
+  duration: '18 Months',
+  location: 'New Delhi, India',
+  deadline: '15 February 2026',
+  method: 'Open Competitive Bidding',
+
   minTurnoverCr: 10,
   minExperienceYears: 5,
   gstMandatory: true,
-  isoCertRequired: false,
-  msmeAllowed: true,
-  otherCriteria: ['Valid PAN', 'No blacklisting by any Govt body', 'EMD of ₹2 Lakh']
+
+  complexity: 'HIGH',
+  reason:
+    'Large-scale public infrastructure project involving financial, technical, and regulatory evaluation',
+
+  aiConfidence: 96,
+  totalCriteria: 14,
+  mandatoryChecks: 9,
+  technicalParams: 5,
+
+  criteriaSections: [
+    {
+      title: '📋 Financial Requirements',
+      chips: [
+        'Minimum Annual Turnover: ₹10 Cr',
+        'EMD Deposit: ₹2 Lakh',
+        'Financial statements for last 3 years required',
+        'Bid validity: 120 days'
+      ]
+    },
+    {
+      title: '🏗 Technical Requirements',
+      chips: [
+        'Minimum Experience: 5 years',
+        'Minimum 2 completed government infrastructure projects',
+        'At least 25 skilled workers available',
+        'Road safety compliance declaration required'
+      ]
+    },
+    {
+      title: '⚖ Compliance Requirements',
+      chips: [
+        'GST Registration Mandatory',
+        'Valid PAN Required',
+        'PF & ESI registration mandatory',
+        'Labour compliance certificate mandatory',
+        'ISO 9001 certification preferred',
+        'No blacklisting by any Govt authority'
+      ]
+    },
+    {
+      title: '🛡 Regulatory Alignment',
+      chips: [
+        'GFR Rule 160',
+        'GFR Rule 175',
+        'CVC Procurement Guidelines 2023',
+        'MSME Procurement Policy'
+      ]
+    }
+  ],
+
+  requiredDocuments: [
+    'GST Certificate',
+    'PAN Card',
+    'Financial Statements (3 Years)',
+    'Experience Certificates',
+    'EMD Receipt',
+    'Labour Compliance Certificate',
+    'PF/ESI Registration',
+    'Bank Solvency Certificate',
+    'Project Completion Certificates'
+  ]
 };
 
 const DEMO_VENDORS = [
-  { name: 'BuildCorp Industries', city: 'Delhi', turnoverCr: 18, experienceYears: 8, gstNumber: '07AABCB1234A1Z5', gstValid: true, isoValid: true, isMSME: false, panValid: true, bidValue: 38900000, confidence: 95, docs: ['Financial Statement', 'GST Certificate', 'Experience Certificate', 'EMD Receipt'] },
-  { name: 'Singh Construction', city: 'Mumbai', turnoverCr: 12, experienceYears: 6, gstNumber: '27AABCS5678B1Z3', gstValid: true, isoValid: false, isMSME: true, panValid: true, bidValue: 42000000, confidence: 88, docs: ['Financial Statement', 'GST Certificate', 'Experience Certificate', 'EMD Receipt'] },
-  { name: 'Sharma Builders', city: 'Jaipur', turnoverCr: 7, experienceYears: 4, gstNumber: '08AABCS9012C1Z1', gstValid: true, isoValid: false, isMSME: true, panValid: true, bidValue: 35000000, confidence: 82, docs: ['Financial Statement', 'GST Certificate', 'Experience Certificate'] },
-  { name: 'Patel Group', city: 'Ahmedabad', turnoverCr: 22, experienceYears: 10, gstNumber: '24AABCP3456D1Z7', gstValid: true, isoValid: true, isMSME: false, panValid: true, bidValue: 44650000, confidence: 97, docs: ['Financial Statement', 'GST Certificate', 'Experience Certificate', 'ISO Certificate', 'EMD Receipt'] },
-  { name: 'GreenBuild Contractors', city: 'Bangalore', turnoverCr: 9, experienceYears: 5, gstNumber: '29AABCG7890E1Z2', gstValid: false, isoValid: false, isMSME: false, panValid: true, bidValue: 41000000, confidence: 45, docs: ['Financial Statement', 'Experience Certificate'] }
+  {
+    name: 'BuildCorp Industries',
+    city: 'Delhi',
+    turnoverCr: 18,
+    experienceYears: 12,
+    gstNumber: '07AABCB1234A1Z5',
+    gstValid: true,
+    isoValid: true,
+    isMSME: false,
+    panValid: true,
+    bidValue: 4200000000,
+    confidence: 95,
+    docs: [
+      'Financial Statement FY21-23',
+      'GST Certificate',
+      '12 Exp Certs',
+      'EMD Receipt',
+      'PF/ESI Reg'
+    ]
+  },
+  {
+    name: 'Sunrise Tech Solutions',
+    city: 'Pune',
+    turnoverCr: 7,
+    experienceYears: 5,
+    gstNumber: '27AAJCS2098M1Z1',
+    gstValid: true,
+    isoValid: false,
+    isMSME: true,
+    panValid: true,
+    bidValue: 3950000000,
+    confidence: 88,
+    docs: [
+      'Financial Statement',
+      'GST Certificate',
+      '5 Exp Certs',
+      'EMD Receipt',
+      'Labour Comp Cert'
+    ]
+  },
+  {
+    name: 'GreenBuild Contractors',
+    city: 'Delhi NCR',
+    turnoverCr: 12,
+    experienceYears: 9,
+    gstNumber: '07AABCG4567P1ZA',
+    gstValid: true,
+    isoValid: false,
+    isMSME: false,
+    panValid: true,
+    bidValue: 4050000000,
+    confidence: 92,
+    docs: ['Financial Statement', 'GST Certificate (flagged)', '9 Exp Certs', 'EMD Receipt']
+  },
+  {
+    name: 'Mohanty Civil Works',
+    city: 'Bhubaneswar',
+    turnoverCr: 3,
+    experienceYears: 4,
+    gstNumber: null,
+    gstValid: false,
+    isoValid: false,
+    isMSME: true,
+    panValid: true,
+    bidValue: 3850000000,
+    confidence: 45,
+    docs: ['Financial Statement', 'Exp Certs (2)', 'Labour Comp']
+  },
+  {
+    name: 'Pioneer Systems Ltd',
+    city: 'Chennai',
+    turnoverCr: 15,
+    experienceYears: 11,
+    gstNumber: '33AACCP7654N1ZT',
+    gstValid: true,
+    isoValid: true,
+    isMSME: false,
+    panValid: true,
+    bidValue: 4100000000,
+    confidence: 97,
+    docs: [
+      'Financial FY21-23',
+      'GST Cert',
+      '11 Exp Certs',
+      'ISO 9001',
+      'EMD Receipt',
+      'Road Safety Decl'
+    ]
+  }
 ];
 
 const SIM_VENDORS = [
@@ -56,21 +206,27 @@ function safeJSON(text) {
   try {
     const clean = text.replace(/```json|```/g, '').trim();
     return JSON.parse(clean);
-  } catch(e) { return null; }
+  } catch (e) {
+    return null;
+  }
 }
 
 function getStorage(key, fallback) {
   try {
     const v = localStorage.getItem(key);
     return v ? JSON.parse(v) : fallback;
-  } catch(e) { return fallback; }
+  } catch (e) {
+    return fallback;
+  }
 }
 
 function setStorage(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch(e) {}
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {}
 }
 
-function showToast(message, type='info', duration=4000) {
+function showToast(message, type = 'info', duration = 4000) {
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -81,13 +237,17 @@ function showToast(message, type='info', duration=4000) {
   toast.className = `toast toast-${type}`;
   toast.textContent = message;
   container.appendChild(toast);
-  setTimeout(() => { toast.style.opacity='0'; toast.style.transition='opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, duration);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
-function logAction(action, officer='System AI') {
+function logAction(action, officer = 'System AI') {
   const log = getStorage('audit-log', []);
   const now = new Date();
-  const time = now.toISOString().slice(0,16).replace('T',' ');
+  const time = now.toISOString().slice(0, 16).replace('T', ' ');
   log.unshift({ time, action, officer });
   if (log.length > 50) log.pop();
   setStorage('audit-log', log);
@@ -112,50 +272,120 @@ function evaluateVendor(vendor, criteria) {
 
   // Turnover
   const tPass = vendor.turnoverCr >= criteria.minTurnoverCr;
-  checks.push({ criterion: 'Min Annual Turnover', required: '₹'+criteria.minTurnoverCr+' Cr', found: '₹'+vendor.turnoverCr+' Cr', passed: tPass, reason: tPass ? 'Turnover of ₹'+vendor.turnoverCr+'Cr meets the minimum ₹'+criteria.minTurnoverCr+'Cr requirement' : 'Turnover ₹'+vendor.turnoverCr+'Cr is below required ₹'+criteria.minTurnoverCr+'Cr' });
+  checks.push({
+    criterion: 'Min Annual Turnover',
+    required: '₹' + criteria.minTurnoverCr + ' Cr',
+    found: '₹' + vendor.turnoverCr + ' Cr',
+    passed: tPass,
+    reason: tPass
+      ? 'Turnover of ₹' + vendor.turnoverCr + 'Cr meets the minimum ₹' + criteria.minTurnoverCr + 'Cr requirement'
+      : 'Turnover ₹' + vendor.turnoverCr + 'Cr is below required ₹' + criteria.minTurnoverCr + 'Cr'
+  });
   if (!tPass) eligible = false;
 
   // Experience
   const ePass = vendor.experienceYears >= criteria.minExperienceYears;
-  checks.push({ criterion: 'Min Experience', required: criteria.minExperienceYears+' years', found: vendor.experienceYears+' years', passed: ePass, reason: ePass ? vendor.experienceYears+' years experience meets the '+criteria.minExperienceYears+' year requirement' : 'Only '+vendor.experienceYears+' years experience — need '+criteria.minExperienceYears+' years' });
+  checks.push({
+    criterion: 'Min Experience',
+    required: criteria.minExperienceYears + ' years',
+    found: vendor.experienceYears + ' years',
+    passed: ePass,
+    reason: ePass
+      ? vendor.experienceYears + ' years experience meets the ' + criteria.minExperienceYears + ' year requirement'
+      : 'Only ' + vendor.experienceYears + ' years experience — need ' + criteria.minExperienceYears + ' years'
+  });
   if (!ePass) eligible = false;
 
   // GST
   if (criteria.gstMandatory) {
-    checks.push({ criterion: 'GST Registration', required: 'Valid GST', found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing', passed: vendor.gstValid, reason: vendor.gstValid ? 'Valid GST registration '+vendor.gstNumber+' confirmed' : 'GST certificate is invalid or not submitted — flagging for review' });
-    if (!vendor.gstValid) { eligible = false; needsReview = true; }
+    checks.push({
+      criterion: 'GST Registration',
+      required: 'Valid GST',
+      found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing',
+      passed: vendor.gstValid,
+      reason: vendor.gstValid
+        ? 'Valid GST registration ' + vendor.gstNumber + ' confirmed'
+        : 'GST certificate is invalid or not submitted — flagging for review'
+    });
+    if (!vendor.gstValid) {
+      eligible = false;
+      needsReview = true;
+    }
   }
 
   // Confidence threshold
-  if (vendor.confidence < 60) { needsReview = true; }
+  if (vendor.confidence < 60) {
+    needsReview = true;
+  }
 
-  const status = needsReview ? 'Needs Review' : (eligible ? 'Eligible' : 'Not Eligible');
-  const flagReason = needsReview ? (vendor.confidence < 60 ? 'Document confidence '+vendor.confidence+'% is below threshold — manual verification required' : 'GST invalid — needs officer review') : null;
+  const status = needsReview ? 'Needs Review' : eligible ? 'Eligible' : 'Not Eligible';
+  const flagReason = needsReview
+    ? vendor.confidence < 60
+      ? 'Document confidence ' + vendor.confidence + '% is below threshold — manual verification required'
+      : 'GST invalid — needs officer review'
+    : null;
 
-  return { vendorName: vendor.name, city: vendor.city, status, confidence: vendor.confidence, checks, flagForReview: needsReview, flagReason, turnoverCr: vendor.turnoverCr, experienceYears: vendor.experienceYears, gstValid: vendor.gstValid, isMSME: vendor.isMSME };
+  return {
+    vendorName: vendor.name,
+    city: vendor.city,
+    status,
+    confidence: vendor.confidence,
+    checks,
+    flagForReview: needsReview,
+    flagReason,
+    turnoverCr: vendor.turnoverCr,
+    experienceYears: vendor.experienceYears,
+    gstValid: vendor.gstValid,
+    isMSME: vendor.isMSME
+  };
 }
 
 function detectCollusion(vendors) {
   const flags = [];
   // Check for GST mismatches
-  vendors.forEach(v => {
-    if (!v.gstValid) flags.push({ vendor: v.name, type: 'GST Mismatch', detail: 'GST certificate could not be validated', action: 'Verify directly with GST portal' });
-    if (v.confidence < 60) flags.push({ vendor: v.name, type: 'Low Confidence', detail: 'Document confidence '+v.confidence+'% — possible scan quality issue or data mismatch', action: 'Request original documents' });
+  vendors.forEach((v) => {
+    if (!v.gstValid)
+      flags.push({
+        vendor: v.name,
+        type: 'GST Mismatch',
+        detail: 'GST certificate could not be validated',
+        action: 'Verify directly with GST portal'
+      });
+    if (v.confidence < 60)
+      flags.push({
+        vendor: v.name,
+        type: 'Low Confidence',
+        detail: 'Document confidence ' + v.confidence + '% — possible scan quality issue or data mismatch',
+        action: 'Request original documents'
+      });
   });
+
   // Check for similar bid values (collusion signal)
-  for (let i=0; i<vendors.length; i++) {
-    for (let j=i+1; j<vendors.length; j++) {
+  for (let i = 0; i < vendors.length; i++) {
+    for (let j = i + 1; j < vendors.length; j++) {
       if (vendors[i].bidValue && vendors[j].bidValue) {
-        const diff = Math.abs(vendors[i].bidValue - vendors[j].bidValue) / Math.max(vendors[i].bidValue, vendors[j].bidValue);
-        if (diff < 0.02) flags.push({ vendor: vendors[i].name+' & '+vendors[j].name, type: 'Collusion Risk', detail: 'Bid values within 2% of each other — possible bid coordination', action: 'Refer to CVC for investigation' });
+        const diff =
+          Math.abs(vendors[i].bidValue - vendors[j].bidValue) /
+          Math.max(vendors[i].bidValue, vendors[j].bidValue);
+        if (diff < 0.02)
+          flags.push({
+            vendor: vendors[i].name + ' & ' + vendors[j].name,
+            type: 'Collusion Risk',
+            detail: 'Bid values within 2% of each other — possible bid coordination',
+            action: 'Refer to CVC for investigation'
+          });
       }
     }
   }
+
   return flags;
 }
 
 // SHA-256 for report verification
 async function sha256(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
+
