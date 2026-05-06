@@ -28,21 +28,26 @@
     <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
   </aside>
 
-  <div class="ticker-wrap">
+  <div class="ticker-wrap floating-ticker">
     <div class="ticker">
-      <span>Dashboard live</span>
-      <span>Real-time evaluation status</span>
-      <span>Audit trail updated</span>
-      <span>CAG-ready format</span>
+      <span>Real-time Evaluation Active</span>
+      <span>System Integrity Verified</span>
+      <span>CAG-Ready Audit Trail</span>
+      <span>AI Confidence: 98.4%</span>
     </div>
   </div>
 
   <div class="main">
+    <div class="dashboard-container">
+
     <div class="page-header">
       <div>
         <div class="page-title">Procurement Overview</div>
-        <div class="page-sub">Real-time dashboard of all ongoing tender evaluations and audit trail</div>
+        <div class="page-sub">Global monitor for all tender evaluations, vendor compliance, and real-time audit logs.</div>
       </div>
+      <button class="btn btn-secondary" id="refreshBtn">
+        <span class="refresh-icon">🔄</span> Refresh Dashboard
+      </button>
     </div>
 
     <div class="kpi-grid">
@@ -90,12 +95,17 @@
       <div class="card-title">Recent Tenders</div>
       <div class="card-sub">Status and evaluation progress</div>
       <div class="table-toolbar">
-        <input class="form-input" id="tenderSearch" type="search" placeholder="Search tender ID or title..." aria-label="Search tender ID or title">
-        <select class="form-input form-select" id="statusFilter" aria-label="Filter tenders by status">
-          <option value="all">All Status</option>
-          <option value="Completed">Completed</option>
-          <option value="Under Review">Under Review</option>
-        </select>
+        <div class="table-toolbar-group">
+          <input class="form-input" id="tenderSearch" type="search" placeholder="Search tender ID or title..." aria-label="Search tender ID or title">
+          <select class="form-input form-select" id="statusFilter" aria-label="Filter tenders by status">
+            <option value="all">All Status</option>
+            <option value="Completed">Completed</option>
+            <option value="Under Review">Under Review</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-secondary" id="exportBtn">
+          <span>📥</span> Export CSV
+        </button>
       </div>
       <div class="table-wrap">
         <table>
@@ -119,6 +129,7 @@
       <div class="card-sub">System and officer actions logged in real-time</div>
       <div id="auditTrail"></div>
     </div>
+    </div>
   </div>
 
   <div id="toast-container"></div>
@@ -134,11 +145,28 @@
     document.addEventListener('DOMContentLoaded', function() {
       initDashboardData();
       loadDashboard();
+      
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+          refreshBtn.classList.add('rotating');
+          loadDashboard();
+          setTimeout(() => refreshBtn.classList.remove('rotating'), 1000);
+        });
+      }
+
+      const exportBtn = document.getElementById('exportBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', exportTendersToCSV);
+      }
+
       document.getElementById('tenderSearch').addEventListener('input', applyTenderFilters);
       document.getElementById('statusFilter').addEventListener('change', applyTenderFilters);
     });
 
     function loadDashboard() {
+      console.log('Loading dashboard data...');
+
       try {
         const allData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
         const auditLog = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
@@ -188,6 +216,18 @@
       }
       // Charts
       setTimeout(() => {
+        // Clear previous charts to avoid overlap
+        const chartBoxes = document.querySelectorAll('.chart-box');
+        chartBoxes.forEach(box => {
+          const oldCanvas = box.querySelector('canvas');
+          const id = oldCanvas.id;
+          const parent = oldCanvas.parentElement;
+          oldCanvas.remove();
+          const newCanvas = document.createElement('canvas');
+          newCanvas.id = id;
+          parent.appendChild(newCanvas);
+        });
+
         const eligible = 9, needsReview = 2, notEligible = 4;
         const ctx1 = document.getElementById('statusChart').getContext('2d');
         new Chart(ctx1, {
@@ -208,6 +248,7 @@
           },
           options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
         });
+        showToast('Dashboard data synchronized', 'info');
       }, 100);
     }
 
@@ -242,6 +283,41 @@
           <td><span class="badge ${t.status === 'Completed' ? 'badge-eligible' : 'badge-review'}">${t.status}</span></td>
         </tr>
       `).join('');
+    }
+
+    function exportTendersToCSV() {
+      if (!dashboardTenders || !dashboardTenders.length) {
+        showToast('No data available to export', 'warning');
+        return;
+      }
+
+      const headers = ['Tender ID', 'Title', 'Vendors', 'Eligible', 'Flags', 'Status', 'Date'];
+      const rows = dashboardTenders.map(t => [
+        t.id,
+        `"${t.title.replace(/"/g, '""')}"`,
+        t.vendors,
+        t.eligible,
+        t.flagged,
+        t.status,
+        t.date
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(r => r.join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `NyayaBid_Tenders_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Tender data exported successfully', 'success');
     }
   </script>
 </body>
