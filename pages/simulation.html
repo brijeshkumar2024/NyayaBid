@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../styles/main.css">
 </head>
 <body>
-  <div class="sidebar">
+  <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-icon">⚖️</div>
       <div class="sidebar-brand-text">
@@ -17,6 +17,7 @@
         <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
     </div>
+  </aside>
     <nav style="flex: 1;">
       <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
@@ -70,7 +71,7 @@
           Apply MSME Relaxation (−25% turnover)
         </label>
 
-        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="runSimulation()">▶ Run Simulation</button>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="runSimulation(true)">▶ Run Simulation</button>
       </div>
 
       <!-- RIGHT: Impact Summary -->
@@ -141,7 +142,7 @@
       const exp = document.getElementById('expSlider').value;
       document.getElementById('turnoverVal').textContent = '₹' + turnover + ' Cr';
       document.getElementById('expVal').textContent = exp + ' years';
-      runSimulation();
+      runSimulation(false);
     }
 
     function applyPreset(name) {
@@ -155,7 +156,7 @@
       updateSliders();
     }
 
-    function runSimulation() {
+    function runSimulation(scrollToChart = false) {
       const turnover = parseInt(document.getElementById('turnoverSlider').value);
       const exp = parseInt(document.getElementById('expSlider').value);
       const gstRequired = document.getElementById('gstCheck').checked;
@@ -191,6 +192,10 @@
 
       renderSimChart(results);
       renderSimTable(results);
+
+      if (scrollToChart) {
+        setTimeout(() => { document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
+      }
     }
 
     function renderSimChart(results) {

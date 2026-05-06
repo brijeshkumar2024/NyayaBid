@@ -97,7 +97,8 @@ body.landing-body { display: block; }
   border-radius: var(--r);
   padding: 24px;
   backdrop-filter: var(--blur);
-  transition: all 0.2s;
+  transition: all 0.24s cubic-bezier(.2,.9,.2,1);
+  box-shadow: 0 8px 24px rgba(2,6,23,0.6);
 }
 .card:hover { border-color: rgba(255,255,255,0.12); }
 .card-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
@@ -129,6 +130,31 @@ body.landing-body { display: block; }
 .btn-danger { background: linear-gradient(135deg, var(--red), #b91c1c); color: white; }
 .btn-sm { padding: 6px 14px; font-size: 13px; }
 .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* Explain button */
+.btn-explain { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(59,130,246,0.18); background: rgba(59,130,246,0.06); color: #60a5fa; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.18s; display:inline-flex; align-items:center; gap:8px; }
+.btn-explain:hover { background: rgba(59,130,246,0.14); box-shadow: 0 6px 18px rgba(59,130,246,0.06); transform: translateY(-2px); }
+.btn-explain:active { transform: translateY(0); }
+
+/* HITL banner */
+.hitl-banner { padding: 12px 16px; border-radius: 12px; background: linear-gradient(90deg, rgba(59,130,246,0.06), rgba(99,102,241,0.03)); border: 1px solid var(--border-bright); display:flex; gap:12px; align-items:center; }
+.hitl-banner .icon { width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:800 }
+.hitl-banner .content { color:var(--text2); font-size:13px }
+
+/* Explain modal */
+.modal-backdrop { position:fixed; inset:0; background: rgba(2,6,23,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.explain-modal { width:720px; max-width:94%; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:18px; box-shadow: 0 18px 60px rgba(2,6,23,0.7); backdrop-filter: blur(8px); }
+.explain-title { font-weight:800; font-size:18px; color:var(--text); margin-bottom:6px }
+.explain-body { color:var(--text2); line-height:1.6; max-height:420px; overflow:auto; }
+.modal-close { background:transparent;border:1px solid rgba(255,255,255,0.03); padding:6px 10px; border-radius:8px; color:var(--text2); cursor:pointer }
+
+/* Hash card */
+.hash-card { padding:14px; border-radius:12px; background: linear-gradient(180deg, rgba(16,185,129,0.03), rgba(16,185,129,0.01)); border:1px solid rgba(16,185,129,0.12); display:flex; align-items:center; gap:12px; }
+.hash-meta { font-family: monospace; color:var(--text); font-weight:700; font-size:13px }
+.hash-copy { margin-left:auto }
+
+/* PDF footers small tweak spacing */
+.pdf-footer { font-size:9px; color:var(--text2) }
 
 /* ── BADGES ── */
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
