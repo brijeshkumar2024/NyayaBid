@@ -43,6 +43,7 @@
       <a href="pages/dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
       <a href="pages/evaluate.html" class="btn btn-secondary">📋 See Evaluation</a>
       <button class="btn btn-sm btn-secondary" id="demoFlowBtn">🧭 Demo Script</button>
+      <button class="btn btn-sm btn-secondary" id="viewWorkflowBtn" style="border-color: var(--accent); color: var(--accent);">🗺 View Workflow</button>
     </div>
   </section>
 
@@ -133,6 +134,118 @@
     NyayaBid AI v1.0 | Built for CRPF Hackathon 2024 | Powered by AI
   </footer>
 
+  <!-- Workflow Modal -->
+  <div id="workflowModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="width:800px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:32px; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <div style="font-weight:800;font-size:18px;margin-bottom:4px">NyayaBid AI Procurement Intelligence Flow</div>
+          <div style="color:var(--text2);font-size:13px">End-to-End Explainable Procurement Pipeline</div>
+        </div>
+        <button class="btn btn-sm" id="closeWorkflowBtn" style="margin-left:auto;">Close</button>
+      </div>
+      
+      <div style="color:var(--text2);font-size:14px;line-height:1.6;margin-bottom:24px">
+        NyayaBid AI combines AI-assisted extraction, explainable evaluation, fraud detection, and policy simulation into a unified procurement intelligence workflow.
+      </div>
+
+      <!-- Workflow Pipeline -->
+      <div style="background:rgba(var(--accent-rgb, 100,150,255),0.05); border-left:3px solid var(--accent); border-radius:8px; padding:24px; margin-bottom:24px;">
+        <div style="display:grid;gap:16px;">
+          
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">1</div>
+            <div>
+              <div style="font-weight:600;color:white;">Upload Tender</div>
+              <div style="color:var(--text2);font-size:13px;">Paste tender criteria and vendor documents (PDF, images, Word)</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">2</div>
+            <div>
+              <div style="font-weight:600;color:white;">AI Criteria Extraction</div>
+              <div style="color:var(--text2);font-size:13px;">Automatically extract eligibility criteria and parse vendor documents</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">3</div>
+            <div>
+              <div style="font-weight:600;color:white;">Vendor Evaluation</div>
+              <div style="color:var(--text2);font-size:13px;">Run automated eligibility assessment with explainable decision reasoning</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:#ff6b6b;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">4</div>
+            <div>
+              <div style="font-weight:600;color:white;">Fraud & Risk Detection</div>
+              <div style="color:var(--text2);font-size:13px;">Identify GST mismatches, address overlaps, and suspicious bid patterns</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">5</div>
+            <div>
+              <div style="font-weight:600;color:white;">Explainable Decisions</div>
+              <div style="color:var(--text2);font-size:13px;">Every verdict references the exact criterion, document, and evidence</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">6</div>
+            <div>
+              <div style="font-weight:600;color:white;">Policy Simulation</div>
+              <div style="color:var(--text2);font-size:13px;">Adjust criteria and preview impact on competition before publishing</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">7</div>
+            <div>
+              <div style="font-weight:600;color:white;">Audit Report Generation</div>
+              <div style="color:var(--text2);font-size:13px;">Export CAG-ready reports with SHA-256 verification and digital signature</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:rgba(var(--green-rgb, 100,255,150),0.1);border:1px solid rgba(100,255,150,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--green);font-weight:600;font-size:13px;">✓ Explainable Decisions</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">Every decision includes detailed reasoning</div>
+        </div>
+        <div style="background:rgba(var(--green-rgb, 100,255,150),0.1);border:1px solid rgba(100,255,150,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--green);font-weight:600;font-size:13px;">✓ Audit-Ready Reports</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">CAG compliance and tamper verification</div>
+        </div>
+        <div style="background:rgba(var(--accent-rgb, 100,150,255),0.1);border:1px solid rgba(100,150,255,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--accent);font-weight:600;font-size:13px;">✓ Human-in-the-Loop</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">AI augments officers; humans retain authority</div>
+        </div>
+        <div style="background:rgba(var(--accent-rgb, 100,150,255),0.1);border:1px solid rgba(100,150,255,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--accent);font-weight:600;font-size:13px;">✓ Real-Time Simulation</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">Adjust policy and see impact instantly</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Demo Script Modal -->
   <div id="demoFlowModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
     <div style="width:720px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
@@ -156,24 +269,55 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="./scripts/utils.js"></script>
   <script>
+    // Demo Flow Modal
     const demoFlowModal = document.getElementById('demoFlowModal');
     const closeDemoFlowBtn = document.getElementById('closeDemoFlow');
     const demoFlowBtn = document.getElementById('demoFlowBtn');
 
-    demoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'flex'; });
-    closeDemoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'none'; });
+    if (demoFlowBtn && closeDemoFlowBtn && demoFlowModal) {
+      demoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'flex'; });
+      closeDemoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'none'; });
 
-    // Close modal on backdrop click
-    demoFlowModal.addEventListener('click', (e) => {
-      if (e.target === demoFlowModal) demoFlowModal.style.display = 'none';
-    });
+      // Close modal on backdrop click
+      demoFlowModal.addEventListener('click', (e) => {
+        if (e.target === demoFlowModal) demoFlowModal.style.display = 'none';
+      });
 
-    // Close modal on ESC key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && demoFlowModal.style.display === 'flex') {
-        demoFlowModal.style.display = 'none';
+      // Close modal on ESC key (with flag to prevent duplicate)
+      if (!window.__demoFlowEscHandler) {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && demoFlowModal.style.display === 'flex') {
+            demoFlowModal.style.display = 'none';
+          }
+        });
+        window.__demoFlowEscHandler = true;
       }
-    });
+    }
+
+    // Workflow Modal
+    const workflowModal = document.getElementById('workflowModal');
+    const closeWorkflowBtn = document.getElementById('closeWorkflowBtn');
+    const viewWorkflowBtn = document.getElementById('viewWorkflowBtn');
+
+    if (viewWorkflowBtn && closeWorkflowBtn && workflowModal) {
+      viewWorkflowBtn.addEventListener('click', () => { workflowModal.style.display = 'flex'; });
+      closeWorkflowBtn.addEventListener('click', () => { workflowModal.style.display = 'none'; });
+
+      // Close modal on backdrop click
+      workflowModal.addEventListener('click', (e) => {
+        if (e.target === workflowModal) workflowModal.style.display = 'none';
+      });
+
+      // Close modal on ESC key (with flag to prevent duplicate)
+      if (!window.__workflowEscHandler) {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && workflowModal.style.display === 'flex') {
+            workflowModal.style.display = 'none';
+          }
+        });
+        window.__workflowEscHandler = true;
+      }
+    }
   </script>
 </body>
 </html>
