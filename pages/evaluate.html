@@ -4,610 +4,216 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NyayaBid AI | Evaluate</title>
-  <!-- Fonts omitted for offline demo; CSS uses system fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
-  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/main.css">
 </head>
-<body data-page="evaluate">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="../index.html">
-          <span class="brand-mark">N</span>
-          <span class="brand-copy">
-            <strong>NyayaBid AI</strong>
-            <span>Evaluation engine</span>
-          </span>
-        </a>
-        <nav class="sidebar-nav">
-          <a class="nav-item" href="../index.html">Home</a>
-          <a class="nav-item" href="dashboard.html">Dashboard</a>
-          <a class="nav-item active" href="evaluate.html">Evaluate</a>
-          <a class="nav-item" href="simulation.html">Simulate</a>
-          <a class="nav-item" href="report.html">Report</a>
-        </nav>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
-      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Offline-first demo mode</div></div>
-    </aside>
+    </div>
+    <nav style="flex: 1;">
+      <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item active" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
+  </div>
 
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Vendor Eligibility Evaluation</div>
+        <div class="page-sub">Upload tender criteria and vendor documents for AI-powered evaluation</div>
+      </div>
+    </div>
 
-    <main class="main-content">
-      <div class="page-header">
-        <div class="page-title">
-          <h1>Tender Evaluation</h1>
-          <p>Everything works locally. AI extraction is optional, not required.</p>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="loadDemoTender()">📋 Use Demo Tender</button>
+      <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Load Demo Vendors</button>
+      <button class="btn btn-success" onclick="runEvaluation()">▶ Run Evaluation</button>
+    </div>
+
+    <!-- Tender Section -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-title">Tender Criteria</div>
+      <div class="card-sub">Eligibility requirements for this procurement</div>
+      <div id="tenderInfo" style="display: none;">
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: 600; margin-bottom: 4px;" id="tenderTitle"></div>
+          <div style="font-size: 13px; color: var(--text2);" id="tenderDesc"></div>
         </div>
-        <div class="button-row">
-          <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
-          <button class="btn btn-secondary" id="uploadTenderBtn" type="button">Upload PDF</button>
-          <button class="btn btn-secondary" id="demoTenderBtn" type="button">Use Demo Tender</button>
-          <button class="btn btn-secondary" id="loadVendorsBtn" type="button">Load Demo Vendors</button>
+        <div class="criteria-chips" id="criteriaChips"></div>
+      </div>
+      <div id="tenderPlaceholder" style="text-align: center; color: var(--text3); padding: 20px;">
+        Click "Use Demo Tender" to load sample criteria
+      </div>
+    </div>
+
+    <!-- Vendors Section -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-title">Vendor Documents</div>
+      <div class="card-sub">Loaded vendor information</div>
+      <div id="vendorsContainer">
+        <div style="text-align: center; color: var(--text3); padding: 20px;">
+          Click "Load Demo Vendors" to load sample vendors
         </div>
       </div>
+    </div>
 
-      <input id="tenderFileInput" type="file" accept="application/pdf" hidden>
-
-      <section class="section grid-2">
-        <article class="card">
-          <div class="card-header"><h3>Section A - Tender Criteria</h3></div>
-          <div class="chips" id="criteriaChips"></div>
-          <div class="placeholder" id="criteriaPlaceholder">Upload a PDF or load the demo tender to populate criteria.</div>
-
-          <div class="card mt-18" id="manualCriteriaCard" hidden>
-            <div class="card-header"><h4>Manual Criteria</h4></div>
-            <div class="grid-2">
-              <div class="form-group"><label for="manualTenderId">Tender ID</label><input id="manualTenderId" type="text" value="TND-2024-001"></div>
-              <div class="form-group"><label for="manualTenderTitle">Tender Title</label><input id="manualTenderTitle" type="text" value="Road Construction Works"></div>
-              <div class="form-group"><label for="manualMinTurnover">Minimum Turnover (Cr)</label><input id="manualMinTurnover" type="number" value="10"></div>
-              <div class="form-group"><label for="manualMinExperience">Minimum Experience (Years)</label><input id="manualMinExperience" type="number" value="5"></div>
-              <div class="form-group"><label><input id="manualGstMandatory" type="checkbox" checked> GST Mandatory</label></div>
-              <div class="form-group"><label><input id="manualIsoRequired" type="checkbox"> ISO Required</label></div>
-              <div class="form-group"><label><input id="manualMsmeAllowed" type="checkbox" checked> MSME Allowed</label></div>
-            </div>
-            <button class="btn btn-secondary" id="applyManualCriteriaBtn" type="button">Apply Manual Criteria</button>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-header"><h3>Section B - Tender Summary</h3></div>
-          <div class="metric-strip">
-            <div class="metric-card"><strong id="summaryTenderId">-</strong><p>Tender ID</p></div>
-            <div class="metric-card"><strong id="summaryTenderTitle">-</strong><p>Tender title</p></div>
-            <div class="metric-card"><strong id="summaryConfidence">-</strong><p>Demo confidence</p></div>
-          </div>
-          <div class="alert alert-warning mt-16">
-            Local parsing is the default. This prevents any file:// fetch or CORS failure from breaking the workflow.
-          </div>
-        </article>
-      </section>
-
-      <section class="section card">
-        <div class="card-header">
-          <h3>Section B - Vendor Documents</h3>
-          <div class="button-row">
-            <button class="btn btn-secondary" id="clearVendorsBtn" type="button">Clear Vendors</button>
-          </div>
-        </div>
-        <div class="summary-banner mt-16" id="confidenceNarrative">Load a tender and vendors to see the evaluation narrative.</div>
-        <div id="vendorGrid" class="vendor-grid"></div>
-      </section>
-
-      <section class="section card">
-        <div class="card-header">
-          <h3>Section C - Run Evaluation</h3>
-          <button class="btn btn-primary" id="runEvaluationBtn" type="button">Run Evaluation</button>
-        </div>
-        <div class="alert alert-success mb-16" id="evaluationSummary" hidden></div>
-        <div class="alert alert-neutral mb-16" id="auditHashPreview">Audit hash will be generated after evaluation.</div>
+    <!-- Results Section -->
+    <div id="resultsSection" style="display: none;">
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title">Evaluation Results</div>
+        <div class="card-sub">AI-powered eligibility determination</div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Vendor</th>
+                <th>City</th>
                 <th>Turnover</th>
                 <th>Experience</th>
                 <th>GST</th>
-                <th>ISO</th>
-                <th>MSME</th>
                 <th>Confidence</th>
                 <th>Status</th>
-                <th>Reason</th>
-                <th>Why?</th>
-                <th>Criteria Detail</th>
               </tr>
             </thead>
-            <tbody id="resultsBody">
-              <tr><td colspan="11"><div class="empty-state">No evaluation run yet.</div></td></tr>
-            </tbody>
+            <tbody id="resultsTable"></tbody>
           </table>
         </div>
-      </section>
+      </div>
 
-      <section class="section card">
-        <div class="card-header"><h3>Risk Detection</h3></div>
-        <div class="risk-panel" id="riskPanel">
-          <div class="risk-head">
-            <div>
-              <div class="mini-muted">Collusion / anomaly score</div>
-              <div class="risk-score low" id="riskScore">0</div>
-            </div>
-            <span class="badge badge-neutral" id="riskBadge">LOW</span>
-          </div>
-          <div class="confidence-bar"><div class="confidence-fill confidence-low" id="riskBar"></div></div>
-          <div class="summary-banner" id="riskNarrative">No risk flags detected yet.</div>
-          <div class="risk-list" id="riskList">
-            <div class="empty-state">No risk flags yet.</div>
-          </div>
-        </div>
-      </section>
-    </main>
+      <div class="card">
+        <div class="card-title">Risk & Anomaly Detection</div>
+        <div class="card-sub">Flags and recommendations</div>
+        <div id="flagsContainer"></div>
+      </div>
+    </div>
   </div>
 
-  <div id="toast-root" class="toast-root"></div>
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
-    const demoCriteria = { ...DEMO_TENDER };
-    let currentCriteria = null;
-    let currentVendors = [];
-    let currentRisk = { score: 0, level: 'LOW', findings: [], suspiciousVendors: [], badgeClass: 'badge-eligible' };
-    const autoDemoRequested = new URLSearchParams(globalThis.location.search).has('autoDemo') || (typeof getSafe === 'function' ? getSafe('nyayabid-full-demo', '') === '1' : localStorage.getItem('nyayabid-full-demo') === '1');
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    function showManualCriteria(show = true) {
-      document.getElementById('manualCriteriaCard').hidden = !show;
-    }
-
-    function setCriteria(criteria) {
-      currentCriteria = { ...criteria };
-      const chips = [
-        `Tender: ${criteria.tenderId}`,
-        `Title: ${criteria.tenderTitle}`,
-        `Min Turnover: ₹${criteria.minTurnoverCr} Cr`,
-        `Experience: ${criteria.minExperienceYears}+ yrs`,
-        `GST: ${criteria.gstMandatory ? 'Mandatory' : 'Optional'}`,
-        `ISO: ${criteria.isoCertRequired ? 'Required' : 'Not required'}`,
-        `MSME: ${criteria.msmeAllowed ? 'Allowed' : 'Restricted'}`
-      ];
-
-      document.getElementById('criteriaChips').innerHTML = chips.map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join('');
-      document.getElementById('criteriaPlaceholder').style.display = 'none';
-      document.getElementById('summaryTenderId').textContent = criteria.tenderId;
-      document.getElementById('summaryTenderTitle').textContent = criteria.tenderTitle;
-      document.getElementById('summaryConfidence').textContent = 'Local';
-
-      document.getElementById('manualTenderId').value = criteria.tenderId || '';
-      document.getElementById('manualTenderTitle').value = criteria.tenderTitle || '';
-      document.getElementById('manualMinTurnover').value = criteria.minTurnoverCr ?? '';
-      document.getElementById('manualMinExperience').value = criteria.minExperienceYears ?? '';
-      document.getElementById('manualGstMandatory').checked = Boolean(criteria.gstMandatory);
-      document.getElementById('manualIsoRequired').checked = Boolean(criteria.isoCertRequired);
-      document.getElementById('manualMsmeAllowed').checked = Boolean(criteria.msmeAllowed);
-      document.getElementById('confidenceNarrative').textContent = 'Tender criteria loaded. Load vendors to calculate confidence, explainability, and risk.';
-    }
-
-    function renderVendorGrid() {
-      const grid = document.getElementById('vendorGrid');
-      if (!currentVendors.length) {
-        grid.innerHTML = '<div class="empty-state">No vendors loaded. Click “Load Demo Vendors” to begin.</div>';
-        return;
-      }
-
-      const suspiciousSet = new Set(currentRisk.suspiciousVendors || []);
-
-      grid.innerHTML = currentVendors.map((vendor) => `
-        <article class="vendor-card ${suspiciousSet.has(vendor.name) ? 'risk-suspicious' : ''}">
-          <div class="vendor-head">
-            <div>
-              <h3 class="vendor-title">${escapeHtml(vendor.name)}</h3>
-              <div class="mini-muted">${escapeHtml(vendor.city)} · Bid ₹${Number(vendor.bidValue).toLocaleString('en-IN')}</div>
-            </div>
-            <span class="badge ${suspiciousSet.has(vendor.name) ? 'badge-warning' : 'badge-neutral'}">${suspiciousSet.has(vendor.name) ? 'Suspicious' : `Confidence ${vendor.confidence}%`}</span>
-          </div>
-          <div class="vendor-meta">
-            <div>Turnover <strong>₹${vendor.turnoverCr} Cr</strong></div>
-            <div>Experience <strong>${vendor.experienceYears} yrs</strong></div>
-            <div>GST <strong>${vendor.gstValid ? 'Valid' : 'Invalid'}</strong></div>
-            <div>GST No. <strong>${escapeHtml(vendor.gstNumber)}</strong></div>
-            <div>ISO <strong>${vendor.isoValid ? 'Valid' : 'Not valid'}</strong></div>
-            <div>MSME <strong>${vendor.isMSME ? 'Yes' : 'No'}</strong></div>
-          </div>
-        </article>
-      `).join('');
-    }
+    let currentTender = null;
+    let currentVendors = null;
 
     function loadDemoTender() {
-      setCriteria({ ...demoCriteria });
-      showManualCriteria(false);
-      showToast('Demo tender loaded', 'success');
+      currentTender = DEMO_TENDER;
+      document.getElementById('tenderPlaceholder').style.display = 'none';
+      document.getElementById('tenderInfo').style.display = 'block';
+      
+      document.getElementById('tenderTitle').textContent = currentTender.title;
+      document.getElementById('tenderDesc').innerHTML = `
+        <strong>Authority:</strong> ${currentTender.authority}<br>
+        <strong>ID:</strong> ${currentTender.id}<br>
+        <strong>Min Turnover:</strong> ₹${currentTender.minTurnoverCr} Cr | 
+        <strong>Experience:</strong> ${currentTender.minExperienceYears} years |
+        <strong>GST Required:</strong> ${currentTender.gstMandatory ? 'Yes' : 'No'}
+      `;
+
+      const chips = [
+        `Min Turnover: ₹${currentTender.minTurnoverCr} Cr`,
+        `Min Experience: ${currentTender.minExperienceYears} years`,
+        currentTender.gstMandatory ? 'GST: Mandatory' : 'GST: Optional',
+        ...currentTender.otherCriteria
+      ];
+      document.getElementById('criteriaChips').innerHTML = chips.map(c => `<div class="chip">${c}</div>`).join('');
+      
+      showToast('Demo tender loaded — TND-2024-CRPF-001', 'success');
+      logAction('Loaded demo tender TND-2024-CRPF-001');
     }
 
     function loadDemoVendors() {
-      currentVendors = DEMO_VENDORS.map((vendor) => ({ ...vendor }));
-      renderVendorGrid();
-      showToast('Demo vendors loaded', 'success');
-    }
-
-    function applyManualCriteria() {
-      const criteria = {
-        tenderId: document.getElementById('manualTenderId').value.trim() || 'TND-2024-001',
-        tenderTitle: document.getElementById('manualTenderTitle').value.trim() || 'Road Construction Works',
-        minTurnoverCr: Number(document.getElementById('manualMinTurnover').value) || 10,
-        minExperienceYears: Number(document.getElementById('manualMinExperience').value) || 5,
-        gstMandatory: document.getElementById('manualGstMandatory').checked,
-        isoCertRequired: document.getElementById('manualIsoRequired').checked,
-        msmeAllowed: document.getElementById('manualMsmeAllowed').checked
-      };
-      setCriteria(criteria);
-      showManualCriteria(true);
-      showToast('Manual criteria applied', 'success');
-    }
-
-    async function parseTenderFile(file) {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let text = '';
-      const pageCount = Math.min(pdf.numPages, 5);
-      for (let index = 1; index <= pageCount; index += 1) {
-        const page = await pdf.getPage(index);
-        const content = await page.getTextContent();
-        text += content.items.map((item) => item.str).join(' ') + '\n';
-      }
-      return text;
-    }
-
-    function parseCriteriaFromText(text) {
-      if (!text) return null;
-      const lower = text.toLowerCase();
-      const turnoverMatch = text.match(/(?:turnover|annual turnover|minimum turnover)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
-      const experienceMatch = text.match(/(?:experience|years of experience|min experience)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
-
-      const criteria = {
-        tenderId: (text.match(/TND[-\s]?\d{4}[-\s]?\d+/i)?.[0] || 'TND-2024-001').replaceAll(' ', '-'),
-        tenderTitle: text.match(/(?:tender title|name of work|project title)[:-]\s*([^\n]+)/i)?.[1]?.trim() || 'Road Construction Works',
-        minTurnoverCr: turnoverMatch ? Number(turnoverMatch[1]) : 10,
-        minExperienceYears: experienceMatch ? Number(experienceMatch[1]) : 5,
-        gstMandatory: /gst[^\n]{0,40}(mandatory|required|yes)/i.test(lower),
-        isoCertRequired: /iso[^\n]{0,40}(mandatory|required|yes)/i.test(lower),
-        msmeAllowed: !/msme[^\n]{0,40}(not allowed|restricted)/i.test(lower)
-      };
-
-      if (!turnoverMatch && !experienceMatch) return null;
-      return criteria;
-    }
-
-    function buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass) {
-      return [
-        {
-          criterion: 'Min Annual Turnover',
-          required: `₹${criteria.minTurnoverCr} Cr`,
-          found: `₹${vendor.turnoverCr} Cr`,
-          passed: turnoverPass,
-          reason: turnoverPass ? 'Turnover meets minimum requirement' : `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr`
-        },
-        {
-          criterion: 'Minimum Experience',
-          required: `${criteria.minExperienceYears} years`,
-          found: `${vendor.experienceYears} years`,
-          passed: experiencePass,
-          reason: experiencePass ? 'Experience meets requirement' : `Experience below required ${criteria.minExperienceYears} years`
-        },
-        {
-          criterion: 'GST Registration',
-          required: criteria.gstMandatory ? 'Valid GST' : 'Optional',
-          found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing',
-          passed: gstPass,
-          reason: vendor.gstValid ? 'Valid GST registration found' : 'GST certificate invalid or missing'
-        },
-        {
-          criterion: 'ISO Certificate',
-          required: criteria.isoCertRequired ? 'Valid ISO' : 'Optional',
-          found: vendor.isoValid ? 'Valid' : 'Not valid',
-          passed: isoPass,
-          reason: isoPass ? 'ISO requirement satisfied' : 'ISO certificate missing'
-        }
-      ];
-    }
-
-    function formatConfidenceLabel(score) {
-      if (score >= 75) return 'High Confidence';
-      if (score >= 50) return 'Needs Review';
-      return 'Low Confidence';
-    }
-
-    function updateConfidenceNarrative(results) {
-      const eligibleCount = results.filter((result) => result.status === 'Eligible').length;
-      const reviewCount = results.filter((result) => result.status === 'Needs Review').length;
-      const lowConfidenceCount = results.filter((result) => result.confidenceScore < 50).length;
-      document.getElementById('confidenceNarrative').textContent = `Out of ${results.length} vendors, ${eligibleCount} were eligible, ${reviewCount} require review, and ${lowConfidenceCount} are low confidence.`;
-    }
-
-    function resolveVendorStatus(eligible, needsReview) {
-      if (needsReview) return 'Needs Review';
-      return eligible ? 'Eligible' : 'Not Eligible';
-    }
-
-    function resolveVendorReason(vendor, criteria, turnoverPass, experiencePass, gstPass, eligible) {
-      if (eligible) return 'Vendor meets all mandatory criteria.';
-      if (!gstPass) return 'GST certificate invalid or missing.';
-      if (!turnoverPass) return `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr.`;
-      if (!experiencePass) return `Experience below required ${criteria.minExperienceYears} years.`;
-      return `${vendor.name} requires manual review due to low document confidence.`;
-    }
-
-    function evaluateVendor(vendor, criteria) {
-      const turnoverPass = Number(vendor.turnoverCr) >= Number(criteria.minTurnoverCr);
-      const experiencePass = Number(vendor.experienceYears) >= Number(criteria.minExperienceYears);
-      const gstPass = !criteria.gstMandatory || Boolean(vendor.gstValid);
-      const isoPass = !criteria.isoCertRequired || Boolean(vendor.isoValid);
-      const eligible = turnoverPass && experiencePass && gstPass && isoPass;
-      const confidence = calculateConfidence(vendor, criteria);
-      const needsReview = confidence.score < 50 || (!vendor.gstValid && vendor.name === 'GreenBuild Contractors');
-      const status = resolveVendorStatus(eligible, needsReview);
-      const reason = resolveVendorReason(vendor, criteria, turnoverPass, experiencePass, gstPass, eligible);
-
-      return {
-        ...vendor,
-        turnoverPass,
-        experiencePass,
-        gstPass,
-        isoPass,
-        eligible,
-        needsReview,
-        status,
-        confidenceScore: confidence.score,
-        confidenceLabel: confidence.label,
-        confidenceMeta: confidence,
-        reason,
-        criterionResults: buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass)
-      };
-    }
-
-    function renderResults(results) {
-      const tbody = document.getElementById('resultsBody');
-      tbody.innerHTML = results.map((result) => {
-        let statusClass = 'badge-ineligible';
-        if (result.status === 'Eligible') statusClass = 'badge-eligible';
-        if (result.status === 'Needs Review') statusClass = 'badge-review';
-
-        let confidenceClass = 'confidence-low';
-        if (result.confidenceScore >= 75) confidenceClass = 'confidence-high';
-        else if (result.confidenceScore >= 50) confidenceClass = 'confidence-medium';
-
-        const explanation = generateExplanation(result);
-        const detail = result.criterionResults.map((criterion) => `${criterion.criterion}: ${criterion.passed ? 'Pass' : 'Fail'}`).join('<br>');
-        return `
-          <tr class="${result.needsReview ? 'vendor-row-review' : ''}">
-            <td><strong>${escapeHtml(result.name)}</strong></td>
-            <td>${result.turnoverPass ? '✓' : '✗'} ₹${result.turnoverCr} Cr</td>
-            <td>${result.experiencePass ? '✓' : '✗'} ${result.experienceYears} yrs</td>
-            <td>${result.gstPass ? '✓' : '✗'} ${result.gstValid ? escapeHtml(result.gstNumber) : 'Invalid'}</td>
-            <td>${result.isoPass ? '✓' : '✗'} ${result.isoValid ? 'Valid' : 'Invalid'}</td>
-            <td>${result.isMSME ? 'Yes' : 'No'}</td>
-            <td>
-              <div class="confidence-value ${confidenceClass}">${result.confidenceScore}%</div>
-              <div class="mini-muted">${escapeHtml(result.confidenceLabel)}</div>
-              <div class="confidence-bar">
-                <div class="confidence-fill ${confidenceClass}" data-width="${Math.max(0, Math.min(100, result.confidenceScore))}"></div>
-              </div>
-            </td>
-            <td><span class="badge ${statusClass}">${result.status}</span></td>
-            <td>${escapeHtml(result.reason)}</td>
-            <td>
-              <details class="why-panel">
-                <summary>Why?</summary>
-                <div class="why-body">
-                  <div class="why-line"><strong>Summary:</strong> ${escapeHtml(explanation.summary)}</div>
-                  <div>
-                    <div class="why-line"><strong>Key failures:</strong></div>
-                    <div class="why-list">${(explanation.keyFailures.length ? explanation.keyFailures : ['None']).map((item) => `<span class="criterion-chip ${item === 'None' ? 'criterion-pass' : 'criterion-fail'}">${escapeHtml(item)}</span>`).join('')}</div>
-                  </div>
-                  <div>
-                    <div class="why-line"><strong>What could make them eligible:</strong></div>
-                    <div class="why-list">${explanation.improvement.map((item) => `<span class="criterion-chip criterion-pass">${escapeHtml(item)}</span>`).join('')}</div>
-                  </div>
-                </div>
-              </details>
-            </td>
-            <td class="mini-muted">${detail}</td>
-          </tr>
-        `;
-      }).join('');
-
-      tbody.querySelectorAll('.confidence-fill').forEach((fill) => {
-        fill.style.width = `${fill.dataset.width}%`;
-      });
-    }
-
-    function renderRiskFlags(results) {
-      const risk = detectCollusionRisk(results);
-      currentRisk = risk;
-
-      document.getElementById('riskScore').textContent = String(risk.score);
-      document.getElementById('riskScore').className = `risk-score ${risk.level.toLowerCase()}`;
-      document.getElementById('riskBadge').textContent = risk.level;
-      document.getElementById('riskBadge').className = `badge ${risk.badgeClass}`;
-      document.getElementById('riskBar').style.width = `${risk.score}%`;
-      document.getElementById('riskBar').className = `confidence-fill confidence-${risk.level.toLowerCase()}`;
-      document.getElementById('riskNarrative').textContent = risk.findings.length
-        ? `Risk score ${risk.score}/100 (${risk.level}). ${risk.findings[0].title}: ${risk.findings[0].detail}`
-        : 'No collusion patterns detected. Risk remains low.';
-
-      document.getElementById('riskList').innerHTML = risk.findings.length
-        ? risk.findings.map((flag) => `<div class="alert alert-warning"><strong>${escapeHtml(flag.title)}</strong><div class="mini-muted mt-8">${escapeHtml(flag.detail)}</div></div>`).join('')
-        : '<div class="empty-state">No risk flags detected.</div>';
-
-      renderVendorGrid();
-      return risk;
-    }
-
-    async function persistEvaluation(results, risk) {
-      const evaluation = {
-        tender: currentCriteria,
-        criteria: currentCriteria,
-        vendors: currentVendors,
-        results,
-        flags: risk.findings,
-        risk,
-        summary: {
-          eligibleCount: results.filter((result) => result.status === 'Eligible').length,
-          reviewCount: results.filter((result) => result.status === 'Needs Review').length,
-          rejectedCount: results.filter((result) => result.status === 'Not Eligible').length
-        },
-        timeline: [
-          { step: 'Criteria extracted', time: new Date().toISOString() },
-          { step: 'Vendors processed', time: new Date().toISOString() },
-          { step: 'Evaluation completed', time: new Date().toISOString() },
-          { step: 'Flags raised', time: new Date().toISOString() },
-          { step: 'Report generated', time: new Date().toISOString() }
-        ],
-        generatedAt: new Date().toISOString()
-      };
-
-      evaluation.auditHash = await buildAuditHash({
-        criteria: evaluation.criteria,
-        vendors: evaluation.vendors,
-        results: evaluation.results
-      });
-
-      if (typeof setStorage === 'function') setStorage('last-evaluation', evaluation); else localStorage.setItem('last-evaluation', JSON.stringify(evaluation));
-
-      const dashboardData = getStorage('all-tenders', { tenders: [], auditLog: [] });
-      dashboardData.tenders = Array.isArray(dashboardData.tenders) ? dashboardData.tenders : [];
-      dashboardData.auditLog = Array.isArray(dashboardData.auditLog) ? dashboardData.auditLog : [];
-      dashboardData.tenders.unshift({
-        id: currentCriteria.tenderId,
-        title: currentCriteria.tenderTitle,
-        vendors: currentVendors.length,
-        eligible: evaluation.summary.eligibleCount,
-        flagged: risk.findings.length,
-        rejected: evaluation.summary.rejectedCount,
-        status: 'Completed',
-        date: new Date().toISOString().slice(0, 10)
-      });
-      dashboardData.auditLog.unshift({
-        time: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        action: `Evaluation completed — ${currentCriteria.tenderId}`,
-        officer: 'System'
-      });
-      if (typeof setStorage === 'function') setStorage('all-tenders', dashboardData); else localStorage.setItem('all-tenders', JSON.stringify(dashboardData));
-      logAction('EVALUATION_COMPLETED', 'System', { tenderId: currentCriteria.tenderId, eligibleCount: evaluation.summary.eligibleCount, auditHash: evaluation.auditHash });
-      return evaluation;
-    }
-
-    async function runEvaluation(options = {}) {
-      const runButton = document.getElementById('runEvaluationBtn');
-      setButtonLoading(runButton, true, 'Evaluating...');
-      if (!currentCriteria) {
-        showToast('Load a tender or apply manual criteria first.', 'warning');
-        showManualCriteria(true);
-        setButtonLoading(runButton, false);
+      if (!currentTender) {
+        showToast('Load demo tender first', 'warning');
         return;
       }
-      if (!currentVendors.length) {
-        showToast('Load demo vendors before running the evaluation.', 'warning');
-        setButtonLoading(runButton, false);
+      currentVendors = DEMO_VENDORS;
+      const container = document.getElementById('vendorsContainer');
+      container.innerHTML = currentVendors.map(v => `
+        <div class="vendor-card">
+          <div class="vendor-card-name">${v.name}</div>
+          <div class="vendor-card-meta">
+            <span>📍 ${v.city}</span>
+            <span>💰 ₹${v.turnoverCr} Cr</span>
+            <span>📅 ${v.experienceYears} years</span>
+            <span>✓ ${v.docs.length} docs</span>
+          </div>
+        </div>
+      `).join('');
+      
+      showToast('5 vendor documents loaded', 'success');
+      logAction('Loaded 5 demo vendors for evaluation');
+    }
+
+    function runEvaluation() {
+      if (!currentTender) {
+        showToast('Load demo tender first', 'warning');
+        return;
+      }
+      if (!currentVendors) {
+        showToast('Load demo vendors first', 'warning');
         return;
       }
 
-      const results = currentVendors.map((vendor) => evaluateVendor(vendor, currentCriteria));
-      updateConfidenceNarrative(results);
-      const risk = renderRiskFlags(results);
-      renderResults(results);
-      const evaluation = await persistEvaluation(results, risk);
+      // Evaluate each vendor
+      const results = currentVendors.map(v => evaluateVendor(v, currentTender));
+      const flags = detectCollusion(currentVendors);
 
-      const eligibleCount = results.filter((result) => result.status === 'Eligible').length;
-      const reviewCount = results.filter((result) => result.status === 'Needs Review').length;
-      const summary = `Out of ${results.length} vendors, ${eligibleCount} were eligible, ${reviewCount} require review. Risk level: ${risk.level}.`;
-      const summaryBox = document.getElementById('evaluationSummary');
-      summaryBox.textContent = summary;
-      summaryBox.style.display = 'block';
-      document.getElementById('auditHashPreview').textContent = `Audit Hash: ${evaluation.auditHash.slice(0, 16).toUpperCase()}... (tamper-proof)`;
-      showToast('Evaluation completed successfully', 'success');
-      document.getElementById('resultsBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Save to storage
+      setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags });
+      logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
 
-      if (options.autoAdvance) {
-        try {
-          if (typeof setStorage === 'function') setStorage('nyayabid-full-demo', '0'); else localStorage.removeItem('nyayabid-full-demo');
-        } catch (e) {
-          console.warn('Clearing demo flag failed', e);
-        }
-        globalThis.setTimeout(() => {
-          try {
-            globalThis.location.href = 'report.html?autoDemo=1';
-          } catch (e) {
-            console.error('Navigation failed', e);
-            showToast('Navigation failed', 'warning');
-          }
-        }, 1200);
+      // Display results
+      document.getElementById('resultsSection').style.display = 'block';
+
+      const tbody = document.getElementById('resultsTable');
+      tbody.innerHTML = results.map(r => `
+        <tr>
+          <td><strong>${r.vendorName}</strong></td>
+          <td>${r.city}</td>
+          <td>₹${r.turnoverCr} Cr</td>
+          <td>${r.experienceYears} yrs</td>
+          <td>${r.gstValid ? '✓' : '✗'}</td>
+          <td>${r.confidence}%</td>
+          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}">${r.status}</span></td>
+        </tr>
+      `).join('');
+
+      const flagsContainer = document.getElementById('flagsContainer');
+      if (flags.length === 0) {
+        flagsContainer.innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No flags detected</div>';
+      } else {
+        flagsContainer.innerHTML = flags.map(f => `
+          <div class="card" style="margin-bottom: 12px; background: var(--red-bg); border-color: rgba(239,68,68,0.3);">
+            <div style="font-weight: 600; color: var(--red);">${f.type}</div>
+            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${f.vendor}</div>
+            <div style="font-size: 13px; color: var(--text2);">📍 ${f.detail}</div>
+            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">→ ${f.action}</div>
+          </div>
+        `).join('');
       }
 
-      setButtonLoading(runButton, false);
-    }
+      const eligible = results.filter(r => r.status === 'Eligible').length;
+      const review = results.filter(r => r.status === 'Needs Review').length;
+      const rejected = results.filter(r => r.status === 'Not Eligible').length;
+      showToast(`✓ Evaluation complete — ${eligible} Eligible, ${review} Needs Review, ${rejected} Not Eligible`, 'success');
 
-    document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-    document.getElementById('sidebarOverlay').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
-
-    document.getElementById('uploadTenderBtn').addEventListener('click', () => document.getElementById('tenderFileInput').click());
-    document.getElementById('demoTenderBtn').addEventListener('click', loadDemoTender);
-    document.getElementById('loadVendorsBtn').addEventListener('click', loadDemoVendors);
-    document.getElementById('clearVendorsBtn').addEventListener('click', () => {
-      currentVendors = [];
-      renderVendorGrid();
-      showToast('Vendors cleared', 'warning');
-    });
-    document.getElementById('applyManualCriteriaBtn').addEventListener('click', applyManualCriteria);
-    document.getElementById('runEvaluationBtn').addEventListener('click', runEvaluation);
-
-    document.getElementById('tenderFileInput').addEventListener('change', async (event) => {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-
-      try {
-        const text = await parseTenderFile(file);
-        const parsed = parseCriteriaFromText(text);
-        if (parsed) {
-          setCriteria(parsed);
-          showManualCriteria(false);
-          showToast('Tender criteria extracted locally', 'success');
-        } else {
-          showManualCriteria(true);
-          showToast('Could not extract criteria. Use manual inputs.', 'warning');
-        }
-      } catch (error) {
-        console.error(error);
-        showManualCriteria(true);
-        showToast('Tender extraction failed. Use manual inputs.', 'warning');
-      }
-    });
-
-    showManualCriteria(false);
-    setCriteria({ ...demoCriteria });
-    renderVendorGrid();
-
-    if (autoDemoRequested) {
-      globalThis.setTimeout(async () => {
-        loadDemoTender();
-        loadDemoVendors();
-        await runEvaluation({ autoAdvance: true });
-      }, 120);
+      // Scroll to results
+      setTimeout(() => { document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' }); }, 100);
     }
   </script>
 </body>

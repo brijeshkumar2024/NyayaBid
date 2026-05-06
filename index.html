@@ -3,173 +3,131 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NyayaBid AI | Transparent Tender Evaluation</title>
-  <!-- Fonts intentionally omitted for offline demo; using system fallbacks in CSS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
-  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link rel="stylesheet" href="styles/main.css">
+  <title>NyayaBid AI | Transparent Government Tender Evaluation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
 </head>
-<body class="app-body" data-page="index">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="index.html">
-          <span class="brand-mark">N</span>
-          <span class="brand-copy">
-            <strong>NyayaBid AI</strong>
-            <span>Explainable procurement copilot</span>
-          </span>
-        </a>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" href="index.html">Home</a>
-          <a class="nav-item" href="pages/dashboard.html">Dashboard</a>
-          <a class="nav-item" href="pages/evaluate.html">Evaluate</a>
-          <a class="nav-item" href="pages/simulation.html">Simulate</a>
-          <a class="nav-item" href="pages/report.html">Report</a>
-        </nav>
-      </div>
-      <div class="sidebar-bottom">
-        <div class="version-tag">NyayaBid AI v1.0</div>
-      </div>
-    </aside>
+<body class="landing-body">
+  <nav class="landing-nav">
+    <div class="landing-nav-brand">
+      <span style="color: var(--accent);">⚖️</span>
+      NyayaBid AI
+    </div>
+    <div class="landing-nav-links">
+      <a href="pages/dashboard.html">Dashboard</a>
+      <a href="pages/evaluate.html">Evaluate</a>
+      <a href="pages/simulation.html">Simulate</a>
+      <a href="pages/report.html">Report</a>
+    </div>
+  </nav>
 
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="main-content">
-      <div class="page-header">
-        <div>
-          <div class="hero-band">Built for CRPF Hackathon · CAG-ready evaluation</div>
-        </div>
-        <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
-      </div>
-
-      <section class="hero-shell section">
-        <div class="card hero-card">
-          <div class="hero-band">India's AI-powered tender evaluation copilot</div>
-          <h1 class="hero-title mt-16">Transparent. Explainable. Fair.</h1>
-          <p class="hero-subtitle">India's AI-powered tender evaluation copilot built for CAG-ready procurement, vendor comparison, policy simulation, and audit-ready reporting.</p>
-          <div class="hero-actions mt-24">
-            <a class="btn btn-primary" href="pages/dashboard.html">Launch Dashboard</a>
-            <a class="btn btn-secondary" href="pages/evaluate.html">Start Evaluation</a>
-            <button class="btn btn-danger" id="fullDemoBtn" type="button">🚀 Run Full Demo</button>
-          </div>
-        </div>
-
-        <div class="hero-stat-grid">
-          <article class="stat-card">
-            <h3>₹15L+ Cr</h3>
-            <p>Procurement value monitored through explainable evaluation.</p>
-          </article>
-          <article class="stat-card">
-            <h3>46%</h3>
-            <p>Of tenders in the public pipeline have only two bidders.</p>
-          </article>
-          <article class="stat-card">
-            <h3>0</h3>
-            <p>Existing tools with end-to-end explainability and audit hashing.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-copy">A single workflow that turns tender PDFs, vendor documents, and policy settings into a CAG-ready report.</div>
-        <div class="feature-grid mt-16">
-          <article class="feature-card">
-            <h3>AI Evaluation</h3>
-            <p>Extract criteria, compare vendors, and generate explainable eligibility results.</p>
-          </article>
-          <article class="feature-card">
-            <h3>Fraud Detection</h3>
-            <p>Identify risky patterns, suspicious document signals, and collusion indicators.</p>
-          </article>
-          <article class="feature-card">
-            <h3>Policy Simulation</h3>
-            <p>Test criteria changes instantly and see how competition and risk change.</p>
-          </article>
-          <article class="feature-card">
-            <h3>Audit Reports</h3>
-            <p>Export a final report with hashing, sign-off, and procurement traceability.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section card">
-        <h2 class="mb-8">How it works</h2>
-        <p class="section-copy">Four steps from tender upload to final sign-off.</p>
-        <div class="step-grid mt-20">
-          <article class="step-card"><div class="step-number">1</div><h3>Upload</h3><p>Bring in the tender PDF and vendor documents, or use the built-in demo dataset.</p></article>
-          <article class="step-card"><div class="step-number">2</div><h3>Extract</h3><p>Read criteria and vendor profiles locally, with AI as an optional enhancement only.</p></article>
-          <article class="step-card"><div class="step-number">3</div><h3>Evaluate</h3><p>Run a fully explainable criteria-by-criteria comparison against each bidder.</p></article>
-          <article class="step-card"><div class="step-number">4</div><h3>Report</h3><p>Finalize the evaluation and export a hash-verified audit report for review.</p></article>
-        </div>
-      </section>
-
-      <section class="section card">
-        <div class="page-header">
-          <div>
-            <h2 class="mb-8">Why procurement teams use NyayaBid AI</h2>
-            <p class="section-copy">Less manual work, fewer opaque decisions, and more defensible evaluation records.</p>
-          </div>
-        </div>
-        <div class="grid-3 mt-20">
-          <article class="summary-card"><h3>Explainability</h3><p>Every pass/fail result is tied directly to a criterion and reason.</p></article>
-          <article class="summary-card"><h3>Risk Controls</h3><p>See low-confidence vendors, GST mismatches, and anomaly flags at a glance.</p></article>
-          <article class="summary-card"><h3>Audit Trail</h3><p>Every evaluation, report finalization, and sign-off is recorded locally.</p></article>
-        </div>
-      </section>
-
-      <footer class="section card text-center">
-        <strong>NyayaBid AI v1.0</strong>
-        <p class="mini-muted mt-8">Built for transparent government procurement · CRPF Hackathon</p>
-      </footer>
-    </main>
+  <div class="ticker-wrap" style="margin-left: 0;">
+    <div class="ticker">
+      <span>TND-2024-001 evaluated</span>
+      <span>Flag raised: GreenBuild</span>
+      <span>3 vendors cleared</span>
+      <span>CAG audit trail updated</span>
+      <span>NyayaBid AI is live</span>
+      <span>TND-2024-001 evaluated</span>
+      <span>Flag raised: GreenBuild</span>
+      <span>3 vendors cleared</span>
+    </div>
   </div>
 
-  <div id="toast-root" class="toast-root"></div>
-  <script src="scripts/utils.js"></script>
-  <script>
-    const toggle = document.getElementById('sidebarToggle');
-    const overlay = document.getElementById('sidebarOverlay');
-    const fullDemoBtn = document.getElementById('fullDemoBtn');
-    if (toggle) {
-      toggle.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-    }
-    if (overlay) {
-      overlay.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    }
-    document.querySelectorAll('.nav-item').forEach((item) => {
-      item.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    });
-    if (fullDemoBtn) {
-      fullDemoBtn.addEventListener('click', () => {
-        try {
-          setButtonLoading(fullDemoBtn, true, 'Starting...');
-          if (typeof setStorage === 'function') {
-            setStorage('nyayabid-full-demo', '1');
-          } else {
-            localStorage.setItem('nyayabid-full-demo', '1');
-          }
-          globalThis.setTimeout(() => {
-            try {
-              globalThis.location.href = 'pages/evaluate.html?autoDemo=1';
-            } catch (e) {
-              console.error('Navigation failed', e);
-              showToast('Navigation failed in this environment', 'warning');
-            }
-          }, 120);
-        } catch (e) {
-          console.error('Full demo launch failed', e);
-          showToast('Recovered using demo data', 'warning');
-        }
-      });
-    }
-  </script>
+  <section class="hero">
+    <div class="hero-badge">✨ Built for CRPF Hackathon 2024</div>
+    <h1 class="hero-title">Transparent. Explainable. Fair.</h1>
+    <p class="hero-sub">Government tender evaluation powered by explainable AI. Every decision is auditable, compliant with GFR 2017, and ready for CAG inspection.</p>
+    <div class="hero-cta">
+      <a href="pages/dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
+      <a href="pages/evaluate.html" class="btn btn-secondary">📋 See Evaluation</a>
+    </div>
+  </section>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">₹15,00,000+</div>
+      <div class="stat-label">Cr Annual procurement volume in India</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">46%</div>
+      <div class="stat-label">Tenders with only 2 bidders — CAG audit</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Existing tools with explainable AI evaluation</div>
+    </div>
+  </section>
+
+  <section class="features-grid" style="padding: 0 40px; margin: 0 auto;">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">Explainable AI Engine</div>
+      <div class="feature-desc">Every verdict references the exact criterion, document, and value that drove the decision</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <div class="feature-title">Multi-Format OCR</div>
+      <div class="feature-desc">Reads typed PDFs, scanned documents, photographs, and Word files automatically</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Fraud & Collusion Detection</div>
+      <div class="feature-desc">Detects GST mismatches, address overlaps, and suspicious bid patterns in real-time</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Policy Simulation Engine</div>
+      <div class="feature-desc">Adjust eligibility criteria and instantly preview impact on competition before publishing</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">CAG-Ready Audit Trail</div>
+      <div class="feature-desc">Every action is logged, SHA-256 verified, and ready for controller general audit</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <div class="feature-title">GFR Compliance</div>
+      <div class="feature-desc">Built on GFR Rule 175, Rule 160, and CVC collusion guidelines — legally defensible decisions</div>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="how-title">How NyayaBid Works</div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-num">1</div>
+        <div class="how-step-title">Upload Tender</div>
+        <div class="how-step-desc">Paste tender criteria and vendor documents (PDF, images, Word)</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">2</div>
+        <div class="how-step-title">AI Extraction</div>
+        <div class="how-step-desc">Extract criteria automatically, parse vendor data, validate documents</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">3</div>
+        <div class="how-step-title">Intelligent Evaluation</div>
+        <div class="how-step-desc">Run eligibility checks, detect fraud, flag collusion risks</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">4</div>
+        <div class="how-step-title">Audit & Sign-off</div>
+        <div class="how-step-desc">Export CAG-ready report, digital signature, SHA-256 verification</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    NyayaBid AI v1.0 | Built for CRPF Hackathon 2024 | Powered by AI
+  </footer>
+
+  <div id="toast-container"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="./scripts/utils.js"></script>
 </body>
 </html>

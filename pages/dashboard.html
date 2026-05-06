@@ -4,261 +4,192 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NyayaBid AI | Dashboard</title>
-  <!-- Fonts omitted for offline demo; CSS uses system fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
-  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/main.css">
 </head>
-<body data-page="dashboard">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="../index.html">
-          <span class="brand-mark">N</span>
-          <span class="brand-copy">
-            <strong>NyayaBid AI</strong>
-            <span>Command center</span>
-          </span>
-        </a>
-        <nav class="sidebar-nav">
-          <a class="nav-item" href="../index.html">Home</a>
-          <a class="nav-item active" href="dashboard.html">Dashboard</a>
-          <a class="nav-item" href="evaluate.html">Evaluate</a>
-          <a class="nav-item" href="simulation.html">Simulate</a>
-          <a class="nav-item" href="report.html">Report</a>
-        </nav>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
-      <div class="sidebar-bottom">
-        <div class="version-tag">v1.0 | Procurement monitoring</div>
-      </div>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="main-content">
-      <div class="page-header">
-        <div class="page-title">
-          <h1>Procurement Dashboard</h1>
-          <p>Sample data, live KPIs, charts, and audit trail.</p>
-        </div>
-        <div class="button-row">
-          <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
-          <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
-        </div>
-      </div>
-
-      <section class="section kpi-grid">
-        <article class="kpi-card"><div class="kpi-label">Total Tenders</div><div class="kpi-value" id="kpiTenders">0</div></article>
-        <article class="kpi-card"><div class="kpi-label">Evaluations</div><div class="kpi-value" id="kpiEvaluations">0</div></article>
-        <article class="kpi-card"><div class="kpi-label">Flags</div><div class="kpi-value" id="kpiFlags">0</div></article>
-        <article class="kpi-card"><div class="kpi-label">Vendors</div><div class="kpi-value" id="kpiVendors">0</div></article>
-      </section>
-
-      <section class="section panel-grid">
-        <article class="card">
-          <div class="card-header"><h3>Eligibility Mix</h3></div>
-          <div class="chart-box"><canvas id="statusChart"></canvas></div>
-        </article>
-        <article class="card">
-          <div class="card-header"><h3>Risk Distribution</h3></div>
-          <div class="chart-box"><canvas id="riskChart"></canvas></div>
-        </article>
-      </section>
-
-      <section class="section card">
-        <div class="card-header"><h3>Recent Tenders</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Tender ID</th>
-                <th>Title</th>
-                <th>Vendors</th>
-                <th>Status</th>
-                <th>Eligible</th>
-                <th>Flags</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="tenderRows"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="section card">
-        <div class="card-header"><h3>Audit Trail</h3></div>
-        <div class="audit-list" id="auditList"></div>
-      </section>
-    </main>
+    </div>
+    <nav style="flex: 1;">
+      <a class="nav-item active" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
   </div>
 
-  <div id="toast-root" class="toast-root"></div>
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span>Dashboard live</span>
+      <span>Real-time evaluation status</span>
+      <span>Audit trail updated</span>
+      <span>CAG-ready format</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Procurement Overview</div>
+        <div class="page-sub">Real-time dashboard of all ongoing tender evaluations and audit trail</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Tenders</div>
+        <div class="kpi-value blue" id="totalTenders">0</div>
+        <div class="kpi-trend">Last 30 days</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Evaluations Complete</div>
+        <div class="kpi-value green" id="completeTenders">0</div>
+        <div class="kpi-trend">Ready for sign-off</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Flags Raised</div>
+        <div class="kpi-value amber" id="totalFlags">0</div>
+        <div class="kpi-trend">Pending review</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Vendors Evaluated</div>
+        <div class="kpi-value blue" id="totalVendors">0</div>
+        <div class="kpi-trend">Total submissions</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Evaluation Status</div>
+        <div class="card-sub">Vendor outcomes across all tenders</div>
+        <div class="chart-box">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Risk Distribution</div>
+        <div class="card-sub">Tenders by risk level</div>
+        <div class="chart-box">
+          <canvas id="riskChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">Recent Tenders</div>
+      <div class="card-sub">Status and evaluation progress</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tender ID</th>
+              <th>Title</th>
+              <th>Vendors</th>
+              <th>Eligible</th>
+              <th>Flags</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tendersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">Audit Trail</div>
+      <div class="card-sub">System and officer actions logged in real-time</div>
+      <div id="auditTrail"></div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
-    let statusChartInstance = null;
-    let riskChartInstance = null;
+    document.addEventListener('DOMContentLoaded', function() {
+      initDashboardData();
+      loadDashboard();
+    });
 
-    function initSampleData() {
-      try {
-        if (typeof ensureAllTendersSeeded === 'function') {
-          ensureAllTendersSeeded();
-        } else if (!localStorage.getItem('all-tenders')) {
-          // fallback minimal seeding
-          const fallback = { tenders: [], auditLog: [] };
-          if (typeof setStorage === 'function') setStorage('all-tenders', fallback); else localStorage.setItem('all-tenders', JSON.stringify(fallback));
-        }
-      } catch (e) {
-        console.error('initSampleData failed', e);
-        showToast('Recovered using demo data', 'warning');
-      }
-    }
+    function loadDashboard() {
+      const allData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
+      const auditLog = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
 
-    function getDashboardData() {
-      try {
-        return typeof getSafe === 'function' ? getSafe('all-tenders', { tenders: [], auditLog: [] }) : safeJSON(localStorage.getItem('all-tenders'), { tenders: [], auditLog: [] });
-      } catch (e) {
-        console.error('getDashboardData parse failed', e);
-        return { tenders: [], auditLog: [] };
-      }
-    }
+      // Calculate KPIs
+      const totalTenders = allData.tenders.length;
+      const completeTenders = allData.tenders.filter(t => t.status === 'Completed').length;
+      const totalFlags = allData.tenders.reduce((sum, t) => sum + t.flagged, 0);
+      const totalVendors = allData.tenders.reduce((sum, t) => sum + t.vendors, 0);
 
-    function renderDashboard() {
-      const data = getDashboardData();
-      const tenders = Array.isArray(data.tenders) ? data.tenders : [];
-      const audits = Array.isArray(data.auditLog) ? data.auditLog : [];
+      document.getElementById('totalTenders').textContent = totalTenders;
+      document.getElementById('completeTenders').textContent = completeTenders;
+      document.getElementById('totalFlags').textContent = totalFlags;
+      document.getElementById('totalVendors').textContent = totalVendors;
 
-      const totalTenders = tenders.length;
-      const totalEvaluations = tenders.length;
-      const totalFlags = tenders.reduce((sum, tender) => sum + Number(tender.flagged || 0), 0);
-      const totalVendors = tenders.reduce((sum, tender) => sum + Number(tender.vendors || 0), 0);
-
-      document.getElementById('kpiTenders').textContent = totalTenders;
-      document.getElementById('kpiEvaluations').textContent = totalEvaluations;
-      document.getElementById('kpiFlags').textContent = totalFlags;
-      document.getElementById('kpiVendors').textContent = totalVendors;
-
-      const tenderRows = tenders.map((tender) => `
+      // Tenders table
+      const tbody = document.getElementById('tendersTable');
+      tbody.innerHTML = allData.tenders.map(t => `
         <tr>
-          <td><strong>${tender.id}</strong></td>
-          <td>${tender.title}</td>
-          <td>${tender.vendors}</td>
-          <td><span class="badge badge-success">${tender.status}</span></td>
-          <td>${tender.eligible}</td>
-          <td><span class="badge badge-warning">${tender.flagged}</span></td>
-          <td>${tender.date}</td>
+          <td><strong>${t.id}</strong></td>
+          <td>${t.title}</td>
+          <td>${t.vendors}</td>
+          <td><span class="badge badge-eligible">${t.eligible} ✓</span></td>
+          <td><span class="badge badge-review">${t.flagged} 🚩</span></td>
+          <td><span class="badge ${t.status === 'Completed' ? 'badge-eligible' : 'badge-review'}">${t.status}</span></td>
         </tr>
       `).join('');
-      document.getElementById('tenderRows').innerHTML = tenderRows || '<tr><td colspan="7"><div class="empty-state">No tenders yet</div></td></tr>';
 
-      const auditRows = audits.map((entry) => `
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-card">
-            <div class="timeline-meta">
-              <span>${entry.step || 'Timeline'}</span>
-              <span>${entry.time}</span>
-            </div>
-            <strong>${entry.action}</strong>
-            <div class="mini-muted audit-officer">${entry.officer}</div>
+      // Audit trail
+      const auditDiv = document.getElementById('auditTrail');
+      auditDiv.innerHTML = auditLog.slice(0, 8).map(log => `
+        <div class="audit-item">
+          <div class="audit-dot"></div>
+          <div class="audit-time">${log.time}</div>
+          <div>
+            <div class="audit-text">${log.action}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">${log.officer}</div>
           </div>
         </div>
       `).join('');
-      document.getElementById('auditList').innerHTML = auditRows || '<div class="empty-state">No audit events yet</div>';
 
-      renderCharts(tenders);
+      // Charts
+      setTimeout(() => {
+        const eligible = 9, needsReview = 2, notEligible = 4;
+        const ctx1 = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctx1, {
+          type: 'doughnut',
+          data: {
+            labels: ['Eligible','Needs Review','Not Eligible'],
+            datasets: [{ data: [eligible, needsReview, notEligible], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 0, hoverOffset: 8 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, font: { size: 13 } } } }, cutout: '65%' }
+        });
+
+        const ctx2 = document.getElementById('riskChart').getContext('2d');
+        new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: ['Low Risk','Medium Risk','High Risk'],
+            datasets: [{ label: 'Tenders', data: [2, 1, 0], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderRadius: 6 }]
+          },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
+        });
+      }, 100);
     }
-
-    function renderCharts(tenders) {
-      const eligible = tenders.reduce((sum, tender) => sum + Number(tender.eligible || 0), 0);
-      const needsReview = tenders.reduce((sum, tender) => sum + Number(tender.flagged || 0), 0);
-      const rejected = tenders.reduce((sum, tender) => sum + Number(tender.rejected || 0), 0);
-
-      const lowRisk = tenders.filter((tender) => tender.status === 'Completed').length;
-      const mediumRisk = tenders.filter((tender) => tender.status === 'Under Review').length;
-      const highRisk = tenders.filter((tender) => Number(tender.flagged || 0) > 1).length;
-
-      try {
-        const statusEl = document.getElementById('statusChart');
-        if (!statusEl) return;
-        const statusCtx = statusEl.getContext ? statusEl.getContext('2d') : null;
-        if (!statusCtx || typeof Chart === 'undefined') {
-          // fallback: show placeholder
-          statusEl.parentElement.innerHTML = '<div class="placeholder">Chart not available offline — showing summary below.</div>';
-        } else {
-          if (statusChartInstance) statusChartInstance.destroy();
-          statusChartInstance = new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Eligible', 'Needs Review', 'Rejected'],
-          datasets: [{
-            data: [eligible, needsReview, rejected],
-            backgroundColor: ['rgba(16,185,129,0.75)', 'rgba(245,158,11,0.75)', 'rgba(239,68,68,0.75)'],
-            borderColor: ['rgba(16,185,129,1)', 'rgba(245,158,11,1)', 'rgba(239,68,68,1)'],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8' } } }
-        }
-      });
-
-        }
-      } catch (e) {
-        console.error('renderCharts failed', e);
-        showToast('Recovered chart with demo summary', 'warning');
-      }
-
-      try {
-        const riskEl = document.getElementById('riskChart');
-        const riskCtx = riskEl && riskEl.getContext ? riskEl.getContext('2d') : null;
-        if (!riskCtx || typeof Chart === 'undefined') {
-          if (riskEl && riskEl.parentElement) riskEl.parentElement.innerHTML = '<div class="placeholder">Chart not available offline — view audit trail for details.</div>';
-        } else {
-          if (riskChartInstance) riskChartInstance.destroy();
-          riskChartInstance = new Chart(riskCtx, {
-        type: 'bar',
-        data: {
-          labels: ['Low Risk', 'Medium Risk', 'High Risk'],
-          datasets: [{
-            label: 'Tenders',
-            data: [lowRisk, mediumRisk, highRisk],
-            backgroundColor: ['rgba(16,185,129,0.55)', 'rgba(245,158,11,0.55)', 'rgba(239,68,68,0.55)'],
-            borderColor: ['rgba(16,185,129,1)', 'rgba(245,158,11,1)', 'rgba(239,68,68,1)'],
-            borderWidth: 1,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: 'y',
-          plugins: { legend: { labels: { color: '#94a3b8' } } },
-          scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-          }
-        }
-      });
-    }
-
-    document.getElementById('refreshBtn').addEventListener('click', renderDashboard);
-    document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-    document.getElementById('sidebarOverlay').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    document.querySelectorAll('.nav-item').forEach((item) => {
-      item.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    });
-
-    initSampleData();
-    renderDashboard();
   </script>
 </body>
 </html>

@@ -4,547 +4,286 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NyayaBid AI | Report</title>
-  <!-- Fonts omitted for offline demo; CSS uses system fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
-  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/main.css">
 </head>
-<body data-page="report">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="../index.html">
-          <span class="brand-mark">N</span>
-          <span class="brand-copy"><strong>NyayaBid AI</strong><span>Audit report</span></span>
-        </a>
-        <nav class="sidebar-nav">
-          <a class="nav-item" href="../index.html">Home</a>
-          <a class="nav-item" href="dashboard.html">Dashboard</a>
-          <a class="nav-item" href="evaluate.html">Evaluate</a>
-          <a class="nav-item" href="simulation.html">Simulate</a>
-          <a class="nav-item active" href="report.html">Report</a>
-        </nav>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
-      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Final sign-off</div></div>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="main-content">
-      <div class="page-header">
-        <div class="page-title">
-          <h1>Audit Report</h1>
-          <p>CAG-ready summary, vendor detail, anomaly log, and final sign-off.</p>
-        </div>
-        <div class="button-row">
-          <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
-          <button class="btn btn-secondary" id="demoDataBtn" type="button">Use Demo Data</button>
-          <button class="btn btn-secondary" id="storedDataBtn" type="button">Use Stored Evaluation</button>
-          <button class="btn btn-primary" id="downloadPdfBtn" type="button">Download PDF</button>
-        </div>
-      </div>
-
-      <section class="section card" id="reportShell" hidden>
-        <div class="report-shell">
-          <div class="card">
-            <div class="card-header">
-              <div>
-                  <h2>NyayaBid AI Evaluation Report</h2>
-                  <p class="mini-muted mt-8">Government tender evaluation and audit trail.</p>
-              </div>
-              <span class="badge badge-neutral" id="reportStatusBadge">DRAFT</span>
-            </div>
-            <div class="metric-strip">
-              <div class="metric-card"><strong id="reportId">-</strong><p>Report ID</p></div>
-              <div class="metric-card"><strong id="reportTenderId">-</strong><p>Tender ID</p></div>
-              <div class="metric-card"><strong id="reportHashShort">-</strong><p>SHA-256</p></div>
-            </div>
-            <div class="hash-box mt-16">
-              <strong>Full hash</strong>
-              <div id="reportHash" class="mt-8">-</div>
-            </div>
-            <div class="summary-banner mt-16" id="executiveSummaryBanner">Out of 0 vendors, 0 were eligible.</div>
-            <div class="summary-banner integrity-banner mt-16" id="integrityBanner">Audit integrity status will appear here.</div>
-          </div>
-
-          <article class="card report-section">
-            <h3>Section 1 - Executive Summary</h3>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Metric</th><th>Value</th></tr>
-                </thead>
-                <tbody id="summaryBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 2 - Criteria Applied</h3>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Criterion</th><th>Value</th></tr></thead>
-                <tbody id="criteriaBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 3 - Vendor Evaluation Detail</h3>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Vendor</th>
-                    <th>Turnover</th>
-                    <th>Experience</th>
-                    <th>GST</th>
-                    <th>ISO</th>
-                    <th>Status</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody id="vendorBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 4 - Flags & Anomalies</h3>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Title</th><th>Severity</th><th>Detail</th></tr></thead>
-                <tbody id="flagsBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 5 - Override Log</h3>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Time</th><th>Action</th><th>Officer</th></tr></thead>
-                <tbody id="overrideBody"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 6 - Audit Timeline</h3>
-            <div class="timeline" id="timelineBody"></div>
-          </article>
-
-          <article class="card report-section">
-            <h3>Section 7 - Officer Sign-off</h3>
-            <div class="grid-2">
-              <div class="form-group"><label for="officerName">Officer Name</label><input id="officerName" type="text" placeholder="Approving officer"></div>
-              <div class="form-group"><label for="officerDesignation">Designation</label><input id="officerDesignation" type="text" placeholder="Deputy Secretary"></div>
-              <div class="form-group"><label for="signDate">Date</label><input id="signDate" type="date"></div>
-              <div class="form-group"><label for="officerRemarks">Remarks</label><input id="officerRemarks" type="text" placeholder="Remarks or justification"></div>
-            </div>
-            <button class="btn btn-primary" id="signFinalizeBtn" type="button">Digitally Sign & Finalize</button>
-          </article>
-        </div>
-      </section>
-
-      <section class="section card" id="emptyStateCard">
-        <div class="empty-state">
-          No evaluation loaded yet. Use demo data or load the last stored evaluation.
-        </div>
-      </section>
-    </main>
+    </div>
+    <nav style="flex: 1;">
+      <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item active" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
   </div>
 
-  <div id="toast-root" class="toast-root"></div>
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Audit Report Generator</div>
+        <div class="page-sub">CAG-ready, GFR-compliant evaluation report with digital sign-off</div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="loadDemoReport()">📋 Use Demo Data</button>
+      <button class="btn btn-secondary" onclick="loadStoredReport()">💾 Use Stored Evaluation</button>
+      <button class="btn btn-success" onclick="downloadPDF()" id="downloadBtn" disabled>⬇ Download PDF</button>
+    </div>
+
+    <div id="reportContent" style="display:none">
+      <!-- Report Header -->
+      <div class="report-header-box">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-size:22px;font-weight:800;margin-bottom:4px">NyayaBid AI — Evaluation Audit Report</div>
+            <div style="font-size:13px;color:var(--text2)">Generated by NyayaBid AI Evaluation Engine v1.0</div>
+          </div>
+          <div id="reportStatus" class="badge badge-review">DRAFT</div>
+        </div>
+        <div class="report-meta" id="reportMeta"></div>
+      </div>
+
+      <!-- Section 1: Executive Summary -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">📊 Section 1 — Executive Summary</div>
+        <div class="table-wrap"><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="summaryTable"></tbody></table></div>
+      </div>
+
+      <!-- Section 2: Criteria Applied -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">📋 Section 2 — Criteria Applied</div>
+        <div class="table-wrap"><table><thead><tr><th>Criterion</th><th>Required Value</th><th>GFR Reference</th></tr></thead><tbody id="criteriaTable"></tbody></table></div>
+      </div>
+
+      <!-- Section 3: Vendor Evaluation -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">👥 Section 3 — Vendor Evaluation Detail</div>
+        <div class="table-wrap"><table><thead><tr><th>Vendor</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>Confidence</th><th>Status</th></tr></thead><tbody id="vendorTable"></tbody></table></div>
+      </div>
+
+      <!-- Section 4: Flags -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">🚩 Section 4 — Flags & Anomalies</div>
+        <div id="flagsSection"></div>
+      </div>
+
+      <!-- Section 5: Collusion -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">🔍 Section 5 — Collusion Analysis</div>
+        <div id="collusionContent"></div>
+      </div>
+
+      <!-- Section 6: Sign-off -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">✍️ Section 6 — Evaluating Officer Sign-off</div>
+        <div class="grid-2" style="margin-bottom:20px">
+          <div class="form-group"><label class="form-label">Officer Name</label><input class="form-input" id="officerName" placeholder="e.g. Rajesh Kumar" value="Rajesh Kumar"></div>
+          <div class="form-group"><label class="form-label">Designation</label><input class="form-input" id="officerDesig" placeholder="e.g. Deputy Director" value="Deputy Director, Delhi PWD"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Remarks</label><textarea class="form-input" id="officerRemarks" rows="3" placeholder="Any remarks or conditions...">Evaluation completed as per GFR 2017 guidelines. All criteria verified against submitted documents.</textarea></div>
+        <button class="btn btn-success" onclick="signReport()" style="margin-top:12px">✅ Digitally Sign & Finalize</button>
+        <div id="signedBox" style="display:none" class="signed-box">
+          <div class="signed-stamp">✅ DIGITALLY SIGNED</div>
+          <div id="signedDetails" style="margin-top:12px;font-size:14px;color:var(--text2)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
     let currentReport = null;
-    let currentHash = '';
-    let currentIntegrityStatus = 'SAFE';
 
-    async function generateSHA256(text) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(text);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    function buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass) {
-      return [
-        { criterion: 'Min Annual Turnover', required: `₹${criteria.minTurnoverCr} Cr`, found: `₹${vendor.turnoverCr} Cr`, passed: turnoverPass, reason: turnoverPass ? 'Turnover meets minimum requirement' : `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr` },
-        { criterion: 'Minimum Experience', required: `${criteria.minExperienceYears} years`, found: `${vendor.experienceYears} years`, passed: experiencePass, reason: experiencePass ? 'Experience meets requirement' : `Experience below required ${criteria.minExperienceYears} years` },
-        { criterion: 'GST Registration', required: criteria.gstMandatory ? 'Valid GST' : 'Optional', found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing', passed: gstPass, reason: vendor.gstValid ? 'Valid GST registration found' : 'GST certificate invalid or missing' },
-        { criterion: 'ISO Certificate', required: criteria.isoCertRequired ? 'Valid ISO' : 'Optional', found: vendor.isoValid ? 'Valid' : 'Not valid', passed: isoPass, reason: isoPass ? 'ISO requirement satisfied' : 'ISO certificate missing' }
-      ];
-    }
-
-    function resolveReportVendorStatus(eligible, needsReview) {
-      if (needsReview) return 'Needs Review';
-      return eligible ? 'Eligible' : 'Not Eligible';
-    }
-
-    function resolveReportVendorReason(criteria, turnoverPass, experiencePass, gstPass, eligible) {
-      if (eligible) return 'Vendor meets all mandatory criteria.';
-      if (!gstPass) return 'GST certificate invalid or missing.';
-      if (!turnoverPass) return `Turnover below minimum of ₹${criteria.minTurnoverCr} Cr.`;
-      if (!experiencePass) return `Experience below required ${criteria.minExperienceYears} years.`;
-      return 'Low document confidence requires manual review.';
-    }
-
-    function evaluateVendor(vendor, criteria) {
-      const turnoverPass = Number(vendor.turnoverCr) >= Number(criteria.minTurnoverCr);
-      const experiencePass = Number(vendor.experienceYears) >= Number(criteria.minExperienceYears);
-      const gstPass = !criteria.gstMandatory || Boolean(vendor.gstValid);
-      const isoPass = !criteria.isoCertRequired || Boolean(vendor.isoValid);
-      const eligible = turnoverPass && experiencePass && gstPass && isoPass;
-      const confidence = calculateConfidence(vendor, criteria);
-      const needsReview = confidence.score < 50 || (!vendor.gstValid && vendor.name === 'GreenBuild Contractors');
-      const status = resolveReportVendorStatus(eligible, needsReview);
-
-      return {
-        ...vendor,
-        turnoverPass,
-        experiencePass,
-        gstPass,
-        isoPass,
-        eligible,
-        needsReview,
-        status,
-        confidenceScore: confidence.score,
-        confidenceLabel: confidence.label,
-        reason: resolveReportVendorReason(criteria, turnoverPass, experiencePass, gstPass, eligible),
-        criterionResults: buildCriterionResults(vendor, criteria, turnoverPass, experiencePass, gstPass, isoPass)
-      };
-    }
-
-    function buildDemoEvaluation() {
-      const criteria = { ...DEMO_TENDER };
-      const vendors = DEMO_VENDORS.map((vendor) => ({ ...vendor }));
-      const results = vendors.map((vendor) => evaluateVendor(vendor, criteria));
-      const flags = [];
-      const greenBuild = results.find((result) => result.name === 'GreenBuild Contractors');
-      if (greenBuild && (!greenBuild.gstValid || greenBuild.confidence < 60)) {
-        flags.push({ title: 'GreenBuild Contractors flagged', severity: 'High', detail: 'GST invalid and confidence below review threshold.' });
-      }
-
-      return {
-        reportId: `NBR-${new Date().getFullYear()}-${criteria.tenderId}-DEMO`,
-        status: 'DRAFT',
-        tender: criteria,
-        criteria,
-        vendors,
+    async function loadDemoReport() {
+      const results = DEMO_VENDORS.map(v => evaluateVendor(v, DEMO_TENDER));
+      const flags = detectCollusion(DEMO_VENDORS);
+      
+      currentReport = {
+        tender: DEMO_TENDER,
+        vendors: DEMO_VENDORS,
         results,
         flags,
-        risk: { score: 18, level: 'LOW', findings: flags, suspiciousVendors: flags.map((flag) => flag.title) },
-        timeline: [
-          { step: 'Criteria extracted', time: '2024-01-20 14:30' },
-          { step: 'Vendors processed', time: '2024-01-20 14:31' },
-          { step: 'Evaluation completed', time: '2024-01-20 14:32' },
-          { step: 'Flags raised', time: '2024-01-20 14:33' },
-          { step: 'Report generated', time: '2024-01-20 14:34' }
-        ],
-        overrideLog: [{ time: '2024-01-20 14:35', action: 'Demo data loaded', officer: 'System' }],
-        signOff: getStorage('report-sign-off', null),
-        generatedAt: new Date().toISOString()
+        hash: await sha256(JSON.stringify(results))
       };
+      
+      renderReport();
+      document.getElementById('downloadBtn').disabled = false;
+      showToast('✓ Demo report loaded and populated', 'success');
     }
 
-    function loadStoredEvaluation() {
-      return getStorage('last-evaluation', null);
-    }
-
-    function normalizeReport(raw) {
-      if (!raw) return null;
-      const criteria = raw.criteria || raw.tender || raw.tenderDetails || null;
-      if (!criteria) return null;
-
-      const results = Array.isArray(raw.results) ? raw.results : [];
-      const vendors = Array.isArray(raw.vendors) ? raw.vendors : [];
-      const flags = Array.isArray(raw.flags) ? raw.flags : [];
-      let risk = raw.risk;
-      if (!risk) {
-        let level = 'LOW';
-        if (flags.length >= 3) {
-          level = 'HIGH';
-        } else if (flags.length >= 1) {
-          level = 'MEDIUM';
-        }
-        risk = { score: Math.min(100, flags.length * 18), level, findings: flags, suspiciousVendors: [] };
-      }
-      const timeline = Array.isArray(raw.timeline) ? raw.timeline : [];
-      const overrideLog = Array.isArray(raw.overrideLog) ? raw.overrideLog : [];
-      const signOff = raw.signOff || getStorage('report-sign-off', null);
-
-      return {
-        reportId: raw.reportId || `NBR-${new Date().getFullYear()}-${criteria.tenderId || criteria.id || 'TND-2024-001'}-FINAL`,
-        status: signOff?.finalized ? 'FINALIZED' : (raw.status || 'DRAFT'),
-        tender: criteria,
-        criteria,
-        vendors,
-        results,
-        flags,
-        risk,
-        timeline,
-        overrideLog,
-        signOff,
-        auditHash: raw.auditHash || null,
-        generatedAt: raw.generatedAt || new Date().toISOString()
-      };
-    }
-
-    function renderExecutiveSummary(report) {
-      const eligibleCount = report.results.filter((result) => result.status === 'Eligible').length;
-      const rejectedCount = report.results.filter((result) => result.status === 'Not Eligible').length;
-      const reviewCount = report.results.filter((result) => result.status === 'Needs Review').length;
-      const keyIssue = report.flags.length ? report.flags[0].detail : 'No major issues detected.';
-      const riskLevel = report.risk?.level || (report.flags.length ? 'MEDIUM' : 'LOW');
-      return `Out of ${report.results.length} vendors, ${eligibleCount} were eligible, ${rejectedCount} were rejected, and ${reviewCount} require review. ${keyIssue} Overall risk: ${riskLevel}.`;
-    }
-
-    function renderTimeline(items) {
-      const timeline = Array.isArray(items) && items.length ? items : [
-        { step: 'Criteria extracted', time: new Date().toISOString() },
-        { step: 'Vendors processed', time: new Date().toISOString() },
-        { step: 'Evaluation completed', time: new Date().toISOString() },
-        { step: 'Flags raised', time: new Date().toISOString() },
-        { step: 'Report generated', time: new Date().toISOString() }
-      ];
-
-      document.getElementById('timelineBody').innerHTML = timeline.map((item) => `
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-card">
-            <div class="timeline-meta"><span>${escapeHtml(item.step)}</span><span>${escapeHtml(item.time)}</span></div>
-            <div class="mini-muted">${escapeHtml(item.step)} recorded in the audit trail.</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function renderReport(report) {
-      currentReport = report;
-      document.getElementById('emptyStateCard').hidden = true;
-      document.getElementById('reportShell').hidden = false;
-
-      document.getElementById('reportId').textContent = report.reportId;
-      document.getElementById('reportTenderId').textContent = report.criteria.tenderId || report.criteria.id || '-';
-      document.getElementById('reportStatusBadge').textContent = report.status;
-
-      const reportDataForHash = {
-        reportId: report.reportId,
-        tender: report.tender,
-        criteria: report.criteria,
-        vendors: report.vendors,
-        results: report.results,
-        flags: report.flags,
-        overrideLog: report.overrideLog,
-        signOff: report.signOff || null,
-        status: report.status
-      };
-
-      const computedHash = await buildAuditHash(reportDataForHash);
-      currentHash = computedHash;
-      if (!report.auditHash) {
-        report.auditHash = computedHash;
-      }
-      const integrityCompromised = Boolean(report.auditHash && report.auditHash !== computedHash);
-      currentIntegrityStatus = integrityCompromised ? 'COMPROMISED' : 'SAFE';
-
-      const summaryRows = [
-        ['Tender title', report.criteria.tenderTitle || report.criteria.title || '-'],
-        ['Vendor count', String(report.vendors.length)],
-        ['Eligible vendors', String(report.results.filter((result) => result.status === 'Eligible').length)],
-        ['Review required', String(report.results.filter((result) => result.status === 'Needs Review').length)],
-        ['Flags raised', String(report.flags.length)],
-        ['Generated at', new Date(report.generatedAt).toLocaleString('en-IN')]
-      ];
-      document.getElementById('summaryBody').innerHTML = summaryRows.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`).join('');
-
-      const criteriaRows = [
-        ['Tender ID', report.criteria.tenderId || report.criteria.id || '-'],
-        ['Tender Title', report.criteria.tenderTitle || report.criteria.title || '-'],
-        ['Min Turnover', `₹${report.criteria.minTurnoverCr} Cr`],
-        ['Min Experience', `${report.criteria.minExperienceYears} years`],
-        ['GST Mandatory', report.criteria.gstMandatory ? 'Yes' : 'No'],
-        ['ISO Required', report.criteria.isoCertRequired ? 'Yes' : 'No'],
-        ['MSME Allowed', report.criteria.msmeAllowed ? 'Yes' : 'No']
-      ];
-      document.getElementById('criteriaBody').innerHTML = criteriaRows.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`).join('');
-
-      document.getElementById('vendorBody').innerHTML = report.results.map((vendor) => {
-        let statusClass = 'badge-ineligible';
-        if (vendor.status === 'Eligible') statusClass = 'badge-eligible';
-        if (vendor.status === 'Needs Review') statusClass = 'badge-review';
-        return `
-          <tr>
-            <td><strong>${escapeHtml(vendor.name)}</strong></td>
-            <td>${vendor.turnoverPass ? '✓' : '✗'} ₹${vendor.turnoverCr} Cr</td>
-            <td>${vendor.experiencePass ? '✓' : '✗'} ${vendor.experienceYears} yrs</td>
-            <td>${vendor.gstPass ? '✓' : '✗'} ${vendor.gstValid ? escapeHtml(vendor.gstNumber) : 'Invalid'}</td>
-            <td>${vendor.isoPass ? '✓' : '✗'} ${vendor.isoValid ? 'Valid' : 'Invalid'}</td>
-            <td><span class="badge ${statusClass}">${vendor.status}</span></td>
-            <td>${escapeHtml(vendor.reason)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      document.getElementById('flagsBody').innerHTML = report.flags.length ? report.flags.map((flag) => `
-        <tr><td>${escapeHtml(flag.title)}</td><td>${escapeHtml(flag.severity)}</td><td>${escapeHtml(flag.detail)}</td></tr>
-      `).join('') : '<tr><td colspan="3"><div class="empty-state">No flags or anomalies detected.</div></td></tr>';
-
-      const overrideLog = report.overrideLog.length ? report.overrideLog : [{ time: new Date(report.generatedAt).toLocaleString('en-IN'), action: 'No overrides recorded', officer: 'System' }];
-      document.getElementById('overrideBody').innerHTML = overrideLog.map((entry) => `
-        <tr><td>${escapeHtml(entry.time)}</td><td>${escapeHtml(entry.action)}</td><td>${escapeHtml(entry.officer)}</td></tr>
-      `).join('');
-
-      renderTimeline(report.timeline);
-
-      document.getElementById('executiveSummaryBanner').textContent = renderExecutiveSummary(report);
-      const integrityBanner = document.getElementById('integrityBanner');
-      if (integrityCompromised) {
-        integrityBanner.className = 'summary-banner integrity-banner compromised mt-16';
-        integrityBanner.textContent = `⚠ Audit Integrity Compromised. Stored hash ${report.auditHash} does not match current hash ${computedHash}.`;
-      } else {
-        integrityBanner.className = 'summary-banner integrity-banner safe mt-16';
-        integrityBanner.textContent = `Audit Hash: ${computedHash.slice(0, 16).toUpperCase()}... (tamper-proof)`;
-      }
-
-      document.getElementById('reportHashShort').textContent = 'Calculating...';
-      document.getElementById('reportHash').textContent = 'Calculating...';
-      document.getElementById('reportHashShort').textContent = `${computedHash.slice(0, 12)}...`;
-      document.getElementById('reportHash').textContent = computedHash;
-
-      if (report.signOff?.finalized) {
-        document.getElementById('reportStatusBadge').textContent = 'FINALIZED';
-        document.getElementById('officerName').value = report.signOff.name || '';
-        document.getElementById('officerDesignation').value = report.signOff.designation || '';
-        document.getElementById('officerRemarks').value = report.signOff.remarks || '';
-        document.getElementById('signDate').value = report.signOff.date || new Date().toISOString().slice(0, 10);
-      } else {
-        document.getElementById('signDate').value = new Date().toISOString().slice(0, 10);
-      }
-    }
-
-    function saveSignOff() {
-      if (!currentReport) {
-        showToast('Load a report before signing off.', 'warning');
-        return;
-      }
-
-      const name = document.getElementById('officerName').value.trim();
-      const designation = document.getElementById('officerDesignation').value.trim();
-      const remarks = document.getElementById('officerRemarks').value.trim();
-      const date = document.getElementById('signDate').value || new Date().toISOString().slice(0, 10);
-
-      if (!name || !designation) {
-        showToast('Enter officer name and designation.', 'warning');
-        return;
-      }
-
-      const signOff = { name, designation, remarks, date, finalized: true, finalizedAt: new Date().toISOString() };
-      if (typeof setStorage === 'function') setStorage('report-sign-off', signOff); else localStorage.setItem('report-sign-off', JSON.stringify(signOff));
-      currentReport.signOff = signOff;
-      currentReport.status = 'FINALIZED';
-
-      const overrideLog = Array.isArray(currentReport.overrideLog) ? currentReport.overrideLog : [];
-      overrideLog.unshift({ time: new Date().toLocaleString('en-IN'), action: 'Report finalized', officer: name });
-      currentReport.overrideLog = overrideLog;
-
-      logAction('REPORT_FINALIZED', name, { designation, reportId: currentReport.reportId });
-      showToast('Report finalized and saved.', 'success');
-      renderReport(currentReport);
-    }
-
-    function exportPdf() {
-      if (!currentReport) {
-        showToast('Load a report before exporting.', 'warning');
-        return;
-      }
-
-      try {
-        const { jsPDF } = globalThis.jspdf || {};
-        if (typeof jsPDF !== 'function') throw new Error('jsPDF unavailable');
-        const doc = new jsPDF();
-      const margin = 12;
-      let y = 16;
-
-      function addLine(text, size = 10, gap = 5) {
-        doc.setFontSize(size);
-        const lines = doc.splitTextToSize(text, 180);
-        doc.text(lines, margin, y);
-        y += lines.length * gap;
-      }
-
-      addLine('NyayaBid AI Evaluation Report', 16, 7);
-      addLine(`Report ID: ${currentReport.reportId}`);
-      addLine(`Status: ${currentReport.status}`);
-      addLine(`Tender: ${currentReport.criteria.tenderId || '-'} - ${currentReport.criteria.tenderTitle || currentReport.criteria.title || '-'}`);
-      addLine(`SHA-256: ${currentHash || document.getElementById('reportHash').textContent}`);
-      y += 4;
-
-      addLine('Executive Summary', 12, 6);
-      currentReport.results.forEach((vendor) => {
-        addLine(`${vendor.name} | ${vendor.status} | Confidence ${vendor.confidence}%`, 10, 5);
-        if (y > 270) { doc.addPage(); y = 16; }
-      });
-      y += 4;
-
-      addLine('Flags & Anomalies', 12, 6);
-      (currentReport.flags.length ? currentReport.flags : [{ title: 'None', severity: '-', detail: 'No anomalies detected' }]).forEach((flag) => {
-        addLine(`${flag.title} | ${flag.severity} | ${flag.detail}`, 10, 5);
-        if (y > 270) { doc.addPage(); y = 16; }
-      });
-
-        doc.save(`NyayaBid-Report-${currentReport.reportId}.pdf`);
-      } catch (e) {
-        console.error('Export PDF failed', e);
-        showToast('PDF export unavailable offline.', 'warning');
-      }
-    }
-
-    function loadDemoData() {
-      void renderReport(buildDemoEvaluation());
-      showToast('Demo report loaded.', 'success');
-    }
-
-    function loadStoredData() {
-      const stored = normalizeReport(loadStoredEvaluation());
+    function loadStoredReport() {
+      const stored = getStorage('last-evaluation', null);
       if (!stored) {
-        // Auto-inject demo evaluation so report always displays
-        const demo = buildDemoEvaluation();
-        void renderReport(demo);
-        showToast('No stored evaluation found — demo report loaded.', 'warning');
+        showToast('No stored evaluation found — load demo first', 'warning');
         return;
       }
-      void renderReport(stored);
-      showToast('Stored evaluation loaded.', 'success');
+      currentReport = stored;
+      renderReport();
+      document.getElementById('downloadBtn').disabled = false;
+      showToast('✓ Stored evaluation loaded', 'success');
     }
 
-    document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-    document.getElementById('sidebarOverlay').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
-    document.getElementById('demoDataBtn').addEventListener('click', loadDemoData);
-    document.getElementById('storedDataBtn').addEventListener('click', loadStoredData);
-    document.getElementById('signFinalizeBtn').addEventListener('click', saveSignOff);
-    document.getElementById('downloadPdfBtn').addEventListener('click', exportPdf);
+    async function renderReport() {
+      if (!currentReport) return;
 
-    loadStoredData();
+      document.getElementById('reportContent').style.display = 'block';
+      const tender = currentReport.tender;
+      const results = currentReport.results;
+      const eligible = results.filter(r => r.status === 'Eligible').length;
+      const review = results.filter(r => r.status === 'Needs Review').length;
+      const rejected = results.filter(r => r.status === 'Not Eligible').length;
+      const hash = await sha256(JSON.stringify(results));
+
+      // Report Meta
+      const reportId = 'NBR-2024-001-' + Math.random().toString(16).substr(2, 4).toUpperCase();
+      document.getElementById('reportMeta').innerHTML = `
+        <div class="report-meta-item">
+          <div class="report-meta-label">Report ID</div>
+          <div class="report-meta-val">${reportId}</div>
+        </div>
+        <div class="report-meta-item">
+          <div class="report-meta-label">Tender</div>
+          <div class="report-meta-val">${tender.id}</div>
+        </div>
+        <div class="report-meta-item">
+          <div class="report-meta-label">Verification Hash</div>
+          <div class="report-meta-val" style="font-size: 11px; font-family: monospace;">${hash.substr(0, 16)}...</div>
+        </div>
+      `;
+
+      // Summary
+      document.getElementById('summaryTable').innerHTML = `
+        <tr><td>Tender Title</td><td>${tender.title}</td></tr>
+        <tr><td>Total Vendors Evaluated</td><td>${results.length}</td></tr>
+        <tr><td>Eligible</td><td><span class="badge badge-eligible">${eligible}</span></td></tr>
+        <tr><td>Needs Review</td><td><span class="badge badge-review">${review}</span></td></tr>
+        <tr><td>Not Eligible</td><td><span class="badge badge-ineligible">${rejected}</span></td></tr>
+        <tr><td>Eligibility Rate</td><td>${((eligible / results.length) * 100).toFixed(1)}%</td></tr>
+      `;
+
+      // Criteria
+      document.getElementById('criteriaTable').innerHTML = `
+        <tr><td>Min Annual Turnover</td><td>₹${tender.minTurnoverCr} Cr</td><td>GFR Rule 175</td></tr>
+        <tr><td>Min Experience</td><td>${tender.minExperienceYears} years</td><td>GFR Rule 160</td></tr>
+        <tr><td>GST Registration</td><td>${tender.gstMandatory ? 'Mandatory' : 'Optional'}</td><td>IGST Act 2017</td></tr>
+        <tr><td>MSME Allowance</td><td>${tender.msmeAllowed ? 'Yes (5% relaxation)' : 'No'}</td><td>MSME Policy</td></tr>
+      `;
+
+      // Vendors
+      document.getElementById('vendorTable').innerHTML = results.map(r => `
+        <tr>
+          <td><strong>${r.vendorName}</strong></td>
+          <td>${r.city}</td>
+          <td>₹${r.turnoverCr} Cr</td>
+          <td>${r.experienceYears} years</td>
+          <td>${r.gstValid ? '✓' : '✗'}</td>
+          <td>${r.confidence}%</td>
+          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}">${r.status}</span></td>
+        </tr>
+      `).join('');
+
+      // Flags
+      const flagsWithVendors = results.filter(r => r.flagForReview);
+      if (flagsWithVendors.length === 0) {
+        document.getElementById('flagsSection').innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No flags detected</div>';
+      } else {
+        document.getElementById('flagsSection').innerHTML = flagsWithVendors.map(r => `
+          <div class="card" style="margin-bottom: 12px; background: var(--amber-bg); border-color: rgba(245,158,11,0.3);">
+            <div style="font-weight: 600; color: var(--amber);">${r.vendorName}</div>
+            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${r.flagReason}</div>
+            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">Confidence: ${r.confidence}%</div>
+          </div>
+        `).join('');
+      }
+
+      // Collusion
+      if (currentReport.flags.length === 0) {
+        document.getElementById('collusionContent').innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No collusion indicators detected</div>';
+      } else {
+        document.getElementById('collusionContent').innerHTML = currentReport.flags.map(f => `
+          <div class="card" style="margin-bottom: 12px; background: var(--red-bg); border-color: rgba(239,68,68,0.3);">
+            <div style="font-weight: 600; color: var(--red);">${f.type} — ${f.vendor}</div>
+            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${f.detail}</div>
+            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">→ ${f.action}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function signReport() {
+      const name = document.getElementById('officerName').value;
+      const desig = document.getElementById('officerDesig').value;
+      const remarks = document.getElementById('officerRemarks').value;
+
+      setStorage('report-signoff', { name, desig, remarks, timestamp: new Date().toISOString() });
+      
+      document.getElementById('reportStatus').className = 'badge badge-eligible';
+      document.getElementById('reportStatus').textContent = 'FINALIZED';
+      document.getElementById('signedBox').style.display = 'block';
+      document.getElementById('signedDetails').innerHTML = `
+        <div><strong>${name}</strong></div>
+        <div>${desig}</div>
+        <div style="font-size: 12px; margin-top: 8px;">${new Date().toLocaleString()}</div>
+      `;
+
+      showToast('✓ Report digitally signed and finalized', 'success');
+      logAction(`Report finalized and signed by ${name}`, name);
+    }
+
+    function downloadPDF() {
+      if (!currentReport) return;
+
+      const doc = new jspdf.jsPDF();
+      const tender = currentReport.tender;
+      const results = currentReport.results;
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('NyayaBid AI — Evaluation Audit Report', 10, 15);
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.text(`Tender: ${tender.id} — ${tender.title}`, 10, 25);
+      doc.text(`Authority: ${tender.authority}`, 10, 32);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 10, 39);
+
+      doc.setFont('Helvetica', 'bold');
+      doc.text('Executive Summary', 10, 50);
+      doc.setFont('Helvetica', 'normal');
+      doc.text(`Total Vendors: ${results.length}`, 10, 57);
+      doc.text(`Eligible: ${results.filter(r => r.status === 'Eligible').length}`, 10, 64);
+      doc.text(`Needs Review: ${results.filter(r => r.status === 'Needs Review').length}`, 10, 71);
+      doc.text(`Not Eligible: ${results.filter(r => r.status === 'Not Eligible').length}`, 10, 78);
+
+      const signoff = getStorage('report-signoff', null);
+      if (signoff) {
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Officer Sign-off', 10, 95);
+        doc.setFont('Helvetica', 'normal');
+        doc.text(`${signoff.name} — ${signoff.desig}`, 10, 102);
+        doc.text(`Signed: ${new Date(signoff.timestamp).toLocaleString()}`, 10, 109);
+      }
+
+      doc.save('NyayaBid-Audit-Report-' + tender.id + '.pdf');
+      showToast('✓ PDF report exported successfully', 'success');
+    }
   </script>
 </body>
 </html>

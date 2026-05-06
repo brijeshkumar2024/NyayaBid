@@ -4,381 +4,257 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NyayaBid AI | Simulation</title>
-  <!-- Fonts omitted for offline demo; CSS uses system fallbacks -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-  </script>
-  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/main.css">
 </head>
-<body data-page="simulation">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <a class="brand" href="../index.html">
-          <span class="brand-mark">N</span>
-          <span class="brand-copy"><strong>NyayaBid AI</strong><span>Policy simulator</span></span>
-        </a>
-        <nav class="sidebar-nav">
-          <a class="nav-item" href="../index.html">Home</a>
-          <a class="nav-item" href="dashboard.html">Dashboard</a>
-          <a class="nav-item" href="evaluate.html">Evaluate</a>
-          <a class="nav-item active" href="simulation.html">Simulate</a>
-          <a class="nav-item" href="report.html">Report</a>
-        </nav>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
-      <div class="sidebar-bottom"><div class="version-tag">v1.0 | Scenario testing</div></div>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <main class="main-content">
-      <div class="page-header">
-        <div class="page-title">
-          <h1>Policy Simulation</h1>
-          <p>Adjust criteria, see eligible vendors change instantly, and export a summary.</p>
-        </div>
-        <div class="button-row">
-          <button class="sidebar-toggle mobile-only" id="sidebarToggle" type="button">☰ Menu</button>
-          <button class="btn btn-primary" id="runSimulationBtn" type="button">▶ Run Simulation</button>
-          <button class="btn btn-secondary" id="exportSimulationBtn" type="button">Download PDF</button>
-        </div>
-      </div>
-
-      <section class="section panel-grid">
-        <article class="card">
-          <div class="card-header"><h3>Controls</h3></div>
-          <div class="form-group">
-            <label for="turnoverSlider">Minimum Turnover <strong id="turnoverValue">₹10 Cr</strong></label>
-            <input id="turnoverSlider" type="range" min="1" max="100" value="10" title="Minimum Turnover">
-          </div>
-          <div class="form-group">
-            <label for="expSlider">Minimum Experience <strong id="expValue">5 yrs</strong></label>
-            <input id="expSlider" type="range" min="1" max="20" value="5" title="Minimum Experience">
-          </div>
-          <div class="form-group"><label><input id="gstCheck" type="checkbox" checked> GST Mandatory</label></div>
-          <div class="form-group"><label><input id="msmeCheck" type="checkbox"> MSME Relaxation -25%</label></div>
-          <div class="preset-row">
-            <button class="btn btn-secondary preset-btn" data-preset="current" type="button">Current</button>
-            <button class="btn btn-secondary preset-btn" data-preset="msme" type="button">MSME Friendly</button>
-            <button class="btn btn-secondary preset-btn" data-preset="restrictive" type="button">Highly Restrictive</button>
-            <button class="btn btn-secondary preset-btn" data-preset="competition" type="button">Maximum Competition</button>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-header"><h3>Results</h3></div>
-          <div class="metric-strip">
-            <div class="metric-card"><div class="metric-value" id="eligibleCount">0</div><p>Eligible vendors</p></div>
-            <div class="metric-card"><div class="metric-value" id="riskLevel">-</div><p>Risk level</p></div>
-            <div class="metric-card"><div class="metric-value" id="policyImpact">-</div><p>Policy impact</p></div>
-          </div>
-          <div class="alert alert-success mt-16" id="scenarioText">Current scenario ready.</div>
-          <div class="summary-banner mt-16" id="policyNarrative">Adjust sliders to see how competition and risk change in real time.</div>
-        </article>
-      </section>
-
-      <section class="section card" id="chartSection">
-        <div class="card-header"><h3>Vendor Comparison Chart</h3></div>
-        <div class="chart-box"><canvas id="simChart"></canvas></div>
-      </section>
-
-      <section class="section card">
-        <div class="card-header"><h3>Simulation Results</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Vendor</th>
-                <th>City</th>
-                <th>Turnover</th>
-                <th>Experience</th>
-                <th>GST</th>
-                <th>ISO</th>
-                <th>MSME</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="simResultsBody"></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+    </div>
+    <nav style="flex: 1;">
+      <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item active" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
   </div>
 
-  <div id="toast-root" class="toast-root"></div>
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Policy Simulation Engine</div>
+        <div class="page-sub">Adjust eligibility thresholds and preview impact on vendor competition before publishing</div>
+      </div>
+    </div>
+
+    <div class="sim-layout">
+      <!-- LEFT: Controls -->
+      <div class="card">
+        <div class="card-title">Adjust Criteria</div>
+        <div class="card-sub">Changes apply instantly to all 10 market vendors</div>
+
+        <div class="preset-row">
+          <button class="preset-btn active" onclick="applyPreset('default')">Current (Default)</button>
+          <button class="preset-btn" onclick="applyPreset('msme')">MSME Friendly</button>
+          <button class="preset-btn" onclick="applyPreset('strict')">Highly Restrictive</button>
+          <button class="preset-btn" onclick="applyPreset('open')">Maximum Competition</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Minimum Annual Turnover</label>
+          <div class="slider-value" id="turnoverVal">₹10 Cr</div>
+          <input type="range" class="form-input" id="turnoverSlider" min="1" max="100" value="10" oninput="updateSliders()">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Minimum Experience Required</label>
+          <div class="slider-value" id="expVal">5 years</div>
+          <input type="range" class="form-input" id="expSlider" min="1" max="20" value="5" oninput="updateSliders()">
+        </div>
+
+        <label class="form-check">
+          <input type="checkbox" id="gstCheck" checked onchange="runSimulation()">
+          GST Registration Mandatory
+        </label>
+
+        <label class="form-check">
+          <input type="checkbox" id="msmeCheck" onchange="runSimulation()">
+          Apply MSME Relaxation (−25% turnover)
+        </label>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="runSimulation()">▶ Run Simulation</button>
+      </div>
+
+      <!-- RIGHT: Impact Summary -->
+      <div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">Market Analysis</div>
+          <div style="text-align:center;padding:20px 0">
+            <div class="big-number" id="eligibleCount">0</div>
+            <div style="color:var(--text2);font-size:14px;margin-top:8px">Eligible Vendors out of 10</div>
+          </div>
+          <div id="riskBadge" style="text-align:center"></div>
+        </div>
+
+        <div class="impact-box">
+          <div class="card-title" style="margin-bottom:16px">Policy Impact</div>
+          <div class="impact-row"><span class="impact-label">Change from default</span><span class="impact-val" id="impactChange">—</span></div>
+          <div class="impact-row"><span class="impact-label">Vendors gained/lost</span><span class="impact-val" id="impactVendors">—</span></div>
+          <div class="impact-row"><span class="impact-label">Competition change</span><span class="impact-val" id="impactComp">—</span></div>
+          <div class="impact-row"><span class="impact-label">CAG Risk Level</span><span class="impact-val" id="impactRisk">—</span></div>
+        </div>
+
+        <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="exportSimulation()">📄 Export Simulation Report</button>
+      </div>
+    </div>
+
+    <!-- CHART SECTION -->
+    <div id="chartSection" style="margin-top:24px">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">Vendor Competition Chart</div>
+        <div class="card-sub">Blue bars = turnover, Green overlay = eligible under current criteria</div>
+        <div class="chart-box">
+          <canvas id="simChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Simulation Results</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vendor</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>MSME</th><th>Status</th></tr></thead>
+            <tbody id="simTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
-    const SIM_VENDORS = [
-      { name: 'BuildCorp Industries', city: 'Delhi', turnoverCr: 85, experienceYears: 12, gstValid: true, isoValid: true, isMSME: false },
-      { name: 'Singh Construction', city: 'Mumbai', turnoverCr: 25, experienceYears: 6, gstValid: true, isoValid: true, isMSME: true },
-      { name: 'Sharma Builders', city: 'Bangalore', turnoverCr: 12, experienceYears: 3, gstValid: true, isoValid: false, isMSME: true },
-      { name: 'Patel Group', city: 'Hyderabad', turnoverCr: 55, experienceYears: 8, gstValid: true, isoValid: true, isMSME: false },
-      { name: 'Kumar Associates', city: 'Chennai', turnoverCr: 18, experienceYears: 4, gstValid: false, isoValid: true, isMSME: true },
-      { name: 'Reddy Constructions', city: 'Pune', turnoverCr: 42, experienceYears: 7, gstValid: true, isoValid: true, isMSME: false },
-      { name: 'Verma Enterprises', city: 'Ahmedabad', turnoverCr: 15, experienceYears: 2, gstValid: true, isoValid: false, isMSME: true },
-      { name: 'Gupta Infrastructure', city: 'Kolkata', turnoverCr: 95, experienceYears: 15, gstValid: true, isoValid: true, isMSME: false },
-      { name: 'Nair Group', city: 'Kochi', turnoverCr: 8, experienceYears: 1, gstValid: true, isoValid: false, isMSME: true },
-      { name: 'Mishra & Co', city: 'Lucknow', turnoverCr: 35, experienceYears: 5, gstValid: true, isoValid: true, isMSME: false }
-    ];
+    let simChart = null;
+    let baselineEligible = 0;
 
-    const presets = {
-      current: { turnover: 10, experience: 5, gst: true, msme: false },
-      msme: { turnover: 7, experience: 3, gst: true, msme: true },
-      restrictive: { turnover: 50, experience: 10, gst: true, msme: false },
-      competition: { turnover: 5, experience: 2, gst: false, msme: true }
+    const PRESETS = {
+      default: { turnover: 10, exp: 5, gst: true, msme: false },
+      msme: { turnover: 7.5, exp: 3, gst: true, msme: true },
+      strict: { turnover: 50, exp: 10, gst: true, msme: false },
+      open: { turnover: 5, exp: 2, gst: false, msme: true }
     };
 
-    let simChartInstance = null;
-
-    function evaluateScenario(config) {
-      return SIM_VENDORS.map((vendor) => {
-        const effectiveTurnover = (config.msmeRelax && vendor.isMSME) ? vendor.turnoverCr / 0.75 : vendor.turnoverCr;
-        const turnoverPass = effectiveTurnover >= config.minTurnover;
-        const expPass = vendor.experienceYears >= config.minExp;
-        const gstPass = !config.gstRequired || vendor.gstValid;
-        const eligible = turnoverPass && expPass && gstPass;
-        return { ...vendor, effectiveTurnover, turnoverPass, expPass, gstPass, eligible };
-      });
+    function updateSliders() {
+      const turnover = document.getElementById('turnoverSlider').value;
+      const exp = document.getElementById('expSlider').value;
+      document.getElementById('turnoverVal').textContent = '₹' + turnover + ' Cr';
+      document.getElementById('expVal').textContent = exp + ' years';
+      runSimulation();
     }
 
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      document.getElementById('turnoverSlider').value = p.turnover;
+      document.getElementById('expSlider').value = p.exp;
+      document.getElementById('gstCheck').checked = p.gst;
+      document.getElementById('msmeCheck').checked = p.msme;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      updateSliders();
     }
 
-    function updateSliderLabels() {
-      document.getElementById('turnoverValue').textContent = `₹${document.getElementById('turnoverSlider').value} Cr`;
-      document.getElementById('expValue').textContent = `${document.getElementById('expSlider').value} yrs`;
-    }
-
-    function runSimulation(relaxed = false) {
-      const minTurnover = Number.parseFloat(document.getElementById('turnoverSlider').value);
-      const minExp = Number.parseInt(document.getElementById('expSlider').value, 10);
+    function runSimulation() {
+      const turnover = parseInt(document.getElementById('turnoverSlider').value);
+      const exp = parseInt(document.getElementById('expSlider').value);
       const gstRequired = document.getElementById('gstCheck').checked;
       const msmeRelax = document.getElementById('msmeCheck').checked;
 
-      const results = evaluateScenario({ minTurnover, minExp, gstRequired, msmeRelax });
-      const outcome = computeScenarioOutcome({ minTurnover, minExp, gstRequired, msmeRelax, results });
-
-      document.getElementById('eligibleCount').textContent = outcome.eligibleCount;
-      document.getElementById('riskLevel').textContent = outcome.riskText;
-      document.getElementById('riskLevel').className = `badge ${outcome.riskClass}`;
-      document.getElementById('policyImpact').textContent = outcome.impact;
-      document.getElementById('scenarioText').textContent = outcome.scenarioText;
-      document.getElementById('policyNarrative').textContent = outcome.policyNarrative;
-
-      finalizeSimulation({ minTurnover, minExp, gstRequired, msmeRelax, results, outcome, relaxed });
-      return { results, eligibleCount: outcome.eligibleCount, risk: outcome.riskText };
-    }
-
-    function computeScenarioOutcome({ minTurnover, minExp, gstRequired, msmeRelax, results }) {
-      const eligibleCount = results.filter((vendor) => vendor.eligible).length;
-      let riskText = '✓ LOW RISK';
-      let riskClass = 'badge-eligible';
-      if (eligibleCount < 3) {
-        riskText = '⚠ HIGH RISK';
-        riskClass = 'badge-ineligible';
-      } else if (eligibleCount <= 5) {
-        riskText = '⚠ MEDIUM RISK';
-        riskClass = 'badge-review';
-      }
-
-      let impact = 'Limited competition';
-      if (eligibleCount >= 6) impact = 'Broader competition';
-      else if (eligibleCount >= 3) impact = 'Balanced competition';
-
-      const scenarioText = `Under this scenario, ${eligibleCount} of ${SIM_VENDORS.length} vendors are eligible.`;
-
-      const baselineResults = evaluateScenario({ minTurnover, minExp, gstRequired, msmeRelax: false });
-      const baselineEligible = baselineResults.filter((vendor) => vendor.eligible).length;
-      const currentRiskText = riskText === '✓ LOW RISK' ? 'lowering risk exposure' : 'increasing risk exposure';
-      const deltaText = eligibleCount >= baselineEligible ? `eligible vendors increase from ${baselineEligible} → ${eligibleCount}` : `eligible vendors decrease from ${baselineEligible} → ${eligibleCount}`;
-      const policyNarrative = msmeRelax
-        ? `If MSME relaxation is enabled, ${deltaText}, improving competition while ${currentRiskText}.`
-        : `If MSME relaxation is enabled, eligible vendors would change from ${eligibleCount} → ${baselineResults.filter((vendor) => vendor.eligible).length}.`;
-
-      return { eligibleCount, riskText, riskClass, impact, scenarioText, policyNarrative };
-    }
-
-    function finalizeSimulation({ minTurnover, minExp, gstRequired, msmeRelax, results, outcome, relaxed }) {
-      try {
-        renderChart(results);
-      } catch (e) {
-        console.error('renderChart failed', e);
-        const chartEl = document.getElementById('simChart');
-        if (chartEl && chartEl.parentElement) chartEl.parentElement.innerHTML = '<div class="placeholder">Chart not available offline.</div>';
-      }
-
-      renderResultsTable(results);
-      if (typeof setStorage === 'function') setStorage('last-simulation', {
-        criteria: { minTurnover, minExp, gstRequired, msmeRelax },
-        results,
-        eligibleCount: outcome.eligibleCount,
-        risk: outcome.riskText,
-        timestamp: new Date().toISOString()
+      let eligible = 0;
+      const results = SIM_VENDORS.map(v => {
+        let effTurnover = v.turnoverCr;
+        if (msmeRelax && v.isMSME) effTurnover = v.turnoverCr / 0.75;
+        
+        const pass = effTurnover >= turnover && v.experienceYears >= exp && (!gstRequired || v.gstValid);
+        if (pass) eligible++;
+        
+        return {
+          ...v,
+          status: pass ? 'Eligible' : 'Not Eligible',
+          effective: effTurnover
+        };
       });
 
-      // Auto-relaxation to ensure demo shows at least 3 eligible vendors
-      if (outcome.eligibleCount < 3 && !relaxed) {
-        try {
-          document.getElementById('msmeCheck').checked = true;
-          const slider = document.getElementById('turnoverSlider');
-          slider.value = Math.max(1, Math.floor(document.getElementById('turnoverSlider').value / 2));
-          updateSliderLabels();
-          showToast('Relaxed criteria to show more vendors for demo', 'warning');
-          return runSimulation(true);
-        } catch (e) {
-          console.error('Auto-relax failed', e);
-        }
-      }
+      document.getElementById('eligibleCount').textContent = eligible;
+      const riskLevel = eligible < 3 ? 'HIGH' : eligible < 5 ? 'MEDIUM' : 'LOW';
+      const riskColor = riskLevel === 'HIGH' ? 'var(--red)' : riskLevel === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
+      document.getElementById('riskBadge').innerHTML = `<div style="display:inline-block; padding: 8px 16px; border-radius: 8px; background: ${riskColor}20; color: ${riskColor}; font-weight: 600; font-size: 12px;">${riskLevel} RISK</div>`;
+
+      // Calculate impact
+      if (baselineEligible === 0) baselineEligible = eligible;
+      const change = eligible - baselineEligible;
+      document.getElementById('impactChange').textContent = (change >= 0 ? '+' : '') + change;
+      document.getElementById('impactVendors').textContent = (change >= 0 ? '+' : '') + change + ' vendors';
+      document.getElementById('impactComp').textContent = eligible > 5 ? '↑ More' : eligible < 3 ? '↓ Less' : '→ Neutral';
+      document.getElementById('impactRisk').textContent = riskLevel;
+
+      renderSimChart(results);
+      renderSimTable(results);
     }
 
-    function renderChart(results) {
+    function renderSimChart(results) {
       const ctx = document.getElementById('simChart').getContext('2d');
-      if (simChartInstance) simChartInstance.destroy();
-
-      simChartInstance = new Chart(ctx, {
+      if (simChart) simChart.destroy();
+      
+      simChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: results.map((vendor) => vendor.name),
-          datasets: [
-            {
-              label: 'Turnover (Cr)',
-              data: results.map((vendor) => vendor.turnoverCr),
-              backgroundColor: results.map((vendor) => vendor.eligible ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.5)'),
-              borderRadius: 6
-            },
-            {
-              label: 'Eligible',
-              data: results.map((vendor) => vendor.eligible ? 100 : 0),
-              backgroundColor: results.map((vendor) => vendor.eligible ? 'rgba(16,185,129,0.8)' : 'rgba(0,0,0,0)'),
-              borderRadius: 6
-            }
-          ]
+          labels: results.map(r => r.name),
+          datasets: [{
+            label: 'Annual Turnover (Cr)',
+            data: results.map(r => r.turnoverCr),
+            backgroundColor: results.map(r => r.status === 'Eligible' ? '#10b981' : '#ef4444'),
+            borderRadius: 4
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8' } } },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#94a3b8', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
           }
         }
       });
     }
 
-    function renderResultsTable(results) {
-      const tbody = document.getElementById('simResultsBody');
-      tbody.innerHTML = results.map((vendor) => `
+    function renderSimTable(results) {
+      const tbody = document.getElementById('simTableBody');
+      tbody.innerHTML = results.map(r => `
         <tr>
-          <td><strong>${escapeHtml(vendor.name)}</strong></td>
-          <td>${escapeHtml(vendor.city)}</td>
-          <td>${vendor.turnoverPass ? '✓' : '✗'} ₹${vendor.turnoverCr} Cr</td>
-          <td>${vendor.expPass ? '✓' : '✗'} ${vendor.experienceYears} yrs</td>
-          <td>${vendor.gstPass ? '✓' : '✗'}</td>
-          <td>${vendor.isoValid ? '✓' : '✗'}</td>
-          <td>${vendor.isMSME ? 'Yes' : 'No'}</td>
-          <td><span class="badge ${vendor.eligible ? 'badge-eligible' : 'badge-ineligible'}">${vendor.eligible ? 'Eligible' : 'Not Eligible'}</span></td>
+          <td><strong>${r.name}</strong></td>
+          <td>${r.city}</td>
+          <td>${r.turnoverCr} Cr</td>
+          <td>${r.experienceYears} years</td>
+          <td>${r.gstValid ? '✓' : '✗'}</td>
+          <td>${r.isMSME ? '✓' : '✗'}</td>
+          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : 'badge-ineligible'}">${r.status}</span></td>
         </tr>
       `).join('');
     }
 
-    function setPreset(name, shouldScroll = true) {
-      const preset = presets[name];
-      document.getElementById('turnoverSlider').value = preset.turnover;
-      document.getElementById('expSlider').value = preset.experience;
-      document.getElementById('gstCheck').checked = preset.gst;
-      document.getElementById('msmeCheck').checked = preset.msme;
-      updateSliderLabels();
-      const outcome = runSimulation();
-      if (shouldScroll) {
-        document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      return outcome;
+    function exportSimulation() {
+      const turnover = document.getElementById('turnoverSlider').value;
+      const exp = document.getElementById('expSlider').value;
+      const eligible = document.getElementById('eligibleCount').textContent;
+      
+      const doc = new jspdf.jsPDF();
+      doc.setFont('Helvetica', 'bold');
+      doc.text('Policy Simulation Report', 10, 10);
+      doc.setFont('Helvetica', 'normal');
+      doc.text(`Min Turnover: ₹${turnover} Cr`, 10, 20);
+      doc.text(`Min Experience: ${exp} years`, 10, 30);
+      doc.text(`Eligible Vendors: ${eligible}/10`, 10, 40);
+      doc.save('NyayaBid-Simulation-Report.pdf');
+      showToast('✓ Simulation report exported as PDF', 'success');
     }
 
-    function exportSimulationPdf() {
-      try {
-        const last = getStorage('last-simulation', null) || runSimulation();
-        const { jsPDF } = globalThis.jspdf || {};
-        if (typeof jsPDF !== 'function') throw new Error('jsPDF unavailable');
-        const doc = new jsPDF();
-      const margin = 12;
-      let y = 16;
-
-      doc.setFontSize(16);
-      doc.text('NyayaBid AI - Simulation Results', margin, y);
-      y += 8;
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, margin, y);
-      y += 10;
-      doc.text(`Eligible Vendors: ${last.eligibleCount}`, margin, y);
-      y += 8;
-      doc.text(`Risk Level: ${last.risk}`, margin, y);
-      y += 10;
-
-      last.results.forEach((vendor) => {
-        const lines = [
-          `${vendor.name} (${vendor.city})`,
-          `Turnover: ₹${vendor.turnoverCr} Cr | Experience: ${vendor.experienceYears} yrs | GST: ${vendor.gstValid ? 'Valid' : 'Invalid'} | ISO: ${vendor.isoValid ? 'Valid' : 'Invalid'} | MSME: ${vendor.isMSME ? 'Yes' : 'No'} | Status: ${vendor.eligible ? 'Eligible' : 'Not Eligible'}`
-        ];
-        lines.forEach((line) => {
-          const wrapped = doc.splitTextToSize(line, 180);
-          doc.text(wrapped, margin, y);
-          y += wrapped.length * 5;
-        });
-        y += 4;
-        if (y > 270) {
-          doc.addPage();
-          y = 16;
-        }
-      });
-
-      doc.save('NyayaBid-Simulation.pdf');
-      } catch (e) {
-        console.error('Simulation PDF export failed', e);
-        showToast('Simulation PDF export unavailable offline.', 'warning');
-      }
-    }
-
-    document.getElementById('sidebarToggle').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-    document.getElementById('sidebarOverlay').addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
-
-    document.getElementById('turnoverSlider').addEventListener('input', () => {
-      updateSliderLabels();
+    document.addEventListener('DOMContentLoaded', function() {
+      updateSliders();
       runSimulation();
     });
-    document.getElementById('expSlider').addEventListener('input', () => {
-      updateSliderLabels();
-      runSimulation();
-    });
-    document.getElementById('gstCheck').addEventListener('change', runSimulation);
-    document.getElementById('msmeCheck').addEventListener('change', runSimulation);
-    document.getElementById('runSimulationBtn').addEventListener('click', () => {
-      setButtonLoading(document.getElementById('runSimulationBtn'), true, 'Running...');
-      runSimulation();
-      setButtonLoading(document.getElementById('runSimulationBtn'), false);
-      document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    document.getElementById('exportSimulationBtn').addEventListener('click', exportSimulationPdf);
-    document.querySelectorAll('.preset-btn').forEach((button) => {
-      button.addEventListener('click', () => setPreset(button.dataset.preset));
-    });
-
-    updateSliderLabels();
-    setPreset('current', false);
   </script>
 </body>
 </html>
