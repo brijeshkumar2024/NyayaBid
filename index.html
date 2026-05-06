@@ -156,8 +156,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="./scripts/utils.js"></script>
   <script>
-    document.getElementById('demoFlowBtn').addEventListener('click', () => { document.getElementById('demoFlowModal').style.display = 'flex'; });
-    document.getElementById('closeDemoFlow').addEventListener('click', () => { document.getElementById('demoFlowModal').style.display = 'none'; });
+    const demoFlowModal = document.getElementById('demoFlowModal');
+    const closeDemoFlowBtn = document.getElementById('closeDemoFlow');
+    const demoFlowBtn = document.getElementById('demoFlowBtn');
+
+    demoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'flex'; });
+    closeDemoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'none'; });
+
+    // Close modal on backdrop click
+    demoFlowModal.addEventListener('click', (e) => {
+      if (e.target === demoFlowModal) demoFlowModal.style.display = 'none';
+    });
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && demoFlowModal.style.display === 'flex') {
+        demoFlowModal.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>

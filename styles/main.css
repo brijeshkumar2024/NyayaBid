@@ -163,6 +163,15 @@ body.landing-body { display: block; }
 .explain-body { color:var(--text2); line-height:1.6; max-height:420px; overflow:auto; }
 .modal-close { background:transparent;border:1px solid rgba(255,255,255,0.03); padding:6px 10px; border-radius:8px; color:var(--text2); cursor:pointer }
 
+/* Demo Flow Modal */
+#demoFlowModal { display: none; }
+#demoFlowModal > div { animation: modalSlideIn 0.3s ease; }
+@keyframes modalSlideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+#demoFlowModal ol { padding-left: 20px; }
+#demoFlowModal li { margin-bottom: 12px; }
+#demoFlowModal strong { color: var(--accent); }
+
+
 /* Hash card */
 .hash-card { padding:14px; border-radius:12px; background: linear-gradient(180deg, rgba(16,185,129,0.03), rgba(16,185,129,0.01)); border:1px solid rgba(16,185,129,0.12); display:flex; align-items:center; gap:12px; }
 .hash-meta { font-family: monospace; color:var(--text); font-weight:700; font-size:13px }
