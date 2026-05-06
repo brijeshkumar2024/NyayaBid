@@ -17,7 +17,7 @@
         <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
     </div>
-    <nav style="flex: 1;">
+    <nav class="sidebar-nav">
       <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
       <a class="nav-item active" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
@@ -25,6 +25,7 @@
       <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
   </aside>
 
   <div class="main">
@@ -50,6 +51,102 @@
       <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Load Demo Vendors</button>
       <button class="btn btn-success" onclick="runEvaluation()">▶ Run Evaluation</button>
     </div>
+
+    <!-- Upload & OCR Pipeline -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-title">Document Ingestion (OCR + Extraction)</div>
+      <div class="card-sub">Upload tender criteria and vendor documents (PDF/DOCX/images). NyayaBid will extract fields with confidence and source traceability.</div>
+
+      <div class="grid-2">
+        <div class="upload-zone" id="tenderUploadZone" tabindex="0" role="button" aria-label="Tender upload zone" ondragover="return false;">
+          <div class="upload-zone-inner">
+            <div style="font-size:34px">📄</div>
+            <div style="font-weight:800; font-size:14px">Tender Documents</div>
+            <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • PDF, DOCX, JPG/PNG</div>
+            <div class="file-badges" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap; justify-content:center">
+              <span class="badge">PDF</span>
+              <span class="badge">DOCX</span>
+              <span class="badge">JPG</span>
+              <span class="badge">PNG</span>
+            </div>
+            <input type="file" id="tenderFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
+          </div>
+        </div>
+
+        <div class="upload-zone" id="vendorUploadZone" tabindex="0" role="button" aria-label="Vendor upload zone" ondragover="return false;">
+          <div class="upload-zone-inner">
+            <div style="font-size:34px">🗂️</div>
+            <div style="font-weight:800; font-size:14px">Vendor Documents</div>
+            <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • GST, PAN, EMD, Experience</div>
+            <div class="file-badges" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap; justify-content:center">
+              <span class="badge">GST</span>
+              <span class="badge">PAN</span>
+              <span class="badge">EMD</span>
+              <span class="badge">Experience</span>
+            </div>
+            <input type="file" id="vendorFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
+          </div>
+        </div>
+      </div>
+
+      <div id="uploadQueue" style="margin-top:18px;display:none;">
+        <div style="font-weight:700;margin-bottom:10px">AI processing pipeline</div>
+        <div class="pipeline" id="processingPipeline" aria-label="AI processing pipeline"></div>
+      </div>
+
+      <div id="extractionPanels" style="margin-top:18px;display:none;">
+        <div class="grid-2">
+          <div>
+            <div class="section-title" style="margin-bottom:12px;">🔍 AI Extracted Tender Criteria</div>
+            <div class="card" style="padding:16px;margin:0 0 12px;">
+              <div id="tenderCriteriaKV"></div>
+              <div id="tenderExtractedConfidenceWrap" style="margin-top:10px;"></div>
+            </div>
+          </div>
+          <div>
+            <div class="section-title" style="margin-bottom:12px;">🧾 AI Extracted Vendor Data</div>
+            <div class="card" style="padding:16px;margin:0 0 12px;">
+              <div id="vendorExtractedKV" style="color:var(--text2);line-height:1.7;">Upload vendor documents to generate structured data.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px;margin-top:14px;">
+          <div class="section-title" style="margin-bottom:10px;">⚖ Rule Mapping (Explainable)</div>
+          <div id="ruleMappingSummary" style="color:var(--text2);line-height:1.7">No rules mapped yet.</div>
+          <div id="lowConfidenceNote" style="display:none;margin-top:10px;color:var(--amber);font-weight:800">Low extraction confidence — officer review recommended</div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .upload-zone{
+        border:1px solid rgba(59,130,246,0.35);
+        border-radius:14px;
+        padding:18px;
+        background:rgba(255,255,255,0.03);
+        transition:all 0.22s ease;
+        cursor:pointer;
+        min-height:170px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        outline:none;
+        position:relative;
+        overflow:hidden;
+      }
+      .upload-zone::after{
+        content:'';
+        position:absolute;
+        inset:-40px;
+        background:radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 60%);
+        pointer-events:none;
+      }
+      .upload-zone:hover{border-color:rgba(59,130,246,0.85); background:rgba(59,130,246,0.06); transform:translateY(-2px);}
+      .upload-zone.is-dragover{border-color:rgba(16,185,129,0.75); box-shadow:0 0 0 3px rgba(16,185,129,0.15); background:rgba(16,185,129,0.04);}
+      .upload-zone-inner{ text-align:center; position:relative; z-index:1; }
+    </style>
+
 
     <!-- Tender Section -->
     <div class="card" style="margin-bottom: 24px;">
@@ -264,3 +361,4 @@
   </script>
 </body>
 </html>
+

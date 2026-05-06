@@ -17,7 +17,7 @@
         <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
     </div>
-    <nav style="flex: 1;">
+    <nav class="sidebar-nav">
       <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
       <a class="nav-item active" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
       <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
@@ -25,6 +25,7 @@
       <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
   </aside>
 
   <div class="ticker-wrap">
@@ -88,6 +89,14 @@
     <div class="card" style="margin-top: 24px;">
       <div class="card-title">Recent Tenders</div>
       <div class="card-sub">Status and evaluation progress</div>
+      <div class="table-toolbar">
+        <input class="form-input" id="tenderSearch" type="search" placeholder="Search tender ID or title..." aria-label="Search tender ID or title">
+        <select class="form-input form-select" id="statusFilter" aria-label="Filter tenders by status">
+          <option value="all">All Status</option>
+          <option value="Completed">Completed</option>
+          <option value="Under Review">Under Review</option>
+        </select>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -120,14 +129,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
+    let dashboardTenders = [];
+
     document.addEventListener('DOMContentLoaded', function() {
       initDashboardData();
       loadDashboard();
+      document.getElementById('tenderSearch').addEventListener('input', applyTenderFilters);
+      document.getElementById('statusFilter').addEventListener('change', applyTenderFilters);
     });
 
     function loadDashboard() {
       const allData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
       const auditLog = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
+      dashboardTenders = allData.tenders || [];
 
       // Calculate KPIs
       const totalTenders = allData.tenders.length;
@@ -146,17 +160,7 @@
       document.getElementById('totalVendors').textContent = totalVendors;
 
       // Tenders table
-      const tbody = document.getElementById('tendersTable');
-      tbody.innerHTML = allData.tenders.map(t => `
-        <tr>
-          <td><strong>${t.id}</strong></td>
-          <td>${t.title}</td>
-          <td>${t.vendors}</td>
-          <td><span class="badge badge-eligible">${t.eligible} ✓</span></td>
-          <td><span class="badge badge-review">${t.flagged} 🚩</span></td>
-          <td><span class="badge ${t.status === 'Completed' ? 'badge-eligible' : 'badge-review'}">${t.status}</span></td>
-        </tr>
-      `).join('');
+      renderTenderRows(dashboardTenders);
 
       // Audit trail
       const auditDiv = document.getElementById('auditTrail');
@@ -194,6 +198,38 @@
           options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
         });
       }, 100);
+    }
+
+    function applyTenderFilters() {
+      const query = document.getElementById('tenderSearch').value.trim().toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = dashboardTenders.filter((t) => {
+        const matchesQuery = !query || t.id.toLowerCase().includes(query) || t.title.toLowerCase().includes(query);
+        const matchesStatus = status === 'all' || t.status === status;
+        return matchesQuery && matchesStatus;
+      });
+
+      renderTenderRows(filtered);
+    }
+
+    function renderTenderRows(tenders) {
+      const tbody = document.getElementById('tendersTable');
+      if (!tenders.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No matching tenders found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tenders.map(t => `
+        <tr>
+          <td><strong>${t.id}</strong></td>
+          <td>${t.title}</td>
+          <td>${t.vendors}</td>
+          <td><span class="badge badge-eligible">${t.eligible} ✓</span></td>
+          <td><span class="badge badge-review">${t.flagged} 🚩</span></td>
+          <td><span class="badge ${t.status === 'Completed' ? 'badge-eligible' : 'badge-review'}">${t.status}</span></td>
+        </tr>
+      `).join('');
     }
   </script>
 </body>

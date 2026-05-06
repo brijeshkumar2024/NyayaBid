@@ -261,6 +261,32 @@ function initDashboardData() {
   }
 }
 
+function resetDemoEnvironment() {
+  const confirmMessage = [
+    'Reset Demo Environment?',
+    '',
+    'This will clear:',
+    '• evaluation results',
+    '• audit reports',
+    '• simulation state',
+    '• activity timeline',
+    '',
+    'The application will reload with fresh demo data.'
+  ].join('\n');
+
+  if (!window.confirm(confirmMessage)) return;
+
+  ['last-evaluation', 'audit-log', 'all-tenders', 'report-signoff', 'simulation-cache', 'demo-flags'].forEach((key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+  });
+
+  initDashboardData();
+  showToast('Demo environment reset successfully', 'success');
+  setTimeout(() => window.location.reload(), 250);
+}
+
 // Call on every page load
 initDashboardData();
 

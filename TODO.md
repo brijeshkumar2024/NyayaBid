@@ -1,23 +1,27 @@
-erything as per your confirdence but ensure everything is working fien anre # NyayaBid AI Evaluate Page Enhancement - TODO
+# NyayaBid AI — Hackathon Upgrade TODO
 
-## Plan Status: ✅ APPROVED
+> Goal: Add realistic OCR + PDF intelligence and significantly enhance Fraud & Risk Detection while keeping offline demo flows stable.
 
-**Completed Steps:**
-- ✅ 1. Update `scripts/utils.js` - Rich DEMO_TENDER (₹42Cr DPWD Road tender, 14 grouped criteria, HIGH complexity 96% AI conf) + compatible DEMO_VENDORS
+## Plan Summary
+- Upgrade `pages/evaluate.html` with drag-drop upload UI (Tender + Vendor), animated processing pipeline, extraction panels (confidence + source traceability), and officer workflow.
+- Add lightweight browser-side extraction helpers to `scripts/utils.js` (PDF.js text extraction + OCR fallback with Tesseract.js, regex/heuristics for GST/PAN/turnover/EMD/dates).
+- Upgrade fraud/risk detection logic and add demo intelligence datasets in `scripts/collusion.js` and `scripts/data.js`.
+- Ensure no backend dependency, no API keys, offline demo remains functional.
 
-**Current Step:** 2/6 - Appending styles to main.css
+## Steps
+1. [ ] Inspect current evaluate page DOM + script wiring.
+2. [ ] Implement upload UI + states + toasts (glassmorphism cards).
+3. [ ] Implement animated OCR processing pipeline stepper.
+4. [ ] Implement extraction confidence tiers + UI badges.
+5. [ ] Implement Source Reference traceability for each extracted field.
+6. [ ] Implement extraction engine (PDF.js + Tesseract.js dynamic loading) with regex/heuristics.
+7. [ ] Wire extracted data into evaluation flow without breaking demo buttons.
+8. [ ] Extend fraud detection: bid collusion, address overlap, rotation pattern, abnormally low bids, tampering simulation, blacklist watchlist simulation.
+9. [ ] Implement Risk Scoring Engine (0–100) + severity categories + heatmap-style dashboard.
+10. [ ] Add officer review workflow buttons that log actions to audit trail (localStorage).
+11. [ ] Update/extend dashboard visuals if necessary; verify charts still render.
+12. [ ] Manual validation checklist: OCR upload → parsing → panels → flags/risk → no console errors → responsive layout.
 
-## Step Updates
-- ✅ utils.js fixed and updated with enterprise DEMO_TENDER (14 criteria, grouped sections, meta fields, requiredDocuments) and compatible DEMO_VENDORS for existing evaluation logic.
-
-- [ ] 1. Update `scripts/utils.js` - Rich DEMO_TENDER + grouped criteria + enhanced vendors
-
-**Pending Steps:**
-- [ ] 2. Append styles to `styles/main.css` - New classes for meta-grid, sections, summary, docs panel
-- [ ] 3. Overhaul `pages/evaluate.html` - Replace Tender Criteria card HTML + enhance loadDemoTender() with progressive toasts
-- [ ] 4. Test full flow: Use Demo Tender → Load Vendors → Run Evaluation
-- [ ] 5. Verify responsive/dark theme/enterprise aesthetic
-- [ ] 6. attempt_completion
-
-**Current Step:** 1/6 - Editing utils.js
+## Progress
+- 1. Inspect evaluate page DOM + wiring: 
 

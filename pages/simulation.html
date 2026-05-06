@@ -17,7 +17,7 @@
         <div class="sidebar-brand-sub">Tender Evaluation</div>
       </div>
     </div>
-    <nav style="flex: 1;">
+    <nav class="sidebar-nav">
       <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
       <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
       <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
@@ -25,6 +25,7 @@
       <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
   </aside>
 
   <div class="main">
@@ -49,15 +50,15 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Minimum Annual Turnover</label>
+          <label class="form-label" for="turnoverSlider">Minimum Annual Turnover</label>
           <div class="slider-value" id="turnoverVal">₹10 Cr</div>
-          <input type="range" class="form-input" id="turnoverSlider" min="1" max="100" value="10" oninput="updateSliders()">
+          <input type="range" class="form-input" id="turnoverSlider" min="1" max="100" value="10" oninput="updateSliders()" title="Minimum annual turnover">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Minimum Experience Required</label>
+          <label class="form-label" for="expSlider">Minimum Experience Required</label>
           <div class="slider-value" id="expVal">5 years</div>
-          <input type="range" class="form-input" id="expSlider" min="1" max="20" value="5" oninput="updateSliders()">
+          <input type="range" class="form-input" id="expSlider" min="1" max="20" value="5" oninput="updateSliders()" title="Minimum experience required">
         </div>
 
         <label class="form-check">
