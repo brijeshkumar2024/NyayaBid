@@ -129,15 +129,19 @@
     }
 
     function loadStoredReport() {
-      const stored = getStorage('last-evaluation', null);
-      if (!stored) {
-        showToast('No stored evaluation found — load demo first', 'warning');
-        return;
-      }
-      currentReport = stored;
-      renderReport();
-      document.getElementById('downloadBtn').disabled = false;
-      showToast('✓ Stored evaluation loaded', 'success');
+      (async () => {
+        const stored = getStorage('last-evaluation', null);
+        if (!stored) {
+          showToast('No stored evaluation found — load demo first', 'warning');
+          return;
+        }
+        // compute hash if not present
+        if (!stored.hash) stored.hash = await sha256(JSON.stringify(stored.results));
+        currentReport = stored;
+        await renderReport();
+        document.getElementById('downloadBtn').disabled = false;
+        showToast('✓ Stored evaluation loaded', 'success');
+      })();
     }
 
     async function renderReport() {
@@ -163,10 +167,11 @@
           <div class="report-meta-val">${tender.id}</div>
         </div>
         <div class="report-meta-item">
-          <div class="report-meta-label">Verification Hash</div>
-          <div class="report-meta-val" style="font-size: 11px; font-family: monospace;">${hash.substr(0, 16)}...</div>
+          <div class="report-meta-label">Tamper Verification Hash</div>
+          <div style="display:flex;gap:8px;align-items:center"><div id="fullHash" class="report-meta-val" style="font-size: 12px; font-family: monospace;">${hash}</div><button class="btn btn-sm" onclick="copyHash()">Copy</button><div id="hashVerified" style="display:none;margin-left:8px" class="badge badge-eligible">Verified</div></div>
         </div>
       `;
+      currentReport.hash = hash;
 
       // Summary
       document.getElementById('summaryTable').innerHTML = `
@@ -284,6 +289,17 @@
       doc.save('NyayaBid-Audit-Report-' + tender.id + '.pdf');
       showToast('✓ PDF report exported successfully', 'success');
     }
+
+    function copyHash() {
+      if (!currentReport || !currentReport.hash) { showToast('No hash available to copy', 'warning'); return; }
+      navigator.clipboard.writeText(currentReport.hash).then(() => { showToast('Verification hash copied to clipboard', 'success'); });
+    }
+
+    // when finalized, show verified badge
+    (function attachFinalWatch() {
+      const origSign = signReport;
+      window.signReport = function() { origSign(); document.getElementById('hashVerified') && (document.getElementById('hashVerified').style.display = 'inline-block'); };
+    })();
   </script>
 </body>
 </html>

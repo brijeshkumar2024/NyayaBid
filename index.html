@@ -42,6 +42,7 @@
     <div class="hero-cta">
       <a href="pages/dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
       <a href="pages/evaluate.html" class="btn btn-secondary">📋 See Evaluation</a>
+      <button class="btn btn-sm btn-secondary" id="demoFlowBtn">🧭 Demo Script</button>
     </div>
   </section>
 
@@ -57,6 +58,15 @@
     <div class="stat-card">
       <div class="stat-num">0</div>
       <div class="stat-label">Existing tools with explainable AI evaluation</div>
+    </div>
+  </section>
+
+  <section class="impact-section" style="max-width:900px;margin:0 auto 40px;padding:0 40px;">
+    <div class="card">
+      <div class="card-title">Why This Matters</div>
+      <div class="card-sub">Economic scale and public impact</div>
+      <p style="color:var(--text2);margin-top:8px;line-height:1.6">₹15 lakh crore+ annual public procurement in India. Even small inefficiencies or collusion can cost taxpayers thousands of crores. NyayaBid AI introduces transparent, explainable, auditable AI-assisted procurement evaluation aligned with GFR and CVC guidelines.</p>
+      <p style="color:var(--text2);margin-top:8px;font-weight:700">This transforms the product from a "cool dashboard" to a national-scale governance infrastructure — improving transparency, reducing leakage, and enabling defensible, auditable procurement decisions.</p>
     </div>
   </section>
 
@@ -123,11 +133,31 @@
     NyayaBid AI v1.0 | Built for CRPF Hackathon 2024 | Powered by AI
   </footer>
 
+  <!-- Demo Script Modal -->
+  <div id="demoFlowModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div style="width:720px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:800">4-Minute Winning Demo Script</div>
+        <button class="btn btn-sm" id="closeDemoFlow">Close</button>
+      </div>
+      <ol style="color:var(--text2);line-height:1.6">
+        <li><strong>Minute 1 — Problem:</strong> Explain opacity & scale of public procurement and introduce NyayaBid AI.</li>
+        <li><strong>Minute 2 — Evaluation:</strong> Click Evaluate → Load Demo Tender → Load Demo Vendors → Run Evaluation. Open explainability for a rejected vendor.</li>
+        <li><strong>Minute 3 — Simulation:</strong> Go to Simulate, show Current vs Strict presets, move sliders to demonstrate vendor count change.</li>
+        <li><strong>Minute 4 — Audit Report:</strong> Generate Report, show tamper verification hash and download PDF. Final line: AI augments officers — final authority remains with officials.</li>
+      </ol>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="./scripts/utils.js"></script>
+  <script>
+    document.getElementById('demoFlowBtn').addEventListener('click', () => { document.getElementById('demoFlowModal').style.display = 'flex'; });
+    document.getElementById('closeDemoFlow').addEventListener('click', () => { document.getElementById('demoFlowModal').style.display = 'none'; });
+  </script>
 </body>
 </html>

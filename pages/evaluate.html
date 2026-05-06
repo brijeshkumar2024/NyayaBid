@@ -35,6 +35,13 @@
       </div>
     </div>
 
+      <div style="margin-bottom:12px;">
+        <div class="card" style="padding:12px 16px;">
+          <div style="font-weight:700">Human-in-the-loop</div>
+          <div style="color:var(--text2);font-size:13px;margin-top:6px">AI assists officers — final authority remains with procurement officials. All flags require officer review before final sign-off.</div>
+        </div>
+      </div>
+
     <div class="btn-group">
       <button class="btn btn-primary" onclick="loadDemoTender()">📋 Use Demo Tender</button>
       <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Load Demo Vendors</button>
@@ -82,11 +89,11 @@
                 <th>Turnover</th>
                 <th>Experience</th>
                 <th>GST</th>
-                <th>Confidence</th>
+                    <th>Confidence</th>
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody id="resultsTable"></tbody>
+                <tbody id="resultsTable"></tbody>
           </table>
         </div>
       </div>
@@ -100,6 +107,17 @@
   </div>
 
   <div id="toast-container"></div>
+  
+  <!-- Explainability Modal -->
+  <div id="explainModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div style="width:720px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div id="explainTitle" style="font-weight:800">Explain Decision</div>
+        <button class="btn btn-sm" id="closeExplain">Close</button>
+      </div>
+      <div id="explainBody" style="color:var(--text2);line-height:1.6;max-height:420px;overflow:auto"></div>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
@@ -181,17 +199,19 @@
       document.getElementById('resultsSection').style.display = 'block';
 
       const tbody = document.getElementById('resultsTable');
-      tbody.innerHTML = results.map(r => `
+      tbody.innerHTML = results.map((r, idx) => {
+        const confClass = r.confidence >= 80 ? 'high' : (r.confidence >= 60 ? 'mid' : 'low');
+        return `
         <tr>
-          <td><strong>${r.vendorName}</strong></td>
+          <td><strong>${r.vendorName}</strong><div style="margin-top:6px"><button class="btn btn-sm btn-secondary" onclick="showExplain(${idx})">Explain Decision</button></div></td>
           <td>${r.city}</td>
           <td>₹${r.turnoverCr} Cr</td>
           <td>${r.experienceYears} yrs</td>
           <td>${r.gstValid ? '✓' : '✗'}</td>
-          <td>${r.confidence}%</td>
+          <td style="width:120px"><div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap"><div class="progress-fill ${confClass}" style="width:${r.confidence}%"></div></div><div style="min-width:28px;text-align:right;font-weight:700">${r.confidence}%</div></div></td>
           <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}">${r.status}</span></td>
         </tr>
-      `).join('');
+      `}).join('');
 
       const flagsContainer = document.getElementById('flagsContainer');
       if (flags.length === 0) {
@@ -213,8 +233,23 @@
       showToast(`✓ Evaluation complete — ${eligible} Eligible, ${review} Needs Review, ${rejected} Not Eligible`, 'success');
 
       // Scroll to results
-      setTimeout(() => { document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' }); }, 100);
-    }
+        setTimeout(() => { document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' }); }, 100);
+      }
+
+      function showExplain(index) {
+        const stored = getStorage('last-evaluation', null);
+        if (!stored || !stored.results) { showToast('No evaluation found for explanation', 'warning'); return; }
+        const r = stored.results[index];
+        if (!r) { showToast('Result not found', 'error'); return; }
+        const body = document.getElementById('explainBody');
+        body.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${r.vendorName} — ${r.status} (Confidence ${r.confidence}%)</div>` +
+          `<div style="margin-bottom:8px;color:var(--text2)">Detailed checks:</div>` +
+          r.checks.map(c => `<div style="margin-bottom:8px"><div style="font-weight:600">${c.criterion}</div><div style="color:var(--text2);font-size:13px">Required: ${c.required} — Found: ${c.found}</div><div style="margin-top:4px;color:${c.passed ? 'var(--green)' : 'var(--red)'}">${c.reason}</div></div>`).join('') +
+          (r.flagForReview ? `<div style="margin-top:12px;color:var(--amber);font-weight:700">Flag: ${r.flagReason}</div>` : '');
+        document.getElementById('explainModal').style.display = 'flex';
+      }
+
+      document.getElementById('closeExplain').addEventListener('click', () => { document.getElementById('explainModal').style.display = 'none'; });
   </script>
 </body>
 </html>
