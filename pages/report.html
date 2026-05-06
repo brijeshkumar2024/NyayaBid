@@ -113,20 +113,26 @@
     let currentReport = null;
 
     async function loadDemoReport() {
-      const results = DEMO_VENDORS.map(v => evaluateVendor(v, DEMO_TENDER));
-      const flags = detectCollusion(DEMO_VENDORS);
-      
-      currentReport = {
-        tender: DEMO_TENDER,
-        vendors: DEMO_VENDORS,
-        results,
-        flags,
-        hash: await sha256(JSON.stringify(results))
-      };
+      try {
+        const results = DEMO_VENDORS.map(v => evaluateVendor(v, DEMO_TENDER));
+        const flags = detectCollusion(DEMO_VENDORS);
+        
+        currentReport = {
+          tender: DEMO_TENDER,
+          vendors: DEMO_VENDORS,
+          results,
+          flags,
+          hash: await sha256(JSON.stringify(results))
+        };
       
       renderReport();
-      document.getElementById('downloadBtn').disabled = false;
+      const downloadBtn = document.getElementById('downloadBtn');
+      if (downloadBtn) downloadBtn.disabled = false;
       showToast('✓ Demo report loaded and populated', 'success');
+      } catch (err) {
+        console.error('Demo report load error:', err);
+        showToast('Report generation failed — please try again', 'error');
+      }
     }
 
     function loadStoredReport() {
@@ -146,7 +152,8 @@
     }
 
     async function renderReport() {
-      if (!currentReport) return;
+      try {
+        if (!currentReport) return;
 
       document.getElementById('reportContent').style.display = 'block';
       const tender = currentReport.tender;
@@ -224,16 +231,22 @@
       }
 
       // Collusion
-      if (currentReport.flags.length === 0) {
-        document.getElementById('collusionContent').innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No collusion indicators detected</div>';
+      const collusionContent = document.getElementById('collusionContent');
+      if (!collusionContent) { console.warn('Collusion content element not found'); }
+      else if (currentReport.flags.length === 0) {
+        collusionContent.innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No collusion indicators detected</div>';
       } else {
-        document.getElementById('collusionContent').innerHTML = currentReport.flags.map(f => `
+        if (collusionContent) collusionContent.innerHTML = currentReport.flags.map(f => `
           <div class="card" style="margin-bottom: 12px; background: var(--red-bg); border-color: rgba(239,68,68,0.3);">
             <div style="font-weight: 600; color: var(--red);">${f.type} — ${f.vendor}</div>
             <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${f.detail}</div>
             <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">→ ${f.action}</div>
           </div>
         `).join('');
+      }
+      } catch (err) {
+        console.error('Report render error:', err);
+        showToast('Report rendering failed', 'error');
       }
     }
 
@@ -258,7 +271,8 @@
     }
 
     function downloadPDF() {
-      if (!currentReport) return;
+      try {
+        if (!currentReport) { showToast('No report to download', 'warning'); return; }
 
       const doc = new jspdf.jsPDF();
       const tender = currentReport.tender;
@@ -309,11 +323,20 @@
 
       doc.save('NyayaBid-Audit-Report-' + tender.id + '.pdf');
       showToast('✓ PDF report exported successfully', 'success');
+      } catch (err) {
+        console.error('PDF export error:', err);
+        showToast('PDF export failed — please try again', 'error');
+      }
     }
 
     function copyHash() {
-      if (!currentReport || !currentReport.hash) { showToast('No hash available to copy', 'warning'); return; }
-      navigator.clipboard.writeText(currentReport.hash).then(() => { showToast('Verification hash copied to clipboard', 'success'); });
+      try {
+        if (!currentReport || !currentReport.hash) { showToast('No hash available to copy', 'warning'); return; }
+        navigator.clipboard.writeText(currentReport.hash).then(() => { showToast('Verification hash copied to clipboard', 'success'); }).catch(() => { showToast('Copy failed — please try manually', 'error'); });
+      } catch (err) {
+        console.error('Copy hash error:', err);
+        showToast('Copy operation failed', 'error');
+      }
     }
 
     // when finalized, show verified badge

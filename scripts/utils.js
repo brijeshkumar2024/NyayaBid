@@ -292,9 +292,12 @@ initDashboardData();
 
 // ── EVALUATION LOGIC ──────────────────────────────
 function evaluateVendor(vendor, criteria) {
-  const checks = [];
-  let eligible = true;
-  let needsReview = false;
+  try {
+    if (!vendor || !criteria) return { vendorName: 'Unknown', status: 'Error', confidence: 0, checks: [] };
+    
+    const checks = [];
+    let eligible = true;
+    let needsReview = false;
 
   // Turnover
   const tPass = vendor.turnoverCr >= criteria.minTurnoverCr;
@@ -364,13 +367,28 @@ function evaluateVendor(vendor, criteria) {
     gstValid: vendor.gstValid,
     isMSME: vendor.isMSME
   };
+  } catch (err) {
+    console.error('Evaluation error for vendor:', vendor, err);
+    return {
+      vendorName: vendor ? vendor.name : 'Unknown',
+      status: 'Error',
+      confidence: 0,
+      checks: [],
+      flagForReview: true,
+      flagReason: 'Evaluation processing error'
+    };
+  }
 }
 
 function detectCollusion(vendors) {
-  const flags = [];
-  // Check for GST mismatches
-  vendors.forEach((v) => {
-    if (!v.gstValid)
+  try {
+    if (!vendors || !Array.isArray(vendors)) return [];
+    
+    const flags = [];
+    // Check for GST mismatches
+    vendors.forEach((v) => {
+      if (!v || !v.name) return;
+      if (!v.gstValid)
       flags.push({
         vendor: v.name,
         type: 'GST Mismatch',
@@ -405,13 +423,23 @@ function detectCollusion(vendors) {
   }
 
   return flags;
+  } catch (err) {
+    console.error('Collusion detection error:', err);
+    return [];
+  }
 }
 
 // SHA-256 for report verification
 async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  try {
+    if (!text) return '';
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch (e) {
+    console.error('SHA-256 error:', e);
+    return 'HASH_UNAVAILABLE';
+  }
 }
 

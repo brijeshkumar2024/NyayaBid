@@ -219,16 +219,30 @@
     </div>
   </div>
   <script>
-    // Close explain modal on ESC or backdrop click
+    // Close explain modal on ESC or backdrop click — with duplicate prevention
     (function(){
       const modal = document.getElementById('explainModal');
-      modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.style.display = 'none'; });
+      if (!modal) return;
+      let backdropListenerAttached = false;
+      let keydownListenerAttached = false;
+      
+      if (!backdropListenerAttached) {
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+        backdropListenerAttached = true;
+      }
+      
+      if (!keydownListenerAttached) {
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') modal.style.display = 'none'; });
+        keydownListenerAttached = true;
+      }
     })();
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script>
+    if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+    else { console.warn('pdf.js library not available — OCR will use demo mode'); }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
@@ -286,27 +300,29 @@
     }
 
     function runEvaluation() {
-      if (!currentTender) {
-        showToast('Load demo tender first', 'warning');
-        return;
-      }
-      if (!currentVendors) {
-        showToast('Load demo vendors first', 'warning');
-        return;
-      }
+      try {
+        if (!currentTender) {
+          showToast('Load demo tender first', 'warning');
+          return;
+        }
+        if (!currentVendors) {
+          showToast('Load demo vendors first', 'warning');
+          return;
+        }
 
-      // Evaluate each vendor
-      const results = currentVendors.map(v => evaluateVendor(v, currentTender));
-      const flags = detectCollusion(currentVendors);
+        // Evaluate each vendor
+        const results = currentVendors.map(v => evaluateVendor(v, currentTender));
+        const flags = detectCollusion(currentVendors);
 
       // Save to storage
       setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags });
       logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
 
       // Display results
-      document.getElementById('resultsSection').style.display = 'block';
-
+      const resultsSection = document.getElementById('resultsSection');
       const tbody = document.getElementById('resultsTable');
+      if (!resultsSection || !tbody) { showToast('Results container not found', 'error'); return; }
+      resultsSection.style.display = 'block';
       tbody.innerHTML = results.map((r, idx) => {
         const confClass = r.confidence >= 80 ? 'high' : (r.confidence >= 60 ? 'mid' : 'low');
         return `
@@ -322,6 +338,7 @@
       `}).join('');
 
       const flagsContainer = document.getElementById('flagsContainer');
+      if (!flagsContainer) { showToast('Flags container not found', 'error'); return; }
       if (flags.length === 0) {
         flagsContainer.innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No flags detected</div>';
       } else {
@@ -341,7 +358,14 @@
       showToast(`✓ Evaluation complete — ${eligible} Eligible, ${review} Needs Review, ${rejected} Not Eligible`, 'success');
 
       // Scroll to results
-        setTimeout(() => { document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' }); }, 100);
+        setTimeout(() => { 
+          const rs = document.getElementById('resultsSection');
+          if (rs) rs.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } catch (err) {
+        console.error('Evaluation error:', err);
+        showToast('Evaluation error — please try again', 'error');
+      }
       }
 
       function showExplain(index) {
@@ -350,14 +374,23 @@
         const r = stored.results[index];
         if (!r) { showToast('Result not found', 'error'); return; }
         const body = document.getElementById('explainBody');
+        if (!body) { showToast('Explain modal not found', 'error'); return; }
         body.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${r.vendorName} — ${r.status} (Confidence ${r.confidence}%)</div>` +
           `<div style="margin-bottom:8px;color:var(--text2)">Detailed checks:</div>` +
           r.checks.map(c => `<div style="margin-bottom:8px"><div style="font-weight:600">${c.criterion}</div><div style="color:var(--text2);font-size:13px">Required: ${c.required} — Found: ${c.found}</div><div style="margin-top:4px;color:${c.passed ? 'var(--green)' : 'var(--red)'}">${c.reason}</div></div>`).join('') +
           (r.flagForReview ? `<div style="margin-top:12px;color:var(--amber);font-weight:700">Flag: ${r.flagReason}</div>` : '');
-        document.getElementById('explainModal').style.display = 'flex';
+        const modal = document.getElementById('explainModal');
+        if (modal) modal.style.display = 'flex';
       }
 
-      document.getElementById('closeExplain').addEventListener('click', () => { document.getElementById('explainModal').style.display = 'none'; });
+      const closeBtn = document.getElementById('closeExplain');
+      if (closeBtn && !closeBtn.__handlerAttached) {
+        closeBtn.addEventListener('click', () => { 
+          const modal = document.getElementById('explainModal');
+          if (modal) modal.style.display = 'none';
+        });
+        closeBtn.__handlerAttached = true;
+      }
   </script>
 </body>
 </html>

@@ -139,9 +139,10 @@
     });
 
     function loadDashboard() {
-      const allData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
-      const auditLog = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
-      dashboardTenders = allData.tenders || [];
+      try {
+        const allData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
+        const auditLog = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
+        dashboardTenders = (allData && allData.tenders) ? allData.tenders : [];
 
       // Calculate KPIs
       const totalTenders = allData.tenders.length;
@@ -160,7 +161,11 @@
       document.getElementById('totalVendors').textContent = totalVendors;
 
       // Tenders table
-      renderTenderRows(dashboardTenders);
+      if (dashboardTenders && dashboardTenders.length > 0) {
+        renderTenderRows(dashboardTenders);
+      } else {
+        renderTenderRows([]);
+      }
 
       // Audit trail
       const auditDiv = document.getElementById('auditTrail');
@@ -175,6 +180,12 @@
         </div>
       `).join('');
 
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+        showToast('Dashboard load error — using default data', 'warning');
+        dashboardTenders = [];
+        renderTenderRows([]);
+      }
       // Charts
       setTimeout(() => {
         const eligible = 9, needsReview = 2, notEligible = 4;
@@ -215,7 +226,8 @@
 
     function renderTenderRows(tenders) {
       const tbody = document.getElementById('tendersTable');
-      if (!tenders.length) {
+      if (!tbody) { console.warn('Tenders table element not found'); return; }
+      if (!tenders || !tenders.length) {
         tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No matching tenders found</td></tr>';
         return;
       }

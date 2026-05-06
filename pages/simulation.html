@@ -199,8 +199,12 @@
     }
 
     function renderSimChart(results) {
-      const ctx = document.getElementById('simChart').getContext('2d');
-      if (simChart) simChart.destroy();
+      try {
+        const canvas = document.getElementById('simChart');
+        if (!canvas) { console.warn('Chart canvas not found'); return; }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { console.warn('Chart context not available'); return; }
+        if (simChart) { try { simChart.destroy(); } catch (e) { console.warn('Chart destroy error:', e); } }
       
       simChart = new Chart(ctx, {
         type: 'bar',
@@ -223,11 +227,17 @@
           }
         }
       });
+      } catch (err) {
+        console.error('Chart render error:', err);
+        showToast('Chart rendering failed', 'error');
+      }
     }
 
     function renderSimTable(results) {
-      const tbody = document.getElementById('simTableBody');
-      tbody.innerHTML = results.map(r => `
+      try {
+        const tbody = document.getElementById('simTableBody');
+        if (!tbody) { console.warn('Simulation table body not found'); return; }
+        tbody.innerHTML = results.map(r => `
         <tr>
           <td><strong>${r.name}</strong></td>
           <td>${r.city}</td>
@@ -238,6 +248,10 @@
           <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : 'badge-ineligible'}">${r.status}</span></td>
         </tr>
       `).join('');
+      } catch (err) {
+        console.error('Table render error:', err);
+        showToast('Table rendering failed', 'error');
+      }
     }
 
     function exportSimulation() {
