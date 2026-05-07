@@ -358,6 +358,7 @@ textarea.form-input { resize: vertical; }
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.24);
   width: auto;
   max-width: 860px;
+  overflow: hidden;
 }
 
 /* ── GOVERNANCE TRUST BAR ── */
@@ -406,8 +407,16 @@ textarea.form-input { resize: vertical; }
 @media (max-width: 700px) {
   .gov-trustbar-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
 }
-.ticker { display: flex; animation: ticker 30s linear infinite; white-space: nowrap; }
-.ticker span { padding: 0 20px; font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.03em; }
+.ticker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  justify-content: center;
+  animation: none;
+  white-space: normal;
+}
+.ticker span { padding: 0 6px; font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.03em; }
 .ticker span::before { content: '●'; color: var(--green); margin-right: 8px; }
 @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
