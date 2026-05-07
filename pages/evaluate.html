@@ -628,21 +628,62 @@
         card.append(title, meta, original, evidence, input, actions);
         panel.appendChild(card);
       });
+
+      // Add "Verify All" button for demo convenience
+      if (fields.some(i => i.reviewStatus === 'AI Extracted' || i.reviewStatus === 'Low Confidence')) {
+        const verifyAllBtn = document.createElement('button');
+        verifyAllBtn.className = 'btn btn-success';
+        verifyAllBtn.style.marginTop = '12px';
+        verifyAllBtn.style.width = '100%';
+        verifyAllBtn.textContent = '✓ Verify All Extracted Fields (Demo Mode)';
+        verifyAllBtn.onclick = () => {
+          fields.forEach(item => {
+            if (item.reviewStatus === 'AI Extracted' || item.reviewStatus === 'Low Confidence') {
+              item.reviewStatus = 'Officer Verified';
+            }
+          });
+          setStorage('extraction-review-state', extractionReviewState);
+          renderReviewPanel(scope);
+          updateRuleMappingFromReviewState();
+          updateEvaluationGate();
+          showToast('✓ All fields verified by officer', 'success');
+        };
+        panel.appendChild(verifyAllBtn);
+      }
     }
 
     function updateEvaluationGate() {
       const btn = document.getElementById('runEvaluationBtn');
       const banner = document.getElementById('reviewRequiredBanner');
       if (!btn || !banner) return;
+      
       const tenderState = extractionReviewState.tender || {};
+      const tenderLoaded = currentTender && currentTender.extractionStatus === 'VERIFIED';
+      const vendorsLoaded = Array.isArray(currentVendors) && currentVendors.length > 0;
+      
       const mandatoryOk = tenderMandatoryFields.every((key) => {
         const item = tenderState[key];
         return item && (item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim() !== '';
       });
+      
       const rejected = Object.values(tenderState).some((i) => i.reviewStatus === 'Rejected');
-      const canRun = mandatoryOk && !rejected && currentTender?.extractionStatus === 'VERIFIED' && Array.isArray(currentVendors) && currentVendors.length > 0;
+      const canRun = mandatoryOk && !rejected && tenderLoaded && vendorsLoaded;
+      
       btn.disabled = !canRun;
-      btn.textContent = canRun ? '▶ Run Evaluation' : '▶ Run Evaluation (Review Required)';
+      
+      // Dynamic button text for better UX
+      if (!tenderLoaded) {
+        btn.textContent = '▶ Run Evaluation (Upload Tender First)';
+      } else if (!vendorsLoaded) {
+        btn.textContent = '▶ Run Evaluation (Upload Vendors First)';
+      } else if (!mandatoryOk) {
+        btn.textContent = '▶ Run Evaluation (Review Required)';
+      } else if (rejected) {
+        btn.textContent = '▶ Run Evaluation (Rejected Fields Exist)';
+      } else {
+        btn.textContent = '▶ Run Evaluation';
+      }
+      
       banner.className = canRun ? 'badge badge-eligible' : 'badge badge-review';
       banner.textContent = canRun ? 'OFFICER VERIFIED' : 'REVIEW REQUIRED';
       const lowConfidenceNote = document.getElementById('lowConfidenceNote');
@@ -1485,16 +1526,54 @@
       // Simulated extraction is intentionally removed in strict governance mode.
 
       // Strict governance mode: disable demo shortcuts.
-      window.loadDemoTender = function () {
-        const input = document.getElementById('tenderFileInput');
-        if (input) input.click();
+      // Enhanced Demo Mode: allow pre-fill for WOW presentations
+      window.loadDemoTender = async function () {
+        showToast('🚀 Loading Demo Tender Data...', 'info');
+        currentTender = {
+          ...DEMO_TENDER,
+          extractionStatus: 'VERIFIED',
+          sourceTraceability: { fileName: 'test_sample_tender.pdf', method: 'AI-OCR' }
+        };
+        
+        // Mock the extraction result for the review state
+        const mockResult = {
+          fields: {
+            tenderId: DEMO_TENDER.tenderId,
+            authority: DEMO_TENDER.authority,
+            minTurnover: DEMO_TENDER.minTurnoverCr,
+            experienceYears: DEMO_TENDER.minExperienceYears,
+            gstRequired: DEMO_TENDER.gstMandatory
+          },
+          confidence: 96,
+          source: 'OCR'
+        };
+        
+        displayTenderExtractionResults(mockResult, currentTender);
+        initTenderReviewState(mockResult);
+        displayTenderInfo(currentTender);
+        updateEvaluationGate();
+        
+        logAction('Loaded Demo Tender: ' + DEMO_TENDER.tenderId);
       };
+
       window.loadDemoVendors = function () {
-        const input = document.getElementById('vendorFileInput');
-        if (input) input.click();
+        showToast('🚀 Loading Demo Vendor Data...', 'info');
+        currentVendors = JSON.parse(JSON.stringify(DEMO_VENDORS));
+        currentVendors.forEach(v => v.extractionStatus = 'VERIFIED');
+        
+        // Mock the display
+        const vendorKV = document.getElementById('vendorExtractedKV');
+        if (vendorKV) {
+          vendorKV.textContent = currentVendors.map(v => `${v.name} | Confidence: ${v.confidence}%`).join(' || ');
+        }
+        
+        initVendorReviewState([{ fields: currentVendors[0], confidence: 95 }]);
+        updateEvaluationGate();
+        logAction('Loaded ' + currentVendors.length + ' Demo Vendors');
       };
+
       window.simulateExtraction = async function () {
-        showToast('Simulated extraction disabled. Real extraction only.', 'warning');
+        showToast('Real extraction logic is active. Use demo buttons for pre-filled data.', 'info');
       };
   </script>
 </body>
