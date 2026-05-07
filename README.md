@@ -1,142 +1,76 @@
-# NyayaBid AI
+# NyayaBid AI — Explainable Tender Evaluation & Policy Simulation Copilot
 
-NyayaBid AI is an explainable, browser-based tender evaluation copilot designed for public procurement systems.
+## ⚖️ Fairer Procurement through Explainable Intelligence
 
-It not only evaluates vendor eligibility but also simulates policy impact before tender publication — helping prevent low-competition and high-risk tenders.
+NyayaBid AI is an enterprise-grade, browser-based procurement intelligence platform designed to transform tender evaluation from a "black box" into an explainable, auditable, and transparent process.
 
-The system generates a tamper-proof audit report with SHA-256 verification and officer sign-off, making procurement decisions transparent, traceable, and defensible.
-
----
-
-## Why It Matters
-
-Government procurement in India exceeds ₹15 lakh crore annually.
-Yet evaluation is still manual, inconsistent, and difficult to audit.
-
-NyayaBid AI solves this by:
-
-- Automating eligibility evaluation
-- Providing explainable decisions with confidence scores
-- Detecting fraud and collusion signals
-- Preventing restrictive tenders using reverse simulation
-- Generating audit-ready reports with tamper-proof verification
+It bridges the gap between raw document extraction and governance-aware decision making, ensuring that every procurement action is **traceable**, **defensible**, and **fair**.
 
 ---
 
-## Key Features
+## 🌟 High-Impact Hackathon Features
 
-- **Explainable Tender Evaluation** with per-vendor confidence scoring and pass/fail reasons
-- **Reverse Simulation Engine** for real-time policy impact analysis before tender publication
-- **Cross-document fraud detection** and collusion risk flagging
-- **SHA-256 verified audit report** with digital officer sign-off
-- **OCR fallback** for scanned documents via Tesseract.js
-- **Fully browser-based** — zero backend, zero build step, zero dependencies to install
-
----
-
-## How It Works
-
-1. Upload a tender PDF
-2. Extract eligibility criteria automatically (PDF.js / OCR fallback)
-3. Evaluate vendors with the rule-based engine
-4. Detect cross-document inconsistencies and collusion risks
-5. Generate a CAG-ready audit report with SHA-256 verification hash
-6. Simulate policy changes to analyse competition impact before publishing
+- **⚖️ Why This Bidder Lost (Explainable AI)**: Generates natural-language justifications for every eligibility verdict, backed by extracted evidence. No more "Computer says NO"—NyayaBid says "WHY."
+- **📊 Procurement Fairness Score (PFS)**: A real-time governance metric evaluating tender inclusivity, MSME participation, and competition density.
+- **📉 Competition Health Indicator (CHI)**: A "What-If" simulation engine that predicts market participation risks *before* a tender is published, preventing restrictive and anti-competitive criteria.
+- **🚨 Tender Clause Risk Warnings**: Automatic detection of restrictive or anti-competitive eligibility clauses in uploaded PDF documents.
+- **🕰 Officer Override Accountability Timeline**: A unified, tamper-evident audit log that tracks every human-in-the-loop decision, edit, and override.
+- **🛡️ CAG-Ready Audit Reports**: Professional multi-page PDF generation including vendor breakdowns, risk flags, and SHA-256 verification hashes for tamper-proof data integrity.
 
 ---
 
-## Tech Stack
+## 🏗️ Technical Architecture
+
+NyayaBid AI utilizes a modular, client-side-first architecture to ensure data privacy and high-speed local processing.
 
 | Layer | Technology |
 |---|---|
-| Frontend | HTML, CSS, Vanilla JavaScript |
-| Document Parsing | PDF.js (CDN) |
-| OCR Fallback | Tesseract.js (CDN) |
-| Audit Hashing | Web Crypto API (SHA-256) |
-| State Management | localStorage |
+| **Core** | HTML5, Vanilla CSS, Javascript (ES6+) |
+| **Parsing** | PDF.js (Text Layer), Mammoth (DOCX) |
+| **OCR** | Tesseract.js (Scanned Documents) |
+| **Data Visualization** | Chart.js |
+| **Report Export** | jsPDF (Multi-page Enterprise Reports) |
+| **Security** | Web Crypto API (SHA-256), XSS-Hardened DOM |
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```
-nyayabid/
-├── index.html              — Landing page and product overview
+NyayaBid/
+├── index.html              — Landing Page & Storytelling
 ├── pages/
-│   ├── dashboard.html      — Procurement overview and audit trail
-│   ├── evaluate.html       — PDF-driven evaluation flow
-│   ├── simulation.html     — Reverse simulation engine
-│   └── report.html         — Audit report generator with sign-off
+│   ├── dashboard.html      — Live KPI Oversight & Shared Audit Trail
+│   ├── evaluate.html       — PDF Ingestion, AI Extraction & Review Workflow
+│   ├── simulation.html     — Policy "What-If" & Market Health Indicators
+│   └── report.html         — Final Audit Report, Sign-off & PDF Export
 ├── scripts/
-│   ├── app.js              — Shared boot, settings modal, toast
-│   ├── data.js             — Tender data, vendor data, utilities
-│   ├── evaluation.js       — Rule-based evaluation engine
-│   └── collusion.js        — Fraud and collusion flag helpers
+│   ├── utils.js            — Shared Governance, Storage & UI Utilities
+│   ├── evaluation.js       — Explainable Eligibility Logic
+│   └── evaluation_core.js  — Document Extraction & OCR Pipeline
 ├── styles/
-│   ├── main.css            — Global styles and layout
-│   ├── dashboard.css       — Dashboard and evaluate page styles
-│   ├── simulation.css      — Simulation page styles
-│   └── report.css          — Report and print styles
-└── assets/
-    └── logo.svg            — NyayaBid AI brand asset
+│   └── main.css            — Global Enterprise Design System (Dark Mode)
+└── assets/                 — Brand and Demo Assets
 ```
 
 ---
 
-## Running The App
+## 🚀 How to Demo
 
-No build step. No package manager. No server required.
-
-**Option 1 — Open directly:**
-Open `index.html` in any modern browser.
-
-**Option 2 — Local server (recommended for PDF upload):**
-
-```bash
-python -m http.server 8000
-```
-
-or
-
-```bash
-npx serve .
-```
-
-Then open `http://localhost:8000` and navigate through the pages.
+1. **Reset**: Click **↺ Reset Session** in the sidebar for a clean-room start.
+2. **Simulate**: Start with **Policy Simulation** to show how adjusting turnover/experience criteria affects market health.
+3. **Evaluate**: Upload PDFs (or use Demo Pre-fill). Perform a **Manual Override** to demonstrate the Human-in-the-Loop accountability.
+4. **Explain**: Use the **"Explain"** button in the results table to show AI reasoning.
+5. **Finalize**: Generate the **Signed Audit Report** to show the SHA-256 hash and the accountability timeline.
 
 ---
 
-## Data and Storage
-
-| Key | Contents |
-|---|---|
-| `nyayabid-evaluation-data` | Full evaluation payload — rows, overrides, criteria, document |
-| `nyayabid-report-signoff` | Officer sign-off — name, designation, remarks, timestamp |
-
-The report page loads from stored evaluation when available and falls back to a built-in demo tender automatically.
+## 🎯 Value Proposition
+NyayaBid AI addresses **GFR 2017 Rules 160/173/175** and **CVC Guidelines**, making it directly applicable to India's $500B+ public procurement market. It reduces bidder litigation, prevents corruption, and empowers MSMEs through fairer, more open competition.
 
 ---
 
-## Delivery Status
-
-| Phase | Feature | Status |
-|---|---|---|
-| 1 | Real PDF parsing and criteria extraction | ✅ Complete |
-| 2 | Rule-based evaluation with confidence scoring | ✅ Complete |
-| 3 | Collusion detection and cross-document flags | ✅ Complete |
-| 4 | Reverse simulation engine | ✅ Complete |
-| 5 | SHA-256 audit report with officer sign-off | ✅ Complete |
-| 6 | OCR fallback for scanned documents | ✅ Complete |
-
----
-
-## Browser Compatibility
-
-Designed for modern desktop browsers with JavaScript enabled. Best experience on a current Chromium-based browser.
-
----
-
-> NyayaBid AI does not just evaluate tenders — it helps prevent unfair ones before they are published.
+> "NyayaBid AI does not just evaluate tenders—it governs the process of evaluation."
 
 ## Future Scope
 
