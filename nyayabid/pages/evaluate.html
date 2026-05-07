@@ -35,6 +35,16 @@
         <div class="page-sub">Upload tender criteria and vendor documents for AI-powered evaluation</div>
       </div>
     </div>
+    <div class="gov-trustbar" style="margin-bottom:12px;">
+      <div class="gov-trustbar-grid">
+        <div class="gov-chip"><div class="gov-chip-label">Evidence Coverage</div><div class="gov-chip-value ok" id="telemetryEvidenceCoverage">0%</div></div>
+        <div class="gov-chip"><div class="gov-chip-label">Pending Reviews</div><div class="gov-chip-value warn" id="telemetryPendingReviews">0</div></div>
+        <div class="gov-chip"><div class="gov-chip-label">Officer Overrides</div><div class="gov-chip-value" id="telemetryOverrides">0</div></div>
+        <div class="gov-chip"><div class="gov-chip-label">Tamper Verification</div><div class="gov-chip-value warn" id="telemetryTamper">UNVERIFIED</div></div>
+        <div class="gov-chip"><div class="gov-chip-label">Avg Confidence</div><div class="gov-chip-value ok" id="telemetryConfidence">0%</div></div>
+        <div class="gov-chip"><div class="gov-chip-label">Governance State</div><div class="gov-chip-value ok" id="telemetryGovernance">REVIEW REQUIRED</div></div>
+      </div>
+    </div>
 
       <div style="margin-bottom:12px;">
         <div class="hitl-banner">
@@ -545,6 +555,7 @@
       renderReviewPanel('tender');
       updateRuleMappingSummary(result);
       updateEvaluationGate();
+      updateGovernanceTelemetry();
     }
 
     function initVendorReviewState(results) {
@@ -560,6 +571,7 @@
       setStorage('extraction-review-state', extractionReviewState);
       renderReviewPanel('vendor');
       updateEvaluationGate();
+      updateGovernanceTelemetry();
     }
 
     function logReviewAction(item, updatedValue, reviewStatus, reason) {
@@ -588,6 +600,30 @@
         status: reviewStatus
       });
       renderReviewTimeline();
+      updateGovernanceTelemetry();
+    }
+    function updateGovernanceTelemetry() {
+      const allReviewItems = [
+        ...Object.values(extractionReviewState.tender || {}),
+        ...Object.values(extractionReviewState.vendor || {})
+      ];
+      const isAccepted = (status) => status === 'Officer Verified' || status === 'Officer Modified' || status === 'AI Extracted';
+      const acceptedCount = allReviewItems.filter((i) => isAccepted(String(i?.reviewStatus || ''))).length;
+      const pendingCount = allReviewItems.filter((i) => !isAccepted(String(i?.reviewStatus || ''))).length;
+      const total = Math.max(allReviewItems.length, 1);
+      const coverage = Math.max(0, Math.min(100, Math.round((acceptedCount / total) * 100)));
+      const overrides = (getStorage('officer-overrides', []) || []).length;
+      const confidencePool = [Number(currentTender?.extractionConfidence || 0), ...((currentVendors || []).map((v) => Number(v.confidence || 0)))]
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const avgConfidence = confidencePool.length ? Math.round(confidencePool.reduce((a, b) => a + b, 0) / confidencePool.length) : 0;
+      const governanceState = pendingCount === 0 && coverage >= 80 ? 'REVIEW COMPLIANT' : 'REVIEW REQUIRED';
+      const setValue = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      setValue('telemetryEvidenceCoverage', `${coverage}%`);
+      setValue('telemetryPendingReviews', String(pendingCount));
+      setValue('telemetryOverrides', String(overrides));
+      setValue('telemetryTamper', 'UNVERIFIED');
+      setValue('telemetryConfidence', `${avgConfidence}%`);
+      setValue('telemetryGovernance', governanceState);
     }
 
     function requireReviewOfficerName() {
@@ -689,7 +725,10 @@
         const original = document.createElement('div');
         original.style.marginTop = '6px';
         const shownOriginal = item.field === 'authority' ? normalizeAuthority(item.originalValue) : item.originalValue;
-        original.textContent = `AI Extracted: ${displayOrManual(shownOriginal)}`;
+        const shownValue = ((item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim())
+          ? item.updatedValue
+          : shownOriginal;
+        original.textContent = `AI Extracted: ${displayOrManual(shownValue)}`;
         const evidence = document.createElement('div');
         evidence.style.fontSize = '12px';
         evidence.style.color = 'var(--text2)';
@@ -1382,6 +1421,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       setupUploadZones();
       initializeReviewStateFromStorage();
+      updateGovernanceTelemetry();
     });
 
     // Load sample tender preview for governance review
@@ -1462,6 +1502,7 @@
         // Save to storage
         const generatedAt = new Date().toISOString();
         setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags, generatedAt });
+        updateGovernanceTelemetry();
         logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
 
         // Display results
