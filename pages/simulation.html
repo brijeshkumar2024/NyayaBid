@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item active" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Session</button>
+  </aside>
+
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Policy Simulation Engine</div>
+        <div class="page-sub">Adjust eligibility thresholds and preview impact on vendor competition before publishing</div>
+      </div>
+    </div>
+
+    <div class="sim-layout">
+      <!-- LEFT: Controls -->
+      <div class="card">
+        <div class="card-title">Adjust Criteria</div>
+        <div class="card-sub">Changes apply instantly to all 10 market vendors</div>
+
+        <div class="preset-row">
+          <button class="preset-btn active" onclick="applyPreset('default', this)">Current (Default)</button>
+          <button class="preset-btn" onclick="applyPreset('msme', this)">MSME Friendly</button>
+          <button class="preset-btn" onclick="applyPreset('strict', this)">Highly Restrictive</button>
+          <button class="preset-btn" onclick="applyPreset('open', this)">Maximum Competition</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="turnoverSlider">Minimum Annual Turnover</label>
+          <div class="slider-value" id="turnoverVal">₹10 Cr</div>
+          <input type="range" class="form-input" id="turnoverSlider" min="1" max="100" value="10" oninput="updateSliders()" title="Minimum annual turnover">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="expSlider">Minimum Experience Required</label>
+          <div class="slider-value" id="expVal">5 years</div>
+          <input type="range" class="form-input" id="expSlider" min="1" max="20" value="5" oninput="updateSliders()" title="Minimum experience required">
+        </div>
+
+        <label class="form-check">
+          <input type="checkbox" id="gstCheck" checked onchange="runSimulation()">
+          GST Registration Mandatory
+        </label>
+
+        <label class="form-check">
+          <input type="checkbox" id="msmeCheck" onchange="runSimulation()">
+          Apply MSME Relaxation (−25% turnover)
+        </label>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="runSimulation(true)">▶ Run Simulation</button>
+      </div>
+
+      <!-- RIGHT: Impact Summary -->
+      <div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">Market Analysis</div>
+          <div style="text-align:center;padding:20px 0">
+            <div class="big-number" id="eligibleCount">0</div>
+            <div style="color:var(--text2);font-size:14px;margin-top:8px" id="eligibleCountLabel">Eligible Vendors</div>
+          </div>
+          <div style="margin:0 20px 20px; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.05)">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
+              <span style="color:var(--text3)">Competition Health (CHI)</span>
+              <span id="chiStatus" style="font-weight:700; color:var(--green)">Healthy</span>
+            </div>
+            <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden">
+              <div id="chiBar" style="height:100%; width:100%; background:var(--green); transition:all 0.4s ease"></div>
+            </div>
+            <div id="chiGuidance" style="margin-top:10px; font-size:11px; color:var(--text2); line-height:1.4">✓ Sufficient competition for fair procurement.</div>
+          </div>
+          <div id="riskBadge" style="text-align:center"></div>
+        </div>
+
+        <div class="impact-box">
+          <div class="card-title" style="margin-bottom:16px">Policy Impact</div>
+          <div class="impact-row"><span class="impact-label">Change from default</span><span class="impact-val" id="impactChange">—</span></div>
+          <div class="impact-row"><span class="impact-label">Vendors gained/lost</span><span class="impact-val" id="impactVendors">—</span></div>
+          <div class="impact-row"><span class="impact-label">Competition change</span><span class="impact-val" id="impactComp">—</span></div>
+          <div class="impact-row"><span class="impact-label">CAG Risk Level</span><span class="impact-val" id="impactRisk">—</span></div>
+        </div>
+
+        <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="exportSimulation()">📄 Export Simulation Report</button>
+      </div>
+    </div>
+
+    <!-- CHART SECTION -->
+    <div class="card" style="margin-top:24px">
+      <div class="card-title">Before vs After Policy Impact</div>
+      <div class="card-sub">Governance impact reveal for policy threshold changes</div>
+      <div class="grid-2">
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:rgba(255,255,255,0.02)">
+          <div style="font-weight:700;margin-bottom:8px">BEFORE POLICY CHANGE</div>
+          <div id="beforeMetrics" style="font-size:13px;color:var(--text2);line-height:1.8"></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:rgba(255,255,255,0.02)">
+          <div style="font-weight:700;margin-bottom:8px">AFTER POLICY CHANGE</div>
+          <div id="afterMetrics" style="font-size:13px;color:var(--text2);line-height:1.8"></div>
+        </div>
+      </div>
+      <div id="deltaBanner" style="margin-top:12px;padding:11px;border-radius:10px;border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.10);color:#fcd34d;font-weight:700;"></div>
+    </div>
+
+    <div id="chartSection" style="margin-top:24px">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">Vendor Competition Chart</div>
+        <div class="card-sub">Blue bars = turnover, Green overlay = eligible under current criteria</div>
+        <div class="chart-box">
+          <canvas id="simChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Simulation Results</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vendor</th><th>City</th><th>Turnover</th><th>Experience</th><th>GST</th><th>MSME</th><th>Status</th></tr></thead>
+            <tbody id="simTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../scripts/utils.js"></script>
+  <script>
+    let simChart = null;
+    let baselineEligible = 0;
+    let baselineSnapshot = null;
+    const STRICT_MODE = true;
+
+    const PRESETS = {
+      default: { turnover: 10, exp: 5, gst: true, msme: false },
+      msme: { turnover: 7.5, exp: 3, gst: true, msme: true },
+      strict: { turnover: 50, exp: 10, gst: true, msme: false },
+      open: { turnover: 5, exp: 2, gst: false, msme: true }
+    };
+
+    function updateSliders() {
+      const turnover = document.getElementById('turnoverSlider').value;
+      const exp = document.getElementById('expSlider').value;
+      document.getElementById('turnoverVal').textContent = '₹' + turnover + ' Cr';
+      document.getElementById('expVal').textContent = exp + ' years';
+      runSimulation(false);
+    }
+
+    function applyPreset(name, btnEl) {
+      const p = PRESETS[name];
+      document.getElementById('turnoverSlider').value = p.turnover;
+      document.getElementById('expSlider').value = p.exp;
+      document.getElementById('gstCheck').checked = p.gst;
+      document.getElementById('msmeCheck').checked = p.msme;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      updateSliders();
+    }
+
+    function runSimulation(scrollToChart = false) {
+      let isSampleData = false;
+      if (STRICT_MODE) {
+        const evalData = getStorage('last-evaluation', null);
+        if (!evalData || !Array.isArray(evalData.vendors) || evalData.vendors.length === 0) {
+          showToast('Note: Using Sample Market Data for simulation. Perform evaluation for evidence-backed results.', 'info');
+          isSampleData = true;
+        }
+      }
+      const turnover = parseFloat(document.getElementById('turnoverSlider').value);
+      const exp = parseInt(document.getElementById('expSlider').value, 10);
+      const gstRequired = document.getElementById('gstCheck').checked;
+      const msmeRelax = document.getElementById('msmeCheck').checked;
+
+      const evalData = getStorage('last-evaluation', null);
+      const simulationVendors = (STRICT_MODE && evalData && Array.isArray(evalData.vendors) && evalData.vendors.length > 0)
+        ? evalData.vendors.map((v, idx) => ({
+            name: v.name || `Vendor ${idx + 1}`,
+            city: v.city || 'Unknown',
+            turnoverCr: Number(v.turnoverCr || 0),
+            experienceYears: Number(v.experienceYears || 0),
+            gstValid: Boolean(v.gstValid),
+            isMSME: Boolean(v.isMSME)
+          }))
+        : SIM_VENDORS;
+
+      let eligible = 0;
+      const results = simulationVendors.map(v => {
+        let effTurnover = v.turnoverCr;
+        if (msmeRelax && v.isMSME) effTurnover = v.turnoverCr / 0.75;
+        
+        const pass = effTurnover >= turnover && v.experienceYears >= exp && (!gstRequired || v.gstValid);
+        if (pass) eligible++;
+        
+        return {
+          ...v,
+          status: pass ? 'Eligible' : 'Not Eligible',
+          effective: effTurnover
+        };
+      });
+
+      document.getElementById('eligibleCount').textContent = eligible;
+      const eligibleCountLabel = document.getElementById('eligibleCountLabel');
+      if (eligibleCountLabel) eligibleCountLabel.textContent = `Eligible Vendors out of ${simulationVendors.length}`;
+      const riskLevel = eligible < 3 ? 'HIGH' : eligible < 5 ? 'MEDIUM' : 'LOW';
+      const riskColor = riskLevel === 'HIGH' ? 'var(--red)' : riskLevel === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
+      const riskBadge = document.getElementById('riskBadge');
+      riskBadge.textContent = '';
+      const rb = document.createElement('div');
+      rb.style.display = 'inline-block';
+      rb.style.padding = '8px 16px';
+      rb.style.borderRadius = '8px';
+      rb.style.background = riskColor + '20';
+      rb.style.color = riskColor;
+      rb.style.fontWeight = '600';
+      rb.style.fontSize = '12px';
+      rb.textContent = riskLevel + ' RISK';
+      
+      if (isSampleData) {
+        const sampleBadge = document.createElement('div');
+        sampleBadge.style.fontSize = '10px';
+        sampleBadge.style.color = 'var(--text3)';
+        sampleBadge.style.marginTop = '4px';
+        sampleBadge.textContent = '(Simulation Mode: Sample Data)';
+        riskBadge.append(rb, sampleBadge);
+      } else {
+        riskBadge.appendChild(rb);
+      }
+
+      // Calculate impact
+      if (baselineEligible === 0) baselineEligible = eligible;
+      const change = eligible - baselineEligible;
+      document.getElementById('impactChange').textContent = (change >= 0 ? '+' : '') + change;
+      document.getElementById('impactVendors').textContent = (change >= 0 ? '+' : '') + change + ' vendors';
+      document.getElementById('impactComp').textContent = eligible > 5 ? '↑ More' : eligible < 3 ? '↓ Less' : '→ Neutral';
+      document.getElementById('impactRisk').textContent = riskLevel;
+
+      // Update CHI (Competition Health Indicator)
+      const chiStatus = document.getElementById('chiStatus');
+      const chiBar = document.getElementById('chiBar');
+      const chiGuidance = document.getElementById('chiGuidance');
+      
+      if (eligible < 3) {
+        chiStatus.textContent = 'CRITICAL';
+        chiStatus.style.color = 'var(--red)';
+        chiBar.style.width = '25%';
+        chiBar.style.background = 'var(--red)';
+        chiGuidance.textContent = '⚠ Competition risk — fewer than 3 eligible bidders. GFR Rule 173(xx) may require re-tendering.';
+      } else if (eligible < 5) {
+        chiStatus.textContent = 'WEAK';
+        chiStatus.style.color = 'var(--amber)';
+        chiBar.style.width = '50%';
+        chiBar.style.background = 'var(--amber)';
+        chiGuidance.textContent = '⚠ Limited competition detected. Consider relaxing thresholds to improve market participation.';
+      } else {
+        chiStatus.textContent = 'HEALTHY';
+        chiStatus.style.color = 'var(--green)';
+        chiBar.style.width = '100%';
+        chiBar.style.background = 'var(--green)';
+        chiGuidance.textContent = '✓ Healthy market competition. Criteria are well-balanced for this procurement.';
+      }
+
+      renderSimChart(results);
+      renderSimTable(results);
+      renderImpactReveal({
+        eligible,
+        total: simulationVendors.length,
+        riskLevel,
+        fairness: estimateFairness(results),
+        competition: eligible < 3 ? 'CRITICAL' : eligible < 5 ? 'WEAK' : 'HEALTHY',
+        turnover,
+        exp
+      });
+
+      if (scrollToChart) {
+        setTimeout(() => { document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
+      }
+    }
+
+    function estimateFairness(results) {
+      const mockCriteria = { msmeRelaxation: document.getElementById('msmeCheck').checked ? 0.75 : 1 };
+      return calculatePFS(results, mockCriteria, results);
+    }
+
+    function renderImpactReveal(current) {
+      if (!baselineSnapshot) baselineSnapshot = { ...current };
+      const before = baselineSnapshot;
+      const after = current;
+      const beforeMetrics = document.getElementById('beforeMetrics');
+      const afterMetrics = document.getElementById('afterMetrics');
+      const deltaBanner = document.getElementById('deltaBanner');
+      if (!beforeMetrics || !afterMetrics || !deltaBanner) return;
+
+      beforeMetrics.innerHTML = [
+        `<div>Eligible Vendors: <strong>${before.eligible}/${before.total}</strong></div>`,
+        `<div>Fairness Score: <strong>${before.fairness}%</strong></div>`,
+        `<div>Competition Health: <strong>${before.competition}</strong></div>`,
+        `<div>Projected Risk: <strong>${before.riskLevel}</strong></div>`
+      ].join('');
+      afterMetrics.innerHTML = [
+        `<div>Eligible Vendors: <strong>${after.eligible}/${after.total}</strong></div>`,
+        `<div>Fairness Score: <strong>${after.fairness}%</strong></div>`,
+        `<div>Competition Health: <strong>${after.competition}</strong></div>`,
+        `<div>Projected Risk: <strong>${after.riskLevel}</strong></div>`
+      ].join('');
+
+      const deltaEligible = after.eligible - before.eligible;
+      const deltaFairness = after.fairness - before.fairness;
+      const approxCostRiskLakh = Math.max(0, (before.eligible - after.eligible) * 45);
+      const riskWarning = after.eligible < before.eligible && after.competition !== 'HEALTHY';
+      deltaBanner.style.borderColor = riskWarning ? 'rgba(239,68,68,0.40)' : 'rgba(16,185,129,0.35)';
+      deltaBanner.style.background = riskWarning ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)';
+      deltaBanner.style.color = riskWarning ? '#fca5a5' : '#6ee7b7';
+      deltaBanner.textContent = riskWarning
+        ? `⚠ Restrictive policy change may significantly reduce market competition. Eligible vendors ${before.eligible} → ${after.eligible}; Fairness ${before.fairness}% → ${after.fairness}%; Projected cost risk +₹${approxCostRiskLakh} lakh.`
+        : `✓ Policy posture improved competition balance. Eligible vendors ${before.eligible} → ${after.eligible}; Fairness ${before.fairness}% → ${after.fairness}%.`;
+
+      const impactChangeEl = document.getElementById('impactChange');
+      if (impactChangeEl) {
+        impactChangeEl.style.transition = 'all 0.28s ease';
+        impactChangeEl.style.transform = 'scale(1.08)';
+        setTimeout(() => { impactChangeEl.style.transform = 'scale(1)'; }, 220);
+        impactChangeEl.textContent = (deltaEligible >= 0 ? '+' : '') + deltaEligible;
+      }
+      const impactVendorsEl = document.getElementById('impactVendors');
+      if (impactVendorsEl) impactVendorsEl.textContent = `${deltaEligible >= 0 ? '+' : ''}${deltaEligible} vendors`;
+      const impactCompEl = document.getElementById('impactComp');
+      if (impactCompEl) impactCompEl.textContent = `${deltaFairness >= 0 ? '↑' : '↓'} ${Math.abs(deltaFairness)} fairness pts`;
+    }
+
+    function renderSimChart(results) {
+      try {
+        if (typeof Chart === 'undefined') {
+          const chartSection = document.getElementById('chartSection');
+          if (chartSection) {
+            let existing = document.getElementById('simChartFallback');
+            if (!existing) {
+              existing = document.createElement('div');
+              existing.id = 'simChartFallback';
+              existing.className = 'card';
+              existing.style.marginTop = '10px';
+              existing.style.borderLeft = '4px solid var(--amber)';
+              existing.textContent = 'Chart module unavailable. Tabular simulation output remains available for governance review.';
+              chartSection.prepend(existing);
+            }
+          }
+          return;
+        }
+        const canvas = document.getElementById('simChart');
+        if (!canvas) { console.warn('Chart canvas not found'); return; }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { console.warn('Chart context not available'); return; }
+        if (simChart) { try { simChart.destroy(); } catch (e) { console.warn('Chart destroy error:', e); } }
+      
+      simChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: results.map(r => r.name),
+          datasets: [{
+            label: 'Annual Turnover (Cr)',
+            data: results.map(r => r.turnoverCr),
+            backgroundColor: results.map(r => r.status === 'Eligible' ? '#10b981' : '#ef4444'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+          }
+        }
+      });
+      } catch (err) {
+        console.error('Chart render error:', err);
+        showToast('Chart rendering failed', 'error');
+      }
+    }
+
+    function renderSimTable(results) {
+      try {
+        const tbody = document.getElementById('simTableBody');
+        if (!tbody) { console.warn('Simulation table body not found'); return; }
+        tbody.textContent = '';
+        results.forEach((r) => {
+          const tr = document.createElement('tr');
+          const c1 = document.createElement('td');
+          const s = document.createElement('strong');
+          s.textContent = r.name;
+          c1.appendChild(s);
+          const c2 = document.createElement('td'); c2.textContent = r.city;
+          const c3 = document.createElement('td'); c3.textContent = `${r.turnoverCr} Cr`;
+          const c4 = document.createElement('td'); c4.textContent = `${r.experienceYears} years`;
+          const c5 = document.createElement('td'); c5.textContent = r.gstValid ? '✓' : '✗';
+          const c6 = document.createElement('td'); c6.textContent = r.isMSME ? '✓' : '✗';
+          const c7 = document.createElement('td');
+          const b = document.createElement('span');
+          b.className = `badge ${r.status === 'Eligible' ? 'badge-eligible' : 'badge-ineligible'}`;
+          b.textContent = r.status;
+          c7.appendChild(b);
+          tr.append(c1, c2, c3, c4, c5, c6, c7);
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Table render error:', err);
+        showToast('Table rendering failed', 'error');
+      }
+    }
+
+    function exportSimulation() {
+      if (STRICT_MODE) {
+        const evalData = getStorage('last-evaluation', null);
+        if (!evalData || !evalData.results || !evalData.results.length) {
+          showToast('Export blocked — no evidence-backed evaluation found', 'error');
+          return;
+        }
+      }
+      const turnover = document.getElementById('turnoverSlider').value;
+      const exp = document.getElementById('expSlider').value;
+      const eligible = document.getElementById('eligibleCount').textContent;
+      const evalData = getStorage('last-evaluation', null);
+      const vendorCount = (evalData && Array.isArray(evalData.vendors) && evalData.vendors.length) ? evalData.vendors.length : 10;
+      
+      const doc = new jspdf.jsPDF();
+      doc.setFont('Helvetica', 'bold');
+      doc.text('Policy Simulation Report', 10, 10);
+      doc.setFont('Helvetica', 'normal');
+      doc.text(`Min Turnover: ₹${turnover} Cr`, 10, 20);
+      doc.text(`Min Experience: ${exp} years`, 10, 30);
+      doc.text(`Eligible Vendors: ${eligible}/${vendorCount}`, 10, 40);
+      doc.save('NyayaBid-Simulation-Report.pdf');
+      showToast('✓ Simulation report exported as PDF', 'success');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateSliders();
+      runSimulation();
+    });
+  </script>
+</body>
+</html>
