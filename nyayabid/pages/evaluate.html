@@ -465,16 +465,20 @@
     }
 
     function toReviewItem(field, label, value, confidence, evidence, method) {
+      const raw = value ?? '';
+      const text = String(raw).trim();
+      const isMissing = text === '' || text === '0' || text === '0.0';
+      const finalValue = isMissing ? 'Manual officer verification required' : value;
       return {
         field,
         label,
-        originalValue: value,
-        updatedValue: value,
+        originalValue: finalValue,
+        updatedValue: finalValue,
         confidence: Number(confidence || 0),
         evidenceSnippet: evidence?.rawEvidenceSnippet || '',
         sourcePage: evidence?.pageNumber || 1,
         extractionMethod: evidence?.extractionMethod || method || 'unknown',
-        reviewStatus: Number(confidence || 0) < 70 ? 'Low Confidence' : 'AI Extracted',
+        reviewStatus: isMissing ? 'Review Required' : (Number(confidence || 0) < 70 ? 'Low Confidence' : 'AI Extracted'),
         note: ''
       };
     }
@@ -938,7 +942,7 @@
           const extracted = results[0].fields;
           currentTender = {
             id: extracted.tenderId || 'TENDER_UPLOADED',
-            title: `${extracted.authority} Tender`,
+            title: `${normalizeAuthority(extracted.authority) || 'Tender'} Tender`,
             authority: extracted.authority,
             minTurnoverCr: Number(extracted.minTurnover),
             minExperienceYears: Number(extracted.experienceYears || 0),
