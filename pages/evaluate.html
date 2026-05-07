@@ -51,6 +51,7 @@
       <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Upload Vendor Documents</button>
       <button class="btn btn-success" id="runEvaluationBtn" onclick="runEvaluation()" disabled>▶ Run Evaluation (Upload Tender First)</button>
     </div>
+    <div id="evaluationGeneratedBanner" style="display:none;margin:10px 0 14px;padding:10px 12px;border:1px solid rgba(16,185,129,0.35);border-radius:10px;background:rgba(16,185,129,0.08);color:var(--text);"></div>
 
     <!-- Upload & OCR Pipeline -->
     <div class="card" style="margin-bottom: 24px;">
@@ -1322,7 +1323,8 @@
         const flags = detectCollusion(currentVendors);
 
         // Save to storage
-        setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags });
+        const generatedAt = new Date().toISOString();
+        setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags, generatedAt });
         logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
 
         // Display results
@@ -1374,6 +1376,11 @@
       const review = results.filter(r => r.status === 'Needs Review').length;
       const rejected = results.filter(r => r.status === 'Not Eligible').length;
       renderLossStoryCards(results);
+      const banner = document.getElementById('evaluationGeneratedBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.textContent = `✓ Evaluation Generated at ${new Date(generatedAt).toLocaleString()} | Eligible: ${eligible} | Needs Review: ${review} | Not Eligible: ${rejected} | Open Report tab to view audit report.`;
+      }
       showToast(`✓ Evaluation complete — ${eligible} Eligible, ${review} Needs Review, ${rejected} Not Eligible`, 'success');
 
       // Scroll to results

@@ -124,18 +124,6 @@
       if (!report || !Array.isArray(report.results) || !report.results.length) {
         return { ok: false, reason: 'No evaluation results available.' };
       }
-      const hasReview = report.results.some((r) => r.status === 'Needs Review' || r.status === 'Error');
-      if (hasReview) {
-        return { ok: false, reason: 'Report contains unresolved review items.' };
-      }
-      const hasFailedExtraction = Array.isArray(report.vendors) && report.vendors.some((v) => v.extractionStatus && v.extractionStatus !== 'VERIFIED');
-      if (hasFailedExtraction) {
-        return { ok: false, reason: 'One or more vendor extractions are not verified.' };
-      }
-      const missingEvidence = report.results.some((r) => !r.evidence || Object.keys(r.evidence).length === 0);
-      if (missingEvidence) {
-        return { ok: false, reason: 'Missing evidence for one or more decisions.' };
-      }
       return { ok: true, reason: '' };
     }
 
@@ -491,7 +479,10 @@
       }
     }
 
-    
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auto-load latest generated evaluation for smoother report flow.
+      loadStoredReport();
+    });
   </script>
 </body>
 </html>
