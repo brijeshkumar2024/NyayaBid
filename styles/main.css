@@ -346,8 +346,9 @@ textarea.form-input { resize: vertical; }
 .floating-ticker {
   position: fixed;
   top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: calc(var(--sidebar-w) + 16px);
+  right: 16px;
+  transform: none;
   z-index: 1000;
   background: rgba(30, 41, 59, 0.82);
   backdrop-filter: blur(14px);
@@ -355,7 +356,8 @@ textarea.form-input { resize: vertical; }
   border-radius: 999px;
   padding: 10px 28px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.24);
-  width: min(92%, 860px);
+  width: auto;
+  max-width: 860px;
 }
 
 /* ── GOVERNANCE TRUST BAR ── */
