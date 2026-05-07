@@ -108,9 +108,44 @@
     }
   }
 
+  function generateFullExplanation(vendor, result, currentCriteria) {
+    const v = vendor || {};
+    const r = result || {};
+    const c = currentCriteria || {};
+    
+    const name = v.name || v.vendorName || 'The bidder';
+    const turnover = v.turnover || 0;
+    const exp = v.experience || 0;
+    const minTurnover = c.minTurnover || 0;
+    const minExp = c.minExperience || 0;
+    
+    if (r.eligible) {
+      return `${name} has been found eligible for this procurement. The bidder's annual turnover of ₹${turnover} Cr satisfies the minimum requirement of ₹${minTurnover} Cr. Additionally, the bidder demonstrates ${exp} years of relevant experience, meeting the threshold of ${minExp} years. GST verification was successful and all mandatory documents were found consistent with authority records. Confidence in this determination is ${r.confidence}%.`;
+    } else {
+      const failures = [];
+      if (!r.turnoverPass) failures.push(`its annual turnover of ₹${turnover} Cr falls below the required minimum of ₹${minTurnover} Cr`);
+      if (!r.expPass) failures.push(`its experience of ${exp} years is less than the required ${minExp} years`);
+      if (!r.gstPass) failures.push(`GST verification could not be completed or registration was found invalid`);
+      if (v.crossDocFlag) failures.push(`cross-document inconsistencies were detected (${v.crossDocReason})`);
+      
+      let explanation = `${name} was not found eligible because `;
+      if (failures.length > 1) {
+        explanation += failures.slice(0, -1).join(', ') + ' and ' + failures.slice(-1) + '.';
+      } else if (failures.length === 1) {
+        explanation += failures[0] + '.';
+      } else {
+        explanation += 'it failed to meet one or more technical criteria specified in the tender document.';
+      }
+      
+      explanation += ` This assessment is based on evidence extracted from the submitted documents with ${r.confidence}% confidence. This case has been flagged for mandatory officer review.`;
+      return explanation;
+    }
+  }
+
   root.NyayaBid.evaluation = {
     defaultCriteria,
     evaluateVendor,
-    runBatchEvaluation
+    runBatchEvaluation,
+    generateFullExplanation
   };
 })();

@@ -85,6 +85,12 @@
         <div id="collusionContent"></div>
       </div>
 
+      <!-- Section 7: Accountability Timeline -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="section-title">🕰 Section 7 — Accountability & Override Timeline</div>
+        <div id="accountabilityTimeline"></div>
+      </div>
+
       <!-- Section 6: Sign-off -->
       <div class="card" style="margin-bottom:20px">
         <div class="section-title">✍️ Section 6 — Evaluating Officer Sign-off</div>
@@ -213,6 +219,10 @@
       } else {
         currentVerification = { status: 'REVIEW REQUIRED', signedHash: null, signedAt: null, tamperPassed: false };
       }
+
+      // Accountability Timeline
+      renderUnifiedTimeline('accountabilityTimeline');
+
       const reportStatus = document.getElementById('reportStatus');
       reportStatus.className = currentVerification.status === 'VERIFIED' ? 'badge badge-eligible' : 'badge badge-review';
       reportStatus.textContent = currentVerification.status === 'VERIFIED' ? 'VERIFIED • TAMPER CHECK PASSED' : 'REVIEW REQUIRED';
@@ -226,7 +236,8 @@
         ['Eligible', String(eligible), 'badge-eligible'],
         ['Needs Review', String(review), 'badge-review'],
         ['Not Eligible', String(rejected), 'badge-ineligible'],
-        ['Eligibility Rate', `${((eligible / results.length) * 100).toFixed(1)}%`]
+        ['Eligibility Rate', `${((eligible / results.length) * 100).toFixed(1)}%`],
+        ['Procurement Fairness (PFS)', calculatePFS(currentReport.vendors, currentReport.tender, results) + '%']
       ];
       summaryRows.forEach((row) => {
         const tr = document.createElement('tr');
@@ -308,13 +319,14 @@
         if (collusionContent) {
           collusionContent.textContent = '';
           currentReport.flags.forEach((f) => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.style.marginBottom = '12px';
-            card.style.background = 'var(--red-bg)';
-            const t = document.createElement('div'); t.style.fontWeight = '600'; t.style.color = 'var(--red)'; t.textContent = `${f.type} - ${f.vendor || ''}`;
-            const d = document.createElement('div'); d.style.fontSize = '13px'; d.style.color = 'var(--text2)'; d.style.margin = '8px 0'; d.textContent = f.detail || '';
-            const a = document.createElement('div'); a.style.fontSize = '12px'; a.style.color = 'var(--text3)'; a.textContent = `→ ${f.action || ''}`;
+            const card = createSafeElement('div', 'card', undefined, {
+              marginBottom: '12px',
+              background: 'rgba(239, 68, 68, 0.05)',
+              borderLeft: '4px solid var(--red)'
+            });
+            const t = createSafeElement('div', '', `${f.type} - ${f.vendor || ''}`, { fontWeight: '700', color: 'var(--red)' });
+            const d = createSafeElement('div', '', f.detail || '', { fontSize: '13px', color: 'var(--text2)', margin: '8px 0' });
+            const a = createSafeElement('div', '', `→ ${f.action || ''}`, { fontSize: '12px', color: 'var(--text3)', fontStyle: 'italic' });
             card.append(t, d, a);
             collusionContent.appendChild(card);
           });
@@ -400,14 +412,43 @@
       doc.text(`Eligible: ${results.filter(r => r.status === 'Eligible').length}`, 10, 64);
       doc.text(`Needs Review: ${results.filter(r => r.status === 'Needs Review').length}`, 10, 71);
       doc.text(`Not Eligible: ${results.filter(r => r.status === 'Not Eligible').length}`, 10, 78);
+      doc.text(`Procurement Fairness Score: ${calculatePFS(currentReport.vendors, currentReport.tender, results)}%`, 10, 85);
+
+      doc.setFont('Helvetica', 'bold');
+      doc.text('Vendor Eligibility Breakdown', 10, 100);
+      doc.setFontSize(9);
+      let y = 107;
+      results.forEach((r, idx) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(`${idx+1}. ${r.vendorName} — Status: ${r.status} (Confidence: ${r.confidence}%)`, 10, y);
+        y += 7;
+      });
+
+      const overrides = getStorage('officer-overrides', []).filter(o => o.tenderId === tender.id);
+      if (overrides.length > 0) {
+        doc.addPage();
+        doc.setFontSize(11);
+        doc.setFont('Helvetica', 'bold');
+        doc.text('Accountability & Override Log', 10, 20);
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(9);
+        let oy = 30;
+        overrides.forEach(o => {
+          doc.text(`[${new Date(o.timestamp).toLocaleDateString()}] ${o.officerName} overrode ${o.vendorName} to ${o.overrideDecision}`, 10, oy);
+          doc.text(`Reason: ${o.reason}`, 15, oy + 5);
+          oy += 12;
+        });
+      }
 
       const signoff = getStorage('report-signoff', null);
       if (signoff) {
+        if (y > 250) { doc.addPage(); y = 20; } else { y += 15; }
+        doc.setFontSize(11);
         doc.setFont('Helvetica', 'bold');
-        doc.text('Officer Sign-off', 10, 95);
+        doc.text('Officer Sign-off', 10, y);
         doc.setFont('Helvetica', 'normal');
-        doc.text(`${signoff.name} — ${signoff.desig}`, 10, 102);
-        doc.text(`Signed: ${new Date(signoff.timestamp).toLocaleString()}`, 10, 109);
+        doc.text(`${signoff.name} — ${signoff.desig}`, 10, y + 7);
+        doc.text(`Signed: ${new Date(signoff.timestamp).toLocaleString()}`, 10, y + 14);
       }
 
       // Footer + page numbering + tamper hash on every page

@@ -229,7 +229,18 @@ function setStorage(key, value) {
 
 function sanitizeText(value) {
   if (value === null || value === undefined) return '';
-  return String(value).replace(/[<>&"'`]/g, '');
+  // Stronger sanitization for security hardening
+  const div = document.createElement('div');
+  div.textContent = String(value);
+  return div.innerHTML;
+}
+
+function createSafeElement(tag, className, textContent, styles = {}) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (textContent !== undefined) el.textContent = textContent;
+  Object.assign(el.style, styles);
+  return el;
 }
 
 function sanitizeFileName(name) {
@@ -317,6 +328,64 @@ function appendReviewLog(review) {
   setStorage('review-logs', logs);
 }
 
+function renderUnifiedTimeline(containerId) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  
+  const reviewLogs = getStorage('review-logs', []);
+  const overrides = getStorage('officer-overrides', []);
+  
+  const allActions = [
+    ...reviewLogs.map(l => ({ ...l, type: 'REVIEW' })),
+    ...overrides.map(o => ({ ...o, type: 'OVERRIDE' }))
+  ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  if (!allActions.length) {
+    wrap.textContent = 'No accountability records found.';
+    return;
+  }
+  
+  wrap.textContent = '';
+  allActions.slice(0, 15).forEach((l) => {
+    const row = createSafeElement('div', '', undefined, {
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '12px',
+      marginBottom: '10px',
+      background: 'rgba(255,255,255,0.02)',
+      borderLeft: `3px solid ${l.type === 'OVERRIDE' ? 'var(--amber)' : 'var(--blue)'}`,
+      borderRadius: '0 6px 6px 0',
+      fontSize: '13px'
+    });
+    
+    const top = createSafeElement('div', '', undefined, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '6px'
+    });
+    
+    const badge = createSafeElement('span', l.type === 'OVERRIDE' ? 'badge badge-review' : 'badge badge-eligible', l.type === 'OVERRIDE' ? 'DECISION OVERRIDE' : 'FIELD VERIFIED', { fontSize: '10px' });
+    const time = createSafeElement('span', '', new Date(l.timestamp).toLocaleString(), { fontSize: '11px', color: 'var(--text3)' });
+    top.append(badge, time);
+    
+    let mainText = '';
+    if (l.type === 'OVERRIDE') {
+      mainText = `Officer ${l.officerName} changed ${l.vendorName} to ${l.overrideDecision}`;
+    } else {
+      mainText = `Officer ${l.reviewerName} verified ${l.reviewedCriterion}`;
+    }
+    
+    const mid = createSafeElement('div', '', mainText, { fontWeight: '700', marginBottom: '4px' });
+    
+    const reasonText = `Reason: ${l.overrideReason || l.officerNotes || 'No reason provided'}`;
+    const bot = createSafeElement('div', '', reasonText, { fontSize: '12px', color: 'var(--text2)', fontStyle: 'italic' });
+    
+    row.append(top, mid, bot);
+    wrap.appendChild(row);
+  });
+}
+
 function initDashboardData() {
   const existing = getStorage('all-tenders', null);
   if (!existing) {
@@ -325,12 +394,13 @@ function initDashboardData() {
   }
 }
 
-function resetDemoEnvironment() {
-  if (STRICT_GOVERNANCE_MODE) {
-    showToast('Strict governance mode is active. Demo reset is disabled.', 'warning');
-    return;
+function resetDemoEnvironment(force = false) {
+  if (STRICT_GOVERNANCE_MODE && !force) {
+    const override = window.confirm('Strict governance mode is active. This action will clear the immutable audit trail. Are you a judge or administrator performing a demo reset?');
+    if (!override) return;
   }
-  const confirmMessage = [
+  
+  const confirmMessage = force ? 'PERFORMING FORCE RESET...' : [
     'Reset Demo Environment?',
     '',
     'This will clear:',
@@ -342,17 +412,31 @@ function resetDemoEnvironment() {
     'The application will reload with fresh demo data.'
   ].join('\n');
 
-  if (!window.confirm(confirmMessage)) return;
+  if (!force && !window.confirm(confirmMessage)) return;
 
-  ['last-evaluation', 'audit-log', 'all-tenders', 'report-signoff', 'simulation-cache', 'demo-flags'].forEach((key) => {
+  // Clear all relevant storage keys
+  const keysToClear = [
+    'last-evaluation', 
+    'audit-log', 
+    'all-tenders', 
+    'report-signoff', 
+    'simulation-cache', 
+    'demo-flags',
+    'review-logs',
+    'officer-overrides',
+    'extraction-review-state',
+    'extraction-review-log'
+  ];
+
+  keysToClear.forEach((key) => {
     try {
       localStorage.removeItem(key);
     } catch (e) {}
   });
 
   initDashboardData();
-  showToast('Demo environment reset successfully', 'success');
-  setTimeout(() => window.location.reload(), 250);
+  showToast('Demo environment reset successfully — System Ready', 'success');
+  setTimeout(() => window.location.reload(), 500);
 }
 
 // Call on every page load
@@ -1135,3 +1219,41 @@ async function processVendorDocuments(files) {
 }
 
 
+/**
+ * Calculate Procurement Fairness Score (PFS)
+ * Factors: Competition density, MSME inclusion, Threshold tightness, Eligible ratio
+ */
+function calculatePFS(vendors, criteria, results) {
+  if (!vendors || vendors.length === 0) return 0;
+  
+  const totalVendors = vendors.length;
+  const eligibleVendors = results ? results.filter(r => r.status === 'Eligible').length : 0;
+  const msmeCount = vendors.filter(v => v.isMSME).length;
+  
+  // 1. Competition Density (0-30 points)
+  let competitionScore = totalVendors >= 5 ? 30 : totalVendors >= 3 ? 15 : 5;
+  
+  // 2. MSME Inclusion (0-25 points)
+  let msmeScore = totalVendors > 0 ? (msmeCount / totalVendors) * 25 : 0;
+  
+  // 3. Eligible Ratio (0-25 points)
+  let eligibilityScore = totalVendors > 0 ? (eligibleVendors / totalVendors) * 25 : 0;
+  
+  // 4. Threshold Fairness (0-10 points)
+  let fairnessScore = (criteria && criteria.msmeRelaxation < 1) ? 10 : 5;
+
+  // 5. Concentration Risk (0-10 points) - New Enterprise Metric
+  // Deduct points if market is dominated by a single vendor
+  let concentrationPenalty = 0;
+  if (totalVendors > 1) {
+    const turnovers = vendors.map(v => v.turnoverCr || 0);
+    const totalTurnover = turnovers.reduce((a, b) => a + b, 0);
+    const maxTurnover = Math.max(...turnovers);
+    if (totalTurnover > 0 && (maxTurnover / totalTurnover) > 0.7) {
+      concentrationPenalty = 10; // High concentration risk
+    }
+  }
+  
+  const total = Math.round(competitionScore + msmeScore + eligibilityScore + fairnessScore - concentrationPenalty);
+  return Math.max(5, Math.min(100, total));
+}

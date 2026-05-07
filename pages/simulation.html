@@ -82,6 +82,16 @@
             <div class="big-number" id="eligibleCount">0</div>
             <div style="color:var(--text2);font-size:14px;margin-top:8px">Eligible Vendors out of 10</div>
           </div>
+          <div style="margin:0 20px 20px; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.05)">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
+              <span style="color:var(--text3)">Competition Health (CHI)</span>
+              <span id="chiStatus" style="font-weight:700; color:var(--green)">Healthy</span>
+            </div>
+            <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden">
+              <div id="chiBar" style="height:100%; width:100%; background:var(--green); transition:all 0.4s ease"></div>
+            </div>
+            <div id="chiGuidance" style="margin-top:10px; font-size:11px; color:var(--text2); line-height:1.4">✓ Sufficient competition for fair procurement.</div>
+          </div>
           <div id="riskBadge" style="text-align:center"></div>
         </div>
 
@@ -208,6 +218,31 @@
       document.getElementById('impactVendors').textContent = (change >= 0 ? '+' : '') + change + ' vendors';
       document.getElementById('impactComp').textContent = eligible > 5 ? '↑ More' : eligible < 3 ? '↓ Less' : '→ Neutral';
       document.getElementById('impactRisk').textContent = riskLevel;
+
+      // Update CHI (Competition Health Indicator)
+      const chiStatus = document.getElementById('chiStatus');
+      const chiBar = document.getElementById('chiBar');
+      const chiGuidance = document.getElementById('chiGuidance');
+      
+      if (eligible < 3) {
+        chiStatus.textContent = 'CRITICAL';
+        chiStatus.style.color = 'var(--red)';
+        chiBar.style.width = '25%';
+        chiBar.style.background = 'var(--red)';
+        chiGuidance.textContent = '⚠ Competition risk — fewer than 3 eligible bidders. GFR Rule 173(xx) may require re-tendering.';
+      } else if (eligible < 5) {
+        chiStatus.textContent = 'WEAK';
+        chiStatus.style.color = 'var(--amber)';
+        chiBar.style.width = '50%';
+        chiBar.style.background = 'var(--amber)';
+        chiGuidance.textContent = '⚠ Limited competition detected. Consider relaxing thresholds to improve market participation.';
+      } else {
+        chiStatus.textContent = 'HEALTHY';
+        chiStatus.style.color = 'var(--green)';
+        chiBar.style.width = '100%';
+        chiBar.style.background = 'var(--green)';
+        chiGuidance.textContent = '✓ Healthy market competition. Criteria are well-balanced for this procurement.';
+      }
 
       renderSimChart(results);
       renderSimTable(results);

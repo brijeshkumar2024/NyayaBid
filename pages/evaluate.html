@@ -275,6 +275,7 @@
           <div style="font-size: 13px; color: var(--text2);" id="tenderDesc"></div>
         </div>
         <div class="criteria-chips" id="criteriaChips"></div>
+        <div id="tenderRiskWarnings" style="margin-top: 16px; display: none;"></div>
       </div>
       <div id="tenderPlaceholder" style="text-align: center; color: var(--text3); padding: 20px;">
         Upload procurement tender documents to begin extraction and review.
@@ -507,29 +508,7 @@
     }
 
     function renderReviewTimeline() {
-      const wrap = document.getElementById('reviewTimeline');
-      if (!wrap) return;
-      const logs = getStorage('extraction-review-log', []);
-      if (!logs.length) {
-        wrap.textContent = 'No review actions logged.';
-        return;
-      }
-      wrap.textContent = '';
-      logs.slice(0, 12).forEach((l) => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-        row.style.marginBottom = '6px';
-        const badge = document.createElement('span');
-        badge.className = l.reviewStatus === 'Rejected' ? 'badge badge-ineligible' : l.reviewStatus === 'Officer Modified' ? 'badge badge-review' : 'badge badge-eligible';
-        badge.textContent = l.reviewStatus;
-        const txt = document.createElement('span');
-        const note = l.modificationReason ? ` | ${l.modificationReason}` : '';
-        txt.textContent = `${new Date(l.timestamp).toLocaleString()} | Officer ${l.modifiedBy} | ${l.field}${note}`;
-        row.append(badge, txt);
-        wrap.appendChild(row);
-      });
+      renderUnifiedTimeline('reviewTimeline');
     }
 
     function updateRuleMappingSummary(result) {
@@ -1040,6 +1019,67 @@
       const chipsWrap = document.getElementById('criteriaChips');
       chipsWrap.textContent = '';
       chips.forEach((c) => { const d = document.createElement('div'); d.className = 'chip'; d.textContent = c; chipsWrap.appendChild(d); });
+      
+      // Risk Warnings
+      const warnings = detectClauseRisks(tender);
+      const warningsWrap = document.getElementById('tenderRiskWarnings');
+      if (warningsWrap) {
+        if (warnings.length > 0) {
+          warningsWrap.style.display = 'block';
+          warningsWrap.textContent = '';
+          const title = createSafeElement('div', '', '🚨 Potential Clause Risks Detected', {
+            fontWeight: '700',
+            fontSize: '12px',
+            color: 'var(--amber)',
+            marginBottom: '8px'
+          });
+          warningsWrap.appendChild(title);
+          
+          warnings.forEach(w => {
+            const card = createSafeElement('div', '', undefined, {
+              padding: '10px',
+              marginBottom: '8px',
+              background: 'rgba(245,158,11,0.05)',
+              borderLeft: `3px solid ${w.level === 'HIGH' ? 'var(--red)' : w.level === 'MEDIUM' ? 'var(--amber)' : 'var(--blue)'}`,
+              borderRadius: '4px',
+              fontSize: '12px'
+            });
+            
+            const badge = createSafeElement('span', `badge ${w.level === 'HIGH' ? 'badge-ineligible' : w.level === 'MEDIUM' ? 'badge-review' : 'badge-eligible'}`, w.level + ' RISK', { marginRight: '8px' });
+            
+            const textContent = createSafeElement('div', '', undefined, { marginTop: '4px' });
+            const mainMsg = createSafeElement('span', '', w.text, { fontWeight: '600' });
+            const br = document.createElement('br');
+            const reasonMsg = createSafeElement('span', '', `Reasoning: ${w.reasoning}`, { color: 'var(--text3)', fontStyle: 'italic' });
+            
+            textContent.append(mainMsg, br, reasonMsg);
+            card.append(badge, textContent);
+            warningsWrap.appendChild(card);
+          });
+        } else {
+          warningsWrap.style.display = 'none';
+        }
+      }
+    }
+
+    function detectClauseRisks(tender) {
+      const warnings = [];
+      const turnover = Number(tender.minTurnoverCr || 0);
+      const experience = Number(tender.minExperienceYears || 0);
+      
+      if (turnover > 50) {
+        warnings.push({ level: 'HIGH', text: `₹${turnover} Cr turnover requirement is highly restrictive.`, reasoning: 'Thresholds > ₹50 Cr significantly reduce the pool of eligible MSMEs.' });
+      } else if (turnover > 20) {
+        warnings.push({ level: 'MEDIUM', text: `₹${turnover} Cr turnover requirement may be restrictive.`, reasoning: 'Consider if a lower threshold satisfies GFR 2017 Rule 173 guidelines.' });
+      }
+      
+      if (experience > 10) {
+        warnings.push({ level: 'HIGH', text: `${experience} years experience is excessive.`, reasoning: 'High experience requirements can be anti-competitive.' });
+      } else if (experience > 7) {
+        warnings.push({ level: 'MEDIUM', text: `${experience} years experience is above average.`, reasoning: 'Verify if standard 5-year experience would suffice.' });
+      }
+      
+      return warnings;
     }
 
     // Initialize upload zones on page load
@@ -1183,20 +1223,55 @@
         showToast('Evaluation error — please try again', 'error');
       }
       }
-
       function showExplain(index) {
         const stored = getStorage('last-evaluation', null);
         if (!stored || !stored.results) { showToast('No evaluation found for explanation', 'warning'); return; }
         const r = stored.results[index];
+        const v = stored.vendors ? stored.vendors[index] : null;
         if (!r) { showToast('Result not found', 'error'); return; }
+        
         const body = document.getElementById('explainBody');
-        if (!body) { showToast('Explain modal not found', 'error'); return; }
-        body.textContent = `${r.vendorName} - ${r.status} (Confidence ${r.confidence}%). ` +
-          r.checks.map(c => `${c.criterion}. Required: ${c.required}. Found: ${c.found}. ${c.reason}.`).join(' ') +
-          (r.flagForReview ? `Flag: ${r.flagReason}` : '');
+        const title = document.getElementById('explainTitle');
+        if (!body || !title) { showToast('Explain modal not found', 'error'); return; }
+        
+        title.textContent = `⚖️ Explainable Audit Verdict — ${r.vendorName}`;
+        
+        // Generate plain-language explanation
+        const explanation = NyayaBid.evaluation.generateFullExplanation(v, r, stored.tender);
+        
+        body.textContent = '';
+        const p = document.createElement('p');
+        p.style.fontSize = '15px';
+        p.style.marginBottom = '20px';
+        p.style.padding = '16px';
+        p.style.background = 'rgba(255,255,255,0.03)';
+        p.style.borderLeft = '4px solid var(--blue)';
+        p.style.borderRadius = '4px';
+        p.textContent = explanation;
+        body.appendChild(p);
+        
+        // Add criteria breakdown
+        const h = document.createElement('div');
+        h.style.fontWeight = '700';
+        h.style.marginBottom = '12px';
+        h.textContent = 'Evidence Breakdown:';
+        body.appendChild(h);
+        
+        r.checks.forEach(c => {
+          const item = createSafeElement('div', '', undefined, { marginBottom: '10px', fontSize: '13px' });
+          const label = createSafeElement('span', '', `${c.criterion}: `, { color: 'var(--text3)' });
+          const val = createSafeElement('span', '', c.found, { fontWeight: '600' });
+          const req = document.createTextNode(` (Requirement: ${c.required}) — `);
+          const status = createSafeElement('span', '', c.pass ? 'PASS' : 'FAIL', { color: c.pass ? 'var(--green)' : 'var(--red)' });
+          
+          item.append(label, val, req, status);
+          body.appendChild(item);
+        });
+
         const modal = document.getElementById('explainModal');
         if (modal) modal.style.display = 'flex';
       }
+
 
       // Human-in-the-Loop Override Functions
       let lastFocusedElement = null;

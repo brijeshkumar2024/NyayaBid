@@ -71,6 +71,11 @@
         <div class="kpi-value blue" id="totalVendors">0</div>
         <div class="kpi-trend">Total submissions</div>
       </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fairness Score (PFS)</div>
+        <div class="kpi-value" id="pfsValue">0%</div>
+        <div class="kpi-trend" id="pfsLabel">Awaiting Data</div>
+      </div>
     </div>
 
     <div class="grid-2">
@@ -188,6 +193,17 @@
       document.getElementById('totalFlags').textContent = totalFlags;
       document.getElementById('totalVendors').textContent = totalVendors;
 
+      // Calculate and display PFS
+      if (storedEval && storedEval.vendors) {
+        const pfs = calculatePFS(storedEval.vendors, storedEval.tender, storedEval.results);
+        const pfsEl = document.getElementById('pfsValue');
+        const pfsLabel = document.getElementById('pfsLabel');
+        pfsEl.textContent = pfs + '%';
+        pfsEl.className = 'kpi-value ' + (pfs >= 80 ? 'green' : pfs >= 60 ? 'amber' : 'red');
+        pfsLabel.textContent = pfs >= 80 ? 'High Fairness' : pfs >= 60 ? 'Moderate Fairness' : 'Governance Warning';
+        pfsLabel.style.color = pfs >= 80 ? 'var(--green)' : pfs >= 60 ? 'var(--amber)' : 'var(--red)';
+      }
+
       // Tenders table
       if (dashboardTenders && dashboardTenders.length > 0) {
         renderTenderRows(dashboardTenders);
@@ -231,25 +247,70 @@
           parent.appendChild(newCanvas);
         });
 
-        const eligible = 9, needsReview = 2, notEligible = 4;
+        // Dynamic Chart Data
+        let eligible = 0, needsReview = 0, notEligible = 0;
+        
+        if (storedEval && storedEval.results) {
+          eligible = storedEval.results.filter(r => r.status === 'Eligible').length;
+          needsReview = storedEval.results.filter(r => r.status === 'Needs Review').length;
+          notEligible = storedEval.results.filter(r => r.status === 'Not Eligible').length;
+        } else {
+          // Fallback to sample ratios if no evaluation exists
+          eligible = 9; needsReview = 2; notEligible = 4;
+        }
+
         const ctx1 = document.getElementById('statusChart').getContext('2d');
         new Chart(ctx1, {
           type: 'doughnut',
           data: {
             labels: ['Eligible','Needs Review','Not Eligible'],
-            datasets: [{ data: [eligible, needsReview, notEligible], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 0, hoverOffset: 8 }]
+            datasets: [{ 
+              data: [eligible, needsReview, notEligible], 
+              backgroundColor: ['#10b981','#f59e0b','#ef4444'], 
+              borderWidth: 0, 
+              hoverOffset: 8 
+            }]
           },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, font: { size: 13 } } } }, cutout: '65%' }
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { color: '#94a3b8', padding: 16, font: { size: 13 } } 
+              } 
+            }, 
+            cutout: '65%' 
+          }
         });
+
+        // Risk Chart - Dynamic from flags
+        const highRisk = (storedEval && storedEval.flags) ? storedEval.flags.filter(f => /collusion|overlap|shell/i.test(f.type)).length : 0;
+        const medRisk = (storedEval && storedEval.flags) ? storedEval.flags.filter(f => /flagged|review/i.test(f.type)).length : 1;
+        const lowRisk = totalTenders > 0 ? totalTenders : 2;
 
         const ctx2 = document.getElementById('riskChart').getContext('2d');
         new Chart(ctx2, {
           type: 'bar',
           data: {
             labels: ['Low Risk','Medium Risk','High Risk'],
-            datasets: [{ label: 'Tenders', data: [2, 1, 0], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderRadius: 6 }]
+            datasets: [{ 
+              label: 'Tenders', 
+              data: [lowRisk, medRisk, highRisk], 
+              backgroundColor: ['#10b981','#f59e0b','#ef4444'], 
+              borderRadius: 6 
+            }]
           },
-          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
+          options: { 
+            indexAxis: 'y', 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+              x: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, 
+              y: { ticks: { color: '#94a3b8' }, grid: { display: false } } 
+            } 
+          }
         });
         showToast('Dashboard data synchronized', 'info');
       }, 100);
