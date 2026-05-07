@@ -113,13 +113,16 @@
     const r = result || {};
     const c = currentCriteria || {};
     
-    const name = v.name || v.vendorName || 'The bidder';
-    const turnover = v.turnover || 0;
-    const exp = v.experience || 0;
-    const minTurnover = c.minTurnover || 0;
-    const minExp = c.minExperience || 0;
+    const name = v.name || v.vendorName || r.vendorName || 'The bidder';
+    const turnover = v.turnover ?? v.turnoverCr ?? r.turnoverCr ?? 0;
+    const exp = v.experience ?? v.experienceYears ?? r.experienceYears ?? 0;
+    const minTurnover = c.minTurnover ?? c.minTurnoverCr ?? 0;
+    const minExp = c.minExperience ?? c.minExperienceYears ?? 0;
+    const isEligible = typeof r.eligible === 'boolean'
+      ? r.eligible
+      : String(r.status || '').trim().toLowerCase() === 'eligible';
     
-    if (r.eligible) {
+    if (isEligible) {
       return `${name} has been found eligible for this procurement. The bidder's annual turnover of ₹${turnover} Cr satisfies the minimum requirement of ₹${minTurnover} Cr. Additionally, the bidder demonstrates ${exp} years of relevant experience, meeting the threshold of ${minExp} years. GST verification was successful and all mandatory documents were found consistent with authority records. Confidence in this determination is ${r.confidence}%.`;
     } else {
       const failures = [];

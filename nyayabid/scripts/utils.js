@@ -1140,7 +1140,7 @@ function extractProcurementFields(text) {
       return name.replace(/\s{2,}/g, ' ').trim();
     }
 
-    const vendorLineMatch = text.match(/vendor\s*name\s*[:\-]\s*([^\r\n]+)/i);
+    const vendorLineMatch = text.match(/vendor\s*name(?:\s*[:\-]\s*|\s+)([^\r\n]+)/i);
     if (vendorLineMatch) {
       const candidate = cleanVendorNameCandidate(vendorLineMatch[1]);
       if (candidate) {
