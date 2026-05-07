@@ -501,6 +501,9 @@
     function isManualPlaceholder(value) {
       return String(value || '').trim().toLowerCase() === 'manual officer verification required';
     }
+    function isAcceptedReviewStatus(status) {
+      return status === 'Officer Verified' || status === 'Officer Modified' || status === 'AI Extracted';
+    }
     function normalizeVendorName(value) {
       const text = String(value || '').replace(/\s+/g, ' ').trim();
       if (!text) return '';
@@ -723,7 +726,7 @@
         verifyAllBtn.className = 'btn btn-success';
         verifyAllBtn.style.marginTop = '12px';
         verifyAllBtn.style.width = '100%';
-        verifyAllBtn.textContent = '✓ Verify All Extracted Fields (Demo Mode)';
+        verifyAllBtn.textContent = '✓ Verify All Extracted Fields';
         verifyAllBtn.onclick = () => {
           if (!requireReviewOfficerName()) return;
           fields.forEach(item => {
@@ -753,7 +756,7 @@
       
       const mandatoryOk = tenderMandatoryFields.every((key) => {
         const item = tenderState[key];
-        return item && (item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim() !== '';
+        return item && isAcceptedReviewStatus(item.reviewStatus) && String(item.updatedValue || '').trim() !== '';
       });
       
       const rejected = Object.values(tenderState).some((i) => i.reviewStatus === 'Rejected');
@@ -1290,7 +1293,7 @@
         const tenderState = extractionReviewState.tender || {};
         const mandatoryOk = tenderMandatoryFields.every((key) => {
           const item = tenderState[key];
-          return item && (item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim() !== '';
+          return item && isAcceptedReviewStatus(item.reviewStatus) && String(item.updatedValue || '').trim() !== '';
         });
         if (!mandatoryOk) {
           showToast('Manual verification required before evaluation.', 'warning');
