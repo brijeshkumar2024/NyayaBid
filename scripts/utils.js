@@ -349,13 +349,27 @@ function renderUnifiedTimeline(containerId) {
   
   wrap.textContent = '';
   allActions.slice(0, 15).forEach((l) => {
+    const reviewStatus = String(l.status || '').toLowerCase();
+    const isRejected = reviewStatus.includes('rejected');
+    const isNeedsReview = reviewStatus.includes('low confidence') || reviewStatus.includes('needs_human') || reviewStatus.includes('needs review');
+    const isVerified = reviewStatus.includes('officer verified') || reviewStatus.includes('officer modified') || reviewStatus.includes('verified');
+    const rowBorder = l.type === 'OVERRIDE'
+      ? 'var(--amber)'
+      : isRejected
+        ? 'var(--red)'
+        : isNeedsReview
+          ? 'var(--amber)'
+          : isVerified
+            ? 'var(--green)'
+            : 'var(--blue)';
+
     const row = createSafeElement('div', '', undefined, {
       display: 'flex',
       flexDirection: 'column',
       padding: '12px',
       marginBottom: '10px',
       background: 'rgba(255,255,255,0.02)',
-      borderLeft: `3px solid ${l.type === 'OVERRIDE' ? 'var(--amber)' : 'var(--blue)'}`,
+      borderLeft: `3px solid ${rowBorder}`,
       borderRadius: '0 6px 6px 0',
       fontSize: '13px'
     });
@@ -367,7 +381,14 @@ function renderUnifiedTimeline(containerId) {
       marginBottom: '6px'
     });
     
-    const badge = createSafeElement('span', l.type === 'OVERRIDE' ? 'badge badge-review' : 'badge badge-eligible', l.type === 'OVERRIDE' ? 'DECISION OVERRIDE' : 'FIELD VERIFIED', { fontSize: '10px' });
+    const reviewBadgeClass = isRejected ? 'badge-ineligible' : isNeedsReview ? 'badge-review' : isVerified ? 'badge-eligible' : 'badge-review';
+    const reviewBadgeText = isRejected ? 'FIELD REJECTED' : isNeedsReview ? 'REVIEW REQUIRED' : isVerified ? 'FIELD VERIFIED' : 'FIELD REVIEW';
+    const badge = createSafeElement(
+      'span',
+      l.type === 'OVERRIDE' ? 'badge badge-review' : `badge ${reviewBadgeClass}`,
+      l.type === 'OVERRIDE' ? 'DECISION OVERRIDE' : reviewBadgeText,
+      { fontSize: '10px' }
+    );
     const time = createSafeElement('span', '', new Date(l.timestamp).toLocaleString(), { fontSize: '11px', color: 'var(--text3)' });
     top.append(badge, time);
     
@@ -375,7 +396,8 @@ function renderUnifiedTimeline(containerId) {
     if (l.type === 'OVERRIDE') {
       mainText = `Officer ${l.officerName} changed ${l.vendorName} to ${l.overrideDecision}`;
     } else {
-      mainText = `Officer ${l.reviewerName} verified ${l.reviewedCriterion}`;
+      const actionWord = isRejected ? 'rejected' : isNeedsReview ? 'flagged for review' : isVerified ? 'verified' : 'reviewed';
+      mainText = `Officer ${l.reviewerName} ${actionWord} ${l.reviewedCriterion}`;
     }
     
     const mid = createSafeElement('div', '', mainText, { fontWeight: '700', marginBottom: '4px' });

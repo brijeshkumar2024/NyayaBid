@@ -538,6 +538,21 @@
       renderReviewTimeline();
     }
 
+    function requireReviewOfficerName() {
+      const input = document.getElementById('reviewOfficerName');
+      const officerName = (input?.value || '').trim();
+      if (!officerName) {
+        showToast('Review Officer Name is compulsory before verification actions.', 'warning');
+        if (input) {
+          input.focus();
+          input.style.borderColor = 'var(--red)';
+          setTimeout(() => { input.style.borderColor = ''; }, 1400);
+        }
+        return null;
+      }
+      return officerName;
+    }
+
     function renderReviewTimeline() {
       renderUnifiedTimeline('reviewTimeline');
     }
@@ -626,6 +641,7 @@
         approve.className = 'btn btn-secondary';
         approve.textContent = 'Approve';
         approve.addEventListener('click', () => {
+          if (!requireReviewOfficerName()) return;
           item.reviewStatus = 'Officer Verified';
           logReviewAction(item, item.updatedValue, item.reviewStatus, 'Verified');
           setStorage('extraction-review-state', extractionReviewState);
@@ -637,6 +653,7 @@
         modify.className = 'btn btn-primary';
         modify.textContent = 'Save Edit';
         modify.addEventListener('click', () => {
+          if (!requireReviewOfficerName()) return;
           item.reviewStatus = 'Officer Modified';
           logReviewAction(item, item.updatedValue, item.reviewStatus, 'Field corrected');
           setStorage('extraction-review-state', extractionReviewState);
@@ -648,6 +665,7 @@
         reject.className = 'btn btn-danger';
         reject.textContent = 'Reject';
         reject.addEventListener('click', () => {
+          if (!requireReviewOfficerName()) return;
           item.reviewStatus = 'Rejected';
           logReviewAction(item, item.updatedValue, item.reviewStatus, 'Rejected');
           setStorage('extraction-review-state', extractionReviewState);
@@ -668,9 +686,11 @@
         verifyAllBtn.style.width = '100%';
         verifyAllBtn.textContent = '✓ Verify All Extracted Fields (Demo Mode)';
         verifyAllBtn.onclick = () => {
+          if (!requireReviewOfficerName()) return;
           fields.forEach(item => {
             if (item.reviewStatus === 'AI Extracted' || item.reviewStatus === 'Low Confidence') {
               item.reviewStatus = 'Officer Verified';
+              logReviewAction(item, item.updatedValue, item.reviewStatus, 'Bulk verified');
             }
           });
           setStorage('extraction-review-state', extractionReviewState);
