@@ -476,6 +476,23 @@
         note: ''
       };
     }
+    function normalizeAuthority(value) {
+      const text = String(value || '').replace(/\s+/g, ' ').trim();
+      if (!text) return '';
+      const cutMarkers = [' NOTICE INVITING TENDER', ' TENDER REFERENCE NO', ' SCOPE OF WORK', ' NIT '];
+      const upper = text.toUpperCase();
+      let cutAt = -1;
+      cutMarkers.forEach((marker) => {
+        const idx = upper.indexOf(marker);
+        if (idx > 0 && (cutAt === -1 || idx < cutAt)) cutAt = idx;
+      });
+      const cleaned = (cutAt > 0 ? text.slice(0, cutAt) : text).trim();
+      return cleaned.length > 90 ? `${cleaned.slice(0, 90)}...` : cleaned;
+    }
+    function displayOrManual(value) {
+      const text = String(value ?? '').trim();
+      return text ? text : 'Manual officer verification required';
+    }
 
     function initTenderReviewState(result) {
       const f = result?.fields || {};
@@ -623,11 +640,12 @@
         meta.textContent = `Confidence: ${item.confidence}% | Page: ${item.sourcePage} | Method: ${item.extractionMethod}`;
         const original = document.createElement('div');
         original.style.marginTop = '6px';
-        original.textContent = `AI Extracted: ${item.originalValue || '[empty]'}`;
+        const shownOriginal = item.field === 'authority' ? normalizeAuthority(item.originalValue) : item.originalValue;
+        original.textContent = `AI Extracted: ${displayOrManual(shownOriginal)}`;
         const evidence = document.createElement('div');
         evidence.style.fontSize = '12px';
         evidence.style.color = 'var(--text2)';
-        evidence.textContent = `Evidence: ${item.evidenceSnippet || 'No snippet'}`;
+        evidence.textContent = `Evidence: ${displayOrManual(item.evidenceSnippet)}`;
         const input = document.createElement('input');
         input.className = 'form-input';
         input.value = item.updatedValue || '';
@@ -1073,11 +1091,21 @@
       panels.style.display = 'block';
       
       const gstState = canonicalGstState(result.fields.gstRequired === true ? 'Mandatory' : (result.fields.gstRequired === false ? 'Optional' : ''));
+      const turnoverValue = validNumber(result.fields.minTurnover)
+        ? `₹${result.fields.minTurnover} Cr`
+        : (result.fields.turnoverRequirementText && !/^0(\.0+)?\s*(cr|crore|years?)?$/i.test(String(result.fields.turnoverRequirementText).trim()))
+          ? result.fields.turnoverRequirementText
+          : (validNumber(tender.minTurnoverCr) ? `₹${tender.minTurnoverCr} Cr` : 'Manual officer verification required');
+      const experienceValue = validNumber(result.fields.experienceYears)
+        ? `${result.fields.experienceYears} Years`
+        : (result.fields.experienceRequirementText && !/^0(\.0+)?\s*(years?)?$/i.test(String(result.fields.experienceRequirementText).trim()))
+          ? result.fields.experienceRequirementText
+          : (validNumber(tender.minExperienceYears) ? `${tender.minExperienceYears} Years` : 'Manual officer verification required');
       const kvItems = [
-        ['Tender ID', result.fields.tenderId || tender.id, 'AI EXTRACTED'],
-        ['Authority', result.fields.authority || tender.authority, 'VERIFIED'],
-        ['Min Turnover', '₹' + (result.fields.minTurnover || tender.minTurnoverCr) + ' Cr', 'EVIDENCE LINKED'],
-        ['Experience', (result.fields.experienceYears || tender.minExperienceYears) + ' Years', 'EVIDENCE LINKED'],
+        ['Tender ID', result.fields.tenderId || tender.id || 'Manual officer verification required', 'AI EXTRACTED'],
+        ['Authority', normalizeAuthority(result.fields.authority || tender.authority) || 'Review officer verification required', 'VERIFIED'],
+        ['Min Turnover', turnoverValue, validNumber(result.fields.minTurnover) ? 'EVIDENCE LINKED' : 'REVIEW REQUIRED'],
+        ['Experience', experienceValue, validNumber(result.fields.experienceYears) ? 'EVIDENCE LINKED' : 'REVIEW REQUIRED'],
         ['GST Requirement', gstState, gstState === 'Not Detected' ? 'REVIEW REQUIRED' : 'VERIFIED']
       ];
       tenderKV.textContent = '';
@@ -1126,7 +1154,7 @@
       const turnoverText = validNumber(tender.minTurnoverCr) ? `₹${tender.minTurnoverCr} Cr` : 'Not extracted';
       const expText = validNumber(tender.minExperienceYears) ? `${tender.minExperienceYears} years` : 'Not extracted';
       const gstState = canonicalGstState(tender.gstMandatory ? 'Mandatory' : 'Optional');
-      document.getElementById('tenderDesc').textContent = `Authority: ${tender.authority} | ID: ${tender.id} | Min Turnover: ${turnoverText} | Experience: ${expText} | GST Requirement: ${gstState}`;
+      document.getElementById('tenderDesc').textContent = `Authority: ${normalizeAuthority(tender.authority) || 'Review officer verification required'} | ID: ${tender.id} | Min Turnover: ${turnoverText} | Experience: ${expText} | GST Requirement: ${gstState}`;
 
       const chips = [
         `Min Turnover: ${turnoverText}`,
