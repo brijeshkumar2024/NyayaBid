@@ -846,9 +846,9 @@
           const extracted = results[0].fields;
           currentTender = {
             id: extracted.tenderId || 'TENDER_UPLOADED',
-            title: `${extracted.authority} Tender`,
-            authority: extracted.authority,
-            minTurnoverCr: Number(extracted.minTurnover),
+            title: `${extracted.authority || 'New'} Tender`,
+            authority: extracted.authority || 'Not Extracted',
+            minTurnoverCr: Number(extracted.minTurnover || 0),
             minExperienceYears: Number(extracted.experienceYears || 0),
             gstMandatory: extracted.gstRequired !== false,
             sourceFile: results[0].fileName,
@@ -859,30 +859,26 @@
             evidence: results[0].evidence
           };
           
-          // Display extraction results
           displayTenderExtractionResults(results[0], currentTender);
           initTenderReviewState(results[0]);
-          
-          // Display tender info
           displayTenderInfo(currentTender);
-          showToast('✓ Tender document extracted successfully (' + results[0].confidence + '% confidence)', 'success');
-          logAction('Uploaded and extracted tender: ' + results[0].fileName);
+          showToast('✓ Tender document extracted (' + results[0].confidence + '% confidence)', 'success');
         } else {
-          // Extraction failed or low confidence
-          const errorMessage = validation.reason || result.message || 'Extraction confidence too low for automated processing';
-          
+          // Extraction failed or low confidence - PROCEED TO MANUAL REVIEW
+          const extracted = results[0].fields || {};
           currentTender = {
-            id: 'EXTRACTION_FAILED',
-            title: 'Document Processing Failed',
-            extractionStatus: 'EXTRACTION_FAILED',
-            errorMessage: errorMessage,
-            relevanceScore: result.relevanceScore || 0
+            id: extracted.tenderId || 'TENDER_REVIEW_PENDING',
+            title: 'Tender Review Required',
+            authority: extracted.authority || 'Unknown',
+            extractionStatus: 'VERIFIED', // Allow proceeding to review
+            isManualEntry: true,
+            sourceFile: results[0].fileName
           };
           
-          showToast('⚠ ' + errorMessage, 'warning');
-          displayExtractionFailure('tender', result);
+          showToast('⚠ AI extraction low confidence. Please verify fields manually.', 'warning');
+          initTenderReviewState(results[0] || { fields: {}, confidence: 0 });
+          displayTenderInfo(currentTender);
           updateEvaluationGate();
-          logAction('Tender extraction failed: ' + errorMessage);
         }
       } catch (err) {
         console.error('Tender upload error:', err);
@@ -983,12 +979,21 @@
       const relevanceThreshold = result?.relevanceThreshold || 30;
       const relevanceMessage = relevanceScore < relevanceThreshold ? `Document relevance: ${relevanceScore}% (Minimum ${relevanceThreshold}% required)` : '';
       
-      container.textContent = `EXTRACTION FAILED: ${message}. Confidence: ${confidence}%. ${relevanceMessage} Manual review required before proceeding.`;
+      container.textContent = '';
+      const errBox = document.createElement('div');
+      errBox.style.padding = '12px';
+      errBox.style.background = 'rgba(239,68,68,0.1)';
+      errBox.style.border = '1px solid var(--red)';
+      errBox.style.borderRadius = '8px';
+      errBox.innerHTML = `<strong>⚠ AI Extraction Incomplete:</strong> ${message}. ${relevanceMessage}<br><small>The system could not reliably detect structured fields. Please use the <strong>Review & Verification</strong> panel below to enter the criteria manually.</small>`;
+      container.appendChild(errBox);
+
       const warning = document.createElement('div');
       warning.className = 'safe-reject-card';
+      warning.style.marginTop = '12px';
       warning.innerHTML = [
-        '<div class="safe-reject-title">⚠ Unsupported or non-procurement document detected.</div>',
-        '<div class="safe-reject-sub">Safe rejection applied. No automated verdict was produced. Officer review is mandatory before any procurement decision.</div>'
+        '<div class="safe-reject-title">⚠ Manual Review Required</div>',
+        '<div class="safe-reject-sub">Safe rejection applied to automated extraction. Officer review is mandatory to ensure GFR compliance. Please enter criteria manually in the Review Panel below.</div>'
       ].join('');
       container.appendChild(warning);
       const ruleMappingSummary = document.getElementById('ruleMappingSummary');
