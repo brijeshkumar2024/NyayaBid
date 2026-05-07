@@ -113,7 +113,7 @@
 
         <div class="card" style="padding:16px;margin-top:14px;">
           <div class="section-title" style="margin-bottom:10px;">⚖ Rule Mapping (Explainable)</div>
-          <div id="ruleMappingSummary" style="color:var(--text2);line-height:1.7">No rules mapped yet.</div>
+          <div id="ruleMappingSummary" style="color:var(--text2);line-height:1.7">Upload and verify procurement fields to generate explainable rule mappings.</div>
           <div id="lowConfidenceNote" style="display:none;margin-top:10px;color:var(--amber);font-weight:800">Low extraction confidence — officer review recommended</div>
         </div>
       </div>
@@ -412,6 +412,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
+  <script src="../scripts/data.js"></script>
+  <script src="../scripts/evaluation.js"></script>
   <script>
     let currentTender = null;
     let currentVendors = null;
@@ -1278,7 +1280,9 @@
         title.textContent = `⚖️ Explainable Audit Verdict — ${r.vendorName}`;
         
         // Generate plain-language explanation
-        const explanation = NyayaBid.evaluation.generateFullExplanation(v, r, stored.tender);
+        const explanation = (window.NyayaBid && window.NyayaBid.evaluation && typeof window.NyayaBid.evaluation.generateFullExplanation === 'function')
+          ? window.NyayaBid.evaluation.generateFullExplanation(v, r, stored.tender)
+          : `${r.vendorName} was evaluated with ${r.confidence}% confidence. Review field-level checks and evidence for final officer decision.`;
         
         body.textContent = '';
         const p = document.createElement('p');
@@ -1298,12 +1302,13 @@
         h.textContent = 'Evidence Breakdown:';
         body.appendChild(h);
         
-        r.checks.forEach(c => {
+        (Array.isArray(r.checks) ? r.checks : []).forEach(c => {
           const item = createSafeElement('div', '', undefined, { marginBottom: '10px', fontSize: '13px' });
           const label = createSafeElement('span', '', `${c.criterion}: `, { color: 'var(--text3)' });
           const val = createSafeElement('span', '', c.found, { fontWeight: '600' });
           const req = document.createTextNode(` (Requirement: ${c.required}) — `);
-          const status = createSafeElement('span', '', c.pass ? 'PASS' : 'FAIL', { color: c.pass ? 'var(--green)' : 'var(--red)' });
+          const didPass = Boolean(c.passed);
+          const status = createSafeElement('span', '', didPass ? 'PASS' : 'FAIL', { color: didPass ? 'var(--green)' : 'var(--red)' });
           
           item.append(label, val, req, status);
           body.appendChild(item);

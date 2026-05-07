@@ -25,7 +25,7 @@
       <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
-    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Session</button>
   </aside>
 
   <div class="main">
@@ -43,10 +43,10 @@
         <div class="card-sub">Changes apply instantly to all 10 market vendors</div>
 
         <div class="preset-row">
-          <button class="preset-btn active" onclick="applyPreset('default')">Current (Default)</button>
-          <button class="preset-btn" onclick="applyPreset('msme')">MSME Friendly</button>
-          <button class="preset-btn" onclick="applyPreset('strict')">Highly Restrictive</button>
-          <button class="preset-btn" onclick="applyPreset('open')">Maximum Competition</button>
+          <button class="preset-btn active" onclick="applyPreset('default', this)">Current (Default)</button>
+          <button class="preset-btn" onclick="applyPreset('msme', this)">MSME Friendly</button>
+          <button class="preset-btn" onclick="applyPreset('strict', this)">Highly Restrictive</button>
+          <button class="preset-btn" onclick="applyPreset('open', this)">Maximum Competition</button>
         </div>
 
         <div class="form-group">
@@ -80,7 +80,7 @@
           <div class="card-title">Market Analysis</div>
           <div style="text-align:center;padding:20px 0">
             <div class="big-number" id="eligibleCount">0</div>
-            <div style="color:var(--text2);font-size:14px;margin-top:8px">Eligible Vendors out of 10</div>
+            <div style="color:var(--text2);font-size:14px;margin-top:8px" id="eligibleCountLabel">Eligible Vendors</div>
           </div>
           <div style="margin:0 20px 20px; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.05)">
             <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
@@ -156,14 +156,14 @@
       runSimulation(false);
     }
 
-    function applyPreset(name) {
+    function applyPreset(name, btnEl) {
       const p = PRESETS[name];
       document.getElementById('turnoverSlider').value = p.turnover;
       document.getElementById('expSlider').value = p.exp;
       document.getElementById('gstCheck').checked = p.gst;
       document.getElementById('msmeCheck').checked = p.msme;
       document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+      if (btnEl) btnEl.classList.add('active');
       updateSliders();
     }
 
@@ -176,13 +176,25 @@
           isSampleData = true;
         }
       }
-      const turnover = parseInt(document.getElementById('turnoverSlider').value);
-      const exp = parseInt(document.getElementById('expSlider').value);
+      const turnover = parseFloat(document.getElementById('turnoverSlider').value);
+      const exp = parseInt(document.getElementById('expSlider').value, 10);
       const gstRequired = document.getElementById('gstCheck').checked;
       const msmeRelax = document.getElementById('msmeCheck').checked;
 
+      const evalData = getStorage('last-evaluation', null);
+      const simulationVendors = (STRICT_MODE && evalData && Array.isArray(evalData.vendors) && evalData.vendors.length > 0)
+        ? evalData.vendors.map((v, idx) => ({
+            name: v.name || `Vendor ${idx + 1}`,
+            city: v.city || 'Unknown',
+            turnoverCr: Number(v.turnoverCr || 0),
+            experienceYears: Number(v.experienceYears || 0),
+            gstValid: Boolean(v.gstValid),
+            isMSME: Boolean(v.isMSME)
+          }))
+        : SIM_VENDORS;
+
       let eligible = 0;
-      const results = SIM_VENDORS.map(v => {
+      const results = simulationVendors.map(v => {
         let effTurnover = v.turnoverCr;
         if (msmeRelax && v.isMSME) effTurnover = v.turnoverCr / 0.75;
         
@@ -197,6 +209,8 @@
       });
 
       document.getElementById('eligibleCount').textContent = eligible;
+      const eligibleCountLabel = document.getElementById('eligibleCountLabel');
+      if (eligibleCountLabel) eligibleCountLabel.textContent = `Eligible Vendors out of ${simulationVendors.length}`;
       const riskLevel = eligible < 3 ? 'HIGH' : eligible < 5 ? 'MEDIUM' : 'LOW';
       const riskColor = riskLevel === 'HIGH' ? 'var(--red)' : riskLevel === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
       const riskBadge = document.getElementById('riskBadge');
@@ -339,6 +353,8 @@
       const turnover = document.getElementById('turnoverSlider').value;
       const exp = document.getElementById('expSlider').value;
       const eligible = document.getElementById('eligibleCount').textContent;
+      const evalData = getStorage('last-evaluation', null);
+      const vendorCount = (evalData && Array.isArray(evalData.vendors) && evalData.vendors.length) ? evalData.vendors.length : 10;
       
       const doc = new jspdf.jsPDF();
       doc.setFont('Helvetica', 'bold');
@@ -346,7 +362,7 @@
       doc.setFont('Helvetica', 'normal');
       doc.text(`Min Turnover: ₹${turnover} Cr`, 10, 20);
       doc.text(`Min Experience: ${exp} years`, 10, 30);
-      doc.text(`Eligible Vendors: ${eligible}/10`, 10, 40);
+      doc.text(`Eligible Vendors: ${eligible}/${vendorCount}`, 10, 40);
       doc.save('NyayaBid-Simulation-Report.pdf');
       showToast('✓ Simulation report exported as PDF', 'success');
     }

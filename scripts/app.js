@@ -142,15 +142,15 @@
   }
 
   // ── Shared UI helpers ──────────────────────────────────────────────────
-  function addDemoModeBadge() {
+  function addGovernanceModeBadge() {
     if (document.querySelector('.demo-mode-badge')) return;
     const badge = document.createElement('div');
     badge.className = 'demo-mode-badge';
-    badge.textContent = 'PROTOTYPE v1.0 — NyayaBid AI';
+    badge.textContent = 'STRICT GOVERNANCE MODE — NyayaBid AI';
     document.body.appendChild(badge);
   }
 
-  function addJudgeDemoHelper() {
+  function addJudgeFlowHelper() {
     if (document.querySelector('.judge-helper-btn')) return;
     const btn   = document.createElement('button');
     btn.className = 'judge-helper-btn';
@@ -162,7 +162,7 @@
     const s = document.createElement('strong');
     s.textContent = 'Judge Helper';
     const p = document.createElement('p');
-    p.textContent = 'Upload tender and vendor documents, run evaluation, then open Report for audit output.';
+    p.textContent = 'Upload tender and vendor documents, complete officer review, run evaluation, then open Report for signed audit output.';
     popup.appendChild(s);
     popup.appendChild(p);
     btn.addEventListener('click', function () {
@@ -223,8 +223,8 @@
     enablePageFadeIn();
     bindKeyboardShortcuts();
     addGlobalFooterHint();
-    addDemoModeBadge();
-    addJudgeDemoHelper();
+    addGovernanceModeBadge();
+    addJudgeFlowHelper();
     setActiveNav();
 
     // Settings button — present on every page via sidebar

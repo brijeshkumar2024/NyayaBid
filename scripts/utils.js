@@ -229,10 +229,12 @@ function setStorage(key, value) {
 
 function sanitizeText(value) {
   if (value === null || value === undefined) return '';
-  // Stronger sanitization for security hardening
-  const div = document.createElement('div');
-  div.textContent = String(value);
-  return div.innerHTML;
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function createSafeElement(tag, className, textContent, styles = {}) {
@@ -396,12 +398,12 @@ function initDashboardData() {
 
 function resetDemoEnvironment(force = false) {
   if (STRICT_GOVERNANCE_MODE && !force) {
-    const override = window.confirm('Strict governance mode is active. This action will clear the immutable audit trail. Are you a judge or administrator performing a demo reset?');
+    const override = window.confirm('Strict governance mode is active. This action will clear the immutable audit trail. Confirm secure session reset?');
     if (!override) return;
   }
   
   const confirmMessage = force ? 'PERFORMING FORCE RESET...' : [
-    'Reset Demo Environment?',
+    'Reset Governance Session?',
     '',
     'This will clear:',
     '• evaluation results',
@@ -409,7 +411,7 @@ function resetDemoEnvironment(force = false) {
     '• simulation state',
     '• activity timeline',
     '',
-    'The application will reload with fresh demo data.'
+    'The application will reload with secure default state.'
   ].join('\n');
 
   if (!force && !window.confirm(confirmMessage)) return;
@@ -435,7 +437,7 @@ function resetDemoEnvironment(force = false) {
   });
 
   initDashboardData();
-  showToast('Demo environment reset successfully — System Ready', 'success');
+  showToast('Governance session reset successfully — System Ready', 'success');
   setTimeout(() => window.location.reload(), 500);
 }
 
@@ -955,35 +957,36 @@ function extractProcurementFields(text) {
       addEvidence(evidence, 'projectValue', fields.projectValue, valueMatch, 'project value');
     }
     
-    // Min turnover / turnover requirement
-    const turnoverMatch = firstMatch(normalizedText, [
-      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
-      /(?:turnover)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
-      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover\s*[:\-]?\s*₹\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
+    // Min turnover / turnover requirement (OCR-tolerant and phrasing-flexible)
+    const turnoverPatterns = [
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
       /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i
-    ]);
-    if (turnoverMatch) {
-      let turnoverCr = null;
+    ];
+    let turnoverMatch = null;
+    let turnoverCr = null;
+    for (const pattern of turnoverPatterns) {
+      turnoverMatch = normalizedText.match(pattern);
+      if (!turnoverMatch) continue;
       const amountPrimary = turnoverMatch[1] ? Number(String(turnoverMatch[1]).replace(/,/g, '')) : null;
       const unitPrimary = String(turnoverMatch[2] || '').toLowerCase();
-      const amountParen = turnoverMatch[2] && /cr|crore/i.test(String(turnoverMatch[3] || '')) ? Number(turnoverMatch[2]) : null;
-
-      if (Number.isFinite(amountParen) && amountParen > 0) {
-        turnoverCr = amountParen;
+      const parenAmount = turnoverMatch[3] ? Number(turnoverMatch[3]) : null;
+      const parenUnit = String(turnoverMatch[4] || '').toLowerCase();
+      if (Number.isFinite(parenAmount) && parenAmount > 0 && (parenUnit.startsWith('c') || parenUnit.includes('crore'))) {
+        turnoverCr = parenAmount;
       } else if (Number.isFinite(amountPrimary) && amountPrimary > 0) {
         if (unitPrimary.startsWith('l')) turnoverCr = Math.round((amountPrimary / 100) * 100) / 100;
         else if (unitPrimary.startsWith('c')) turnoverCr = amountPrimary;
         else turnoverCr = inferCroreFromIndianAmount(turnoverMatch[1]);
       }
-
-      if (Number.isFinite(turnoverCr) && turnoverCr > 0) {
-        fields.minTurnover = turnoverCr;
-        fields.turnoverRequirement = turnoverCr;
-      }
-      if (fields.minTurnover) {
-        addEvidence(evidence, 'minTurnover', fields.minTurnover, turnoverMatch, 'turnover');
-        addEvidence(evidence, 'turnoverRequirement', fields.turnoverRequirement, turnoverMatch, 'turnover requirement');
-      }
+      if (Number.isFinite(turnoverCr) && turnoverCr > 0) break;
+    }
+    if (Number.isFinite(turnoverCr) && turnoverCr > 0 && turnoverMatch) {
+      fields.minTurnover = turnoverCr;
+      fields.turnoverRequirement = turnoverCr;
+      addEvidence(evidence, 'minTurnover', fields.minTurnover, turnoverMatch, 'turnover');
+      addEvidence(evidence, 'turnoverRequirement', fields.turnoverRequirement, turnoverMatch, 'turnover requirement');
     }
     
     // Experience years / experience requirement
@@ -1071,7 +1074,8 @@ function extractProcurementFields(text) {
     const authMatch = firstMatch(normalizedText, [
       /(?:procuring entity|issued by|issuing authority|tendering authority|authority|department)\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
       /(?:government of|dept\.?\s+of|department of|ministry)\s+([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
-      /\b(public works department|pwd|central public works department|cpwd|ministry of [a-z\s]+)\b/i
+      /\b(public works department|pwd|central public works department|cpwd|ministry of [a-z\s]+)\b/i,
+      /\btender document\s*-\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i
     ]);
     if (authMatch) {
       fields.authority = authMatch[1].trim().replace(/\s{2,}/g, ' ');

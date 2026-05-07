@@ -20,3 +20,10 @@
 ## Remaining Risks
 - Demo datasets still exist in shared constants for non-critical UI contexts; extraction/evaluation strict paths do not use them.
 - CSP/SRI policy hardening remains recommended before production use.
+## Final Enterprise Audit Addendum — 2026-05-07
+
+- Re-verified zero unsafe rendering paths: no `innerHTML`, `insertAdjacentHTML`, or `outerHTML` usage in `pages/`, `scripts/`, and `styles/`.
+- Hardened extraction parser robustness for turnover and authority phrasing variants while preserving strict anti-hallucination and review gating.
+- Updated strict-mode reset UX messaging to remove stale demo wording and align with governance workflow.
+- Confirmed no stale demo helper strings remain in runtime UI copy (`Reset Demo`, `Use Demo`, `Load Demo`, `Demo mode disabled`).
+- Residual risk: full browser automation suite is not present in-repo; manual runtime walkthrough is still required before live stage demo.

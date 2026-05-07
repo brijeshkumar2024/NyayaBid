@@ -25,7 +25,7 @@
       <a class="nav-item active" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
-    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Session</button>
   </aside>
 
   <div class="main">
@@ -37,7 +37,7 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="loadDemoReport()">📋 Demo Disabled In Strict Mode</button>
+      <button class="btn btn-primary" onclick="loadDemoReport()">📋 Strict Mode: Use Verified Evaluation Data</button>
       <button class="btn btn-secondary" onclick="loadStoredReport()">💾 Use Stored Evaluation</button>
       <button class="btn btn-success" onclick="downloadPDF()" id="downloadBtn" disabled>⬇ Download PDF</button>
     </div>
@@ -140,7 +140,7 @@
     }
 
     async function loadDemoReport() {
-      showToast('Demo mode disabled in strict governance mode', 'warning');
+      showToast('Strict mode active: load verified evaluation data from Evaluate page.', 'warning');
     }
 
     function loadStoredReport() {
@@ -313,7 +313,7 @@
       // Collusion
       const collusionContent = document.getElementById('collusionContent');
       if (!collusionContent) { console.warn('Collusion content element not found'); }
-      else if (currentReport.flags.length === 0) {
+      else if (!Array.isArray(currentReport.flags) || currentReport.flags.length === 0) {
         collusionContent.textContent = '✓ No collusion indicators detected';
       } else {
         if (collusionContent) {
@@ -326,7 +326,8 @@
             });
             const t = createSafeElement('div', '', `${f.type} - ${f.vendor || ''}`, { fontWeight: '700', color: 'var(--red)' });
             const d = createSafeElement('div', '', f.detail || '', { fontSize: '13px', color: 'var(--text2)', margin: '8px 0' });
-            const a = createSafeElement('div', '', `→ ${f.action || ''}`, { fontSize: '12px', color: 'var(--text3)', fontStyle: 'italic' });
+            const actionText = f.action || f.recommendedAction || 'Refer to officer review timeline for recommended action.';
+            const a = createSafeElement('div', '', `→ ${actionText}`, { fontSize: '12px', color: 'var(--text3)', fontStyle: 'italic' });
             card.append(t, d, a);
             collusionContent.appendChild(card);
           });
@@ -475,7 +476,15 @@
     function copyHash() {
       try {
         if (!currentReport || !currentReport.hash) { showToast('No hash available to copy', 'warning'); return; }
-        navigator.clipboard.writeText(currentReport.hash).then(() => { showToast('Verification hash copied to clipboard', 'success'); }).catch(() => { showToast('Copy failed — please try manually', 'error'); });
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(currentReport.hash).then(() => {
+            showToast('Verification hash copied to clipboard', 'success');
+          }).catch(() => {
+            showToast('Copy failed — please try manually', 'error');
+          });
+        } else {
+          showToast('Clipboard API unavailable in this context', 'warning');
+        }
       } catch (err) {
         console.error('Copy hash error:', err);
         showToast('Copy operation failed', 'error');

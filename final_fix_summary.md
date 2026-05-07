@@ -19,3 +19,13 @@
 
 ## Readiness Score
 - 8.8 / 10 for hackathon demo reliability under strict governance mode.
+## Final Fix Pass Addendum — 2026-05-07
+
+Code fixes completed:
+- `scripts/utils.js`: robust turnover parsing, broader authority detection, governance-safe reset messaging.
+- `pages/simulation.html`: strict-mode uses evaluated vendors, preset activation bug fix, session labeling cleanup.
+- `pages/dashboard.html`: reset button terminology cleanup.
+- `pages/report.html`: strict-mode messaging cleanup.
+- `scripts/app.js`: trust/governance helper messaging updates.
+
+No security downgrades introduced; anti-hallucination and review-gating protections retained.
