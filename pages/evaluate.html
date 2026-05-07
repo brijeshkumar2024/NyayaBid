@@ -450,7 +450,7 @@
     let uploadedTenderFiles = [];
     let uploadedVendorFiles = [];
     let extractionReviewState = { tender: {}, vendor: {} };
-    const tenderMandatoryFields = ['tenderId', 'authority', 'turnoverRequirement', 'experienceRequirement', 'gstRequired'];
+    const tenderMandatoryFields = ['tenderId', 'authority', 'gstRequired'];
     function canonicalGstState(value) {
       const v = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
       if (!v) return 'Not Detected';
@@ -498,6 +498,22 @@
       const text = String(value ?? '').trim();
       return text ? text : 'Manual officer verification required';
     }
+    function isManualPlaceholder(value) {
+      return String(value || '').trim().toLowerCase() === 'manual officer verification required';
+    }
+    function normalizeVendorName(value) {
+      const text = String(value || '').replace(/\s+/g, ' ').trim();
+      if (!text) return '';
+      const markers = [' GST', ' PAN', ' BASIC COMPANY DETAILS', ' REGISTERED GOVERNMENT CONTRACTOR', ' VENDOR NAME'];
+      const upper = text.toUpperCase();
+      let cutAt = -1;
+      markers.forEach((marker) => {
+        const idx = upper.indexOf(marker);
+        if (idx > 0 && (cutAt === -1 || idx < cutAt)) cutAt = idx;
+      });
+      const cleaned = (cutAt > 0 ? text.slice(0, cutAt) : text).trim();
+      return cleaned.length > 70 ? `${cleaned.slice(0, 70)}...` : cleaned;
+    }
 
     function initTenderReviewState(result) {
       const f = result?.fields || {};
@@ -521,7 +537,7 @@
       const first = results && results.length ? results[0] : null;
       const f = first?.fields || {};
       extractionReviewState.vendor = {
-        vendorName: toReviewItem('vendorName', 'Vendor Name', f.vendorName || '', first?.confidence, getEvidenceForField(first, 'vendorName'), first?.source),
+        vendorName: toReviewItem('vendorName', 'Vendor Name', normalizeVendorName(f.vendorName) || '', first?.confidence, getEvidenceForField(first, 'vendorName'), first?.source),
         gstNumber: toReviewItem('gstNumber', 'GST Number', f.gstNumber || '', first?.confidence, getEvidenceForField(first, 'gstNumber'), first?.source),
         panNumber: toReviewItem('panNumber', 'PAN Number', f.panNumber || '', first?.confidence, getEvidenceForField(first, 'panNumber'), first?.source),
         turnoverRequirement: toReviewItem('turnoverRequirement', 'Turnover Evidence', f.turnoverRequirement || f.minTurnover || '', first?.confidence, getEvidenceForField(first, 'turnoverRequirement') || getEvidenceForField(first, 'minTurnover'), first?.source),
@@ -614,11 +630,11 @@
       if (!box) return;
       const t = extractionReviewState.tender || {};
       const rules = [];
-      if (String(t.turnoverRequirement?.updatedValue || '').trim()) rules.push(`✓ Vendor Turnover ≥ ${t.turnoverRequirement.updatedValue} Cr | Officer ${t.turnoverRequirement.reviewStatus}`);
-      if (String(t.experienceRequirement?.updatedValue || '').trim()) rules.push(`✓ Experience ≥ ${t.experienceRequirement.updatedValue} Years | Officer ${t.experienceRequirement.reviewStatus}`);
+      if (String(t.turnoverRequirement?.updatedValue || '').trim() && !isManualPlaceholder(t.turnoverRequirement.updatedValue)) rules.push(`✓ Vendor Turnover ≥ ${t.turnoverRequirement.updatedValue} Cr | Officer ${t.turnoverRequirement.reviewStatus}`);
+      if (String(t.experienceRequirement?.updatedValue || '').trim() && !isManualPlaceholder(t.experienceRequirement.updatedValue)) rules.push(`✓ Experience ≥ ${t.experienceRequirement.updatedValue} Years | Officer ${t.experienceRequirement.reviewStatus}`);
       if (String(t.gstRequired?.updatedValue || '').trim()) rules.push(`✓ GST Requirement: ${canonicalGstState(t.gstRequired.updatedValue)} | Officer ${t.gstRequired.reviewStatus}`);
       if (String(t.panRequired?.updatedValue || '').trim()) rules.push(`✓ PAN Requirement: ${t.panRequired.updatedValue} | Officer ${t.panRequired.reviewStatus}`);
-      if (String(t.emdAmount?.updatedValue || '').trim()) rules.push(`✓ EMD Required: ${t.emdAmount.updatedValue} | Officer ${t.emdAmount.reviewStatus}`);
+      if (String(t.emdAmount?.updatedValue || '').trim() && !isManualPlaceholder(t.emdAmount.updatedValue)) rules.push(`✓ EMD Required: ${t.emdAmount.updatedValue} | Officer ${t.emdAmount.reviewStatus}`);
       box.textContent = rules.length ? rules.join(' || ') : 'Review required: no reliably mappable procurement rules detected yet.';
     }
 
@@ -702,7 +718,7 @@
       });
 
       // Add "Verify All" button for demo convenience
-      if (fields.some(i => i.reviewStatus === 'AI Extracted' || i.reviewStatus === 'Low Confidence')) {
+      if (fields.some(i => i.reviewStatus === 'AI Extracted' || i.reviewStatus === 'Low Confidence' || i.reviewStatus === 'Review Required')) {
         const verifyAllBtn = document.createElement('button');
         verifyAllBtn.className = 'btn btn-success';
         verifyAllBtn.style.marginTop = '12px';
@@ -711,7 +727,7 @@
         verifyAllBtn.onclick = () => {
           if (!requireReviewOfficerName()) return;
           fields.forEach(item => {
-            if (item.reviewStatus === 'AI Extracted' || item.reviewStatus === 'Low Confidence') {
+            if (item.reviewStatus === 'AI Extracted' || item.reviewStatus === 'Low Confidence' || item.reviewStatus === 'Review Required') {
               item.reviewStatus = 'Officer Verified';
               logReviewAction(item, item.updatedValue, item.reviewStatus, 'Bulk verified');
             }
@@ -1139,7 +1155,7 @@
       if (!vendorKV || !results.length) return;
       
       vendorKV.textContent = results.map((r, idx) => {
-        const name = r.fields.vendorName || `Vendor ${idx + 1}`;
+        const name = normalizeVendorName(r.fields.vendorName) || `Vendor ${idx + 1}`;
         const gst = r.fields.gstNumber || 'Not found';
         const exp = validNumber(r.fields.experienceYears) ? `${r.fields.experienceYears} years` : 'N/A';
         return `${name} | GST: ${gst} | Experience: ${exp} | Confidence: ${r.confidence}%`;
