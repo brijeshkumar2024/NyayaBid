@@ -59,7 +59,7 @@
 
       <div class="grid-2">
         <div class="upload-zone" id="tenderUploadZone" tabindex="0" role="button" aria-label="Tender upload zone" ondragover="return false;">
-          <div class="upload-zone-inner">
+          <div class="upload-zone-inner" id="tenderUploadZoneInner">
             <div style="font-size:34px">📄</div>
             <div style="font-weight:800; font-size:14px">Tender Documents</div>
             <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • PDF, DOCX, JPG/PNG</div>
@@ -74,7 +74,7 @@
         </div>
 
         <div class="upload-zone" id="vendorUploadZone" tabindex="0" role="button" aria-label="Vendor upload zone" ondragover="return false;">
-          <div class="upload-zone-inner">
+          <div class="upload-zone-inner" id="vendorUploadZoneInner">
             <div style="font-size:34px">🗂️</div>
             <div style="font-weight:800; font-size:14px">Vendor Documents</div>
             <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • GST, PAN, EMD, Experience</div>
@@ -741,6 +741,18 @@
       if (lowConfidenceNote) lowConfidenceNote.style.display = canRun ? 'none' : 'block';
     }
 
+    function setUploadZoneSuccess(type) {
+      const zone = document.getElementById(`${type}UploadZone`);
+      const inner = document.getElementById(`${type}UploadZoneInner`);
+      if (!zone || !inner) return;
+      inner.innerHTML = `
+        <div style="font-size:34px">✅</div>
+        <div style="font-weight:800; font-size:14px; color:var(--green)">${type === 'tender' ? 'Tender' : 'Vendor'} Uploaded Successfully</div>
+        <div style="color:var(--text);font-size:12px;margin-top:6px">${type === 'tender' ? 'Tender Criteria Active' : 'Vendor Submissions Active'}</div>
+        <div style="color:var(--text2);font-size:11px;margin-top:6px">Drag & drop or click to replace</div>
+      `;
+    }
+
     // ── FILE UPLOAD HANDLERS ──────────────────────────────────────
     function setupUploadZones() {
       const tenderZone = document.getElementById('tenderUploadZone');
@@ -862,6 +874,7 @@
           displayTenderExtractionResults(results[0], currentTender);
           initTenderReviewState(results[0]);
           displayTenderInfo(currentTender);
+          setUploadZoneSuccess('tender');
           showToast('✓ Tender document extracted (' + results[0].confidence + '% confidence)', 'success');
         } else {
           // Extraction failed or low confidence - PROCEED TO MANUAL REVIEW
@@ -932,6 +945,7 @@
           // Display results
           displayVendorExtractionResults(validatedResults);
           initVendorReviewState(validatedResults);
+          setUploadZoneSuccess('vendor');
           
           if (currentVendors.length > 0) {
             showToast('✓ ' + currentVendors.length + ' vendor documents extracted', 'success');
