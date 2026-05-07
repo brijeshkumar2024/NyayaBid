@@ -506,6 +506,15 @@
     function isAcceptedReviewStatus(status) {
       return status === 'Officer Verified' || status === 'Officer Modified' || status === 'AI Extracted';
     }
+    function hasCoreTenderReadiness(tenderState) {
+      const state = tenderState || {};
+      const idReady = String(state.tenderId?.updatedValue || currentTender?.id || '').trim() !== '';
+      const authorityReady = String(state.authority?.updatedValue || currentTender?.authority || '').trim() !== '';
+      const gstReady = state.gstRequired
+        ? isAcceptedReviewStatus(state.gstRequired.reviewStatus) && String(state.gstRequired.updatedValue || '').trim() !== ''
+        : typeof currentTender?.gstMandatory === 'boolean';
+      return idReady && authorityReady && gstReady;
+    }
     function normalizeVendorName(value) {
       const text = String(value || '').replace(/\s+/g, ' ').trim();
       if (!text) return '';
@@ -772,9 +781,10 @@
         const item = tenderState[key];
         return item && isAcceptedReviewStatus(item.reviewStatus) && String(item.updatedValue || '').trim() !== '';
       });
+      const coreReady = hasCoreTenderReadiness(tenderState);
       
       const rejected = Object.values(tenderState).some((i) => i.reviewStatus === 'Rejected');
-      const canRun = mandatoryOk && !rejected && tenderLoaded && vendorsLoaded;
+      const canRun = (mandatoryOk || coreReady) && !rejected && tenderLoaded && vendorsLoaded;
       
       btn.disabled = !canRun;
       
@@ -783,7 +793,7 @@
         btn.textContent = '▶ Run Evaluation (Upload Tender First)';
       } else if (!vendorsLoaded) {
         btn.textContent = '▶ Run Evaluation (Upload Vendors First)';
-      } else if (!mandatoryOk) {
+      } else if (!(mandatoryOk || coreReady)) {
         btn.textContent = '▶ Run Evaluation (Review Required)';
       } else if (rejected) {
         btn.textContent = '▶ Run Evaluation (Rejected Fields Exist)';
@@ -1378,7 +1388,8 @@
           const item = tenderState[key];
           return item && isAcceptedReviewStatus(item.reviewStatus) && String(item.updatedValue || '').trim() !== '';
         });
-        if (!mandatoryOk) {
+        const coreReady = hasCoreTenderReadiness(tenderState);
+        if (!(mandatoryOk || coreReady)) {
           showToast('Manual verification required before evaluation.', 'warning');
           return;
         }
