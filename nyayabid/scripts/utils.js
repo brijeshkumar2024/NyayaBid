@@ -1127,15 +1127,26 @@ function extractProcurementFields(text) {
       evidence.deadline = createEvidenceRecord('deadline', fields.deadline, sourceDocument, 1, 'regex_pattern', deadlineMatch[0], 'AUTO_EXTRACTED', deadlineMatch.index, deadlineMatch.index + deadlineMatch[0].length);
     }
     
-    // Vendor name (common patterns)
-    const vendorMatch = firstMatch(normalizedText, [
-      /(?:company|vendor|bidder|supplier|firm|entity)\s*(?:name)?\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{2,})/i
-    ]);
-    if (vendorMatch) {
-      let vName = vendorMatch[1].trim();
-      vName = vName.replace(/(?:submission document|submission|document|vendor name|basic company details|company details|registered government contractor|registered contractor)/gi, '').trim();
-      fields.vendorName = vName;
-      evidence.vendorName = createEvidenceRecord('vendorName', fields.vendorName, sourceDocument, 1, 'regex_pattern', vendorMatch[0], 'AUTO_EXTRACTED', vendorMatch.index, vendorMatch.index + vendorMatch[0].length);
+    // Vendor name: strictly capture value after "Vendor Name:" and stop at line/next field label
+    function cleanVendorNameCandidate(rawName) {
+      let name = String(rawName || '').trim();
+      if (!name) return '';
+      name = name.replace(/^(?:vendor\s*name\s*[:\-]?\s*)/i, '').trim();
+      name = name.replace(
+        /\s+(?:city|gst(?:\s*number)?|pan(?:\s*number)?|annual\s+turnover|turnover|work\s+experience|experience|emd(?:\s+submission\s+status|\s+amount)?|project\s+category|eligibility\s+declaration)\b[\s\S]*$/i,
+        ''
+      ).trim();
+      if (/^(?:vendor\s+submission\s+document|submission\s+document|basic\s+company\s+details|company\s+details)$/i.test(name)) return '';
+      return name.replace(/\s{2,}/g, ' ').trim();
+    }
+
+    const vendorLineMatch = text.match(/vendor\s*name\s*[:\-]\s*([^\r\n]+)/i);
+    if (vendorLineMatch) {
+      const candidate = cleanVendorNameCandidate(vendorLineMatch[1]);
+      if (candidate) {
+        fields.vendorName = candidate;
+        evidence.vendorName = createEvidenceRecord('vendorName', fields.vendorName, sourceDocument, 1, 'regex_pattern', vendorLineMatch[0], 'AUTO_EXTRACTED', vendorLineMatch.index, vendorLineMatch.index + vendorLineMatch[0].length);
+      }
     }
     
     // GST number (Indian format: DDAAAAAAAADDDD)
