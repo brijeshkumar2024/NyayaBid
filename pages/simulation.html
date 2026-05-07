@@ -168,11 +168,12 @@
     }
 
     function runSimulation(scrollToChart = false) {
+      let isSampleData = false;
       if (STRICT_MODE) {
         const evalData = getStorage('last-evaluation', null);
         if (!evalData || !Array.isArray(evalData.vendors) || evalData.vendors.length === 0) {
-          showToast('Run document-backed evaluation first. Simulation requires extracted evidence-backed vendors.', 'warning');
-          return;
+          showToast('Note: Using Sample Market Data for simulation. Perform evaluation for evidence-backed results.', 'info');
+          isSampleData = true;
         }
       }
       const turnover = parseInt(document.getElementById('turnoverSlider').value);
@@ -209,7 +210,17 @@
       rb.style.fontWeight = '600';
       rb.style.fontSize = '12px';
       rb.textContent = riskLevel + ' RISK';
-      riskBadge.appendChild(rb);
+      
+      if (isSampleData) {
+        const sampleBadge = document.createElement('div');
+        sampleBadge.style.fontSize = '10px';
+        sampleBadge.style.color = 'var(--text3)';
+        sampleBadge.style.marginTop = '4px';
+        sampleBadge.textContent = '(Simulation Mode: Sample Data)';
+        riskBadge.append(rb, sampleBadge);
+      } else {
+        riskBadge.appendChild(rb);
+      }
 
       // Calculate impact
       if (baselineEligible === 0) baselineEligible = eligible;
