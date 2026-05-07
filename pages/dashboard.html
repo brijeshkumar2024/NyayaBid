@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">⚖️</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">NyayaBid AI</div>
+        <div class="sidebar-brand-sub">Tender Evaluation</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="../index.html"><span class="nav-icon">🏠</span>Home</a>
+      <a class="nav-item active" href="dashboard.html"><span class="nav-icon">📊</span>Dashboard</a>
+      <a class="nav-item" href="evaluate.html"><span class="nav-icon">✅</span>Evaluate</a>
+      <a class="nav-item" href="simulation.html"><span class="nav-icon">⚙️</span>Simulate</a>
+      <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
+    </nav>
+    <div class="sidebar-footer">NyayaBid AI v1.0</div>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Session</button>
+  </aside>
+
+  <div class="ticker-wrap floating-ticker">
+    <div class="ticker">
+      <span>Real-time Evaluation Active</span>
+      <span>System Integrity Verified</span>
+      <span>CAG-Ready Audit Trail</span>
+      <span>AI Confidence: 98.4%</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="dashboard-container">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Procurement Overview</div>
+        <div class="page-sub">Global monitor for all tender evaluations, vendor compliance, and real-time audit logs.</div>
+      </div>
+      <button class="btn btn-secondary" id="refreshBtn">
+        <span class="refresh-icon">🔄</span> Refresh Dashboard
+      </button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Tenders</div>
+        <div class="kpi-value blue" id="totalTenders">0</div>
+        <div class="kpi-trend">Last 30 days</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Evaluations Complete</div>
+        <div class="kpi-value green" id="completeTenders">0</div>
+        <div class="kpi-trend">Ready for sign-off</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Flags Raised</div>
+        <div class="kpi-value amber" id="totalFlags">0</div>
+        <div class="kpi-trend">Pending review</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Vendors Evaluated</div>
+        <div class="kpi-value blue" id="totalVendors">0</div>
+        <div class="kpi-trend">Total submissions</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fairness Score (PFS)</div>
+        <div class="kpi-value" id="pfsValue">0%</div>
+        <div class="kpi-trend" id="pfsLabel">Awaiting Data</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Evaluation Status</div>
+        <div class="card-sub">Vendor outcomes across all tenders</div>
+        <div class="chart-box">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Risk Distribution</div>
+        <div class="card-sub">Tenders by risk level</div>
+        <div class="chart-box">
+          <canvas id="riskChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">Recent Tenders</div>
+      <div class="card-sub">Status and evaluation progress</div>
+      <div class="table-toolbar">
+        <div class="table-toolbar-group">
+          <input class="form-input" id="tenderSearch" type="search" placeholder="Search tender ID or title..." aria-label="Search tender ID or title">
+          <select class="form-input form-select" id="statusFilter" aria-label="Filter tenders by status">
+            <option value="all">All Status</option>
+            <option value="Completed">Completed</option>
+            <option value="Under Review">Under Review</option>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-secondary" id="exportBtn">
+          <span>📥</span> Export CSV
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tender ID</th>
+              <th>Title</th>
+              <th>Vendors</th>
+              <th>Eligible</th>
+              <th>Flags</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tendersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">Audit Trail</div>
+      <div class="card-sub">System and officer actions logged in real-time</div>
+      <div id="auditTrail"></div>
+    </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../scripts/utils.js"></script>
+  <script>
+    let dashboardTenders = [];
+    // ✅ Chart instance tracking for proper lifecycle management
+    let chartInstances = {
+      statusChart: null,
+      riskChart: null
+    };
+
+    // ✅ Verify Chart.js is loaded
+    function verifyChartJsLoaded() {
+      if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js library failed to load');
+        showToast('Chart.js library failed to load — rendering disabled', 'error');
+        return false;
+      }
+      console.log('✅ Chart.js library loaded successfully');
+      return true;
+    }
+
+    // ✅ Destroy all existing chart instances to prevent overlaps
+    function destroyAllCharts() {
+      Object.keys(chartInstances).forEach(key => {
+        if (chartInstances[key]) {
+          try {
+            chartInstances[key].destroy();
+            chartInstances[key] = null;
+            console.log(`✅ Destroyed ${key} instance`);
+          } catch (e) {
+            console.warn(`⚠️ Error destroying ${key}:`, e);
+          }
+        }
+      });
+    }
+
+    // ✅ Initialize charts with error handling
+    function initializeCharts(statusData, riskData) {
+      if (!verifyChartJsLoaded()) return;
+
+      try {
+        // Destroy old instances first
+        destroyAllCharts();
+
+        // Get canvas elements
+        const statusCtx = document.getElementById('statusChart');
+        const riskCtx = document.getElementById('riskChart');
+
+        if (!statusCtx) {
+          console.error('❌ statusChart canvas not found in DOM');
+          return;
+        }
+        if (!riskCtx) {
+          console.error('❌ riskChart canvas not found in DOM');
+          return;
+        }
+
+        const ctx1 = statusCtx.getContext('2d');
+        const ctx2 = riskCtx.getContext('2d');
+
+        if (!ctx1 || !ctx2) {
+          console.error('❌ Failed to get 2D context from canvas');
+          return;
+        }
+
+        // Create Status Chart (Doughnut)
+        console.log('Creating Status Chart with data:', statusData);
+        chartInstances.statusChart = new Chart(ctx1, {
+          type: 'doughnut',
+          data: {
+            labels: ['Eligible','Needs Review','Not Eligible'],
+            datasets: [{ 
+              data: [statusData.eligible, statusData.needsReview, statusData.notEligible], 
+              backgroundColor: ['#10b981','#f59e0b','#ef4444'], 
+              borderWidth: 0, 
+              hoverOffset: 8 
+            }]
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+              legend: { 
+                position: 'bottom', 
+                labels: { color: '#94a3b8', padding: 16, font: { size: 13 } } 
+              } 
+            }, 
+            cutout: '65%' 
+          }
+        });
+        console.log('✅ Status Chart initialized successfully');
+
+        // Create Risk Chart (Bar)
+        console.log('Creating Risk Chart with data:', riskData);
+        chartInstances.riskChart = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: ['Low Risk','Medium Risk','High Risk'],
+            datasets: [{ 
+              label: 'Tenders', 
+              data: [riskData.lowRisk, riskData.medRisk, riskData.highRisk], 
+              backgroundColor: ['#10b981','#f59e0b','#ef4444'], 
+              borderRadius: 6 
+            }]
+          },
+          options: { 
+            indexAxis: 'y', 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+              x: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, 
+              y: { ticks: { color: '#94a3b8' }, grid: { display: false } } 
+            } 
+          }
+        });
+        console.log('✅ Risk Chart initialized successfully');
+        showToast('✅ Dashboard synchronized', 'success');
+      } catch (e) {
+        console.error('❌ Chart initialization error:', e);
+        showToast('⚠️ Chart rendering error — see console for details', 'error');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Dashboard page loaded');
+      initDashboardData();
+      loadDashboard();
+      
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+          console.log('🔄 Refresh button clicked');
+          refreshBtn.classList.add('rotating');
+          refreshBtn.style.opacity = '0.6';
+          loadDashboard();
+          setTimeout(() => {
+            refreshBtn.classList.remove('rotating');
+            refreshBtn.style.opacity = '1';
+          }, 1000);
+        });
+      } else {
+        console.warn('⚠️ Refresh button not found');
+      }
+
+      const exportBtn = document.getElementById('exportBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', exportTendersToCSV);
+      }
+
+      const searchInput = document.getElementById('tenderSearch');
+      const statusFilter = document.getElementById('statusFilter');
+      if (searchInput) searchInput.addEventListener('input', applyTenderFilters);
+      if (statusFilter) statusFilter.addEventListener('change', applyTenderFilters);
+    });
+
+    function loadDashboard() {
+      console.log('📊 Loading dashboard data...');
+
+      try {
+        const rawAllData = getStorage('all-tenders', SAMPLE_DASHBOARD_DATA);
+        const allData = (rawAllData && Array.isArray(rawAllData.tenders))
+          ? rawAllData
+          : SAMPLE_DASHBOARD_DATA;
+        const rawAudit = getStorage('audit-log', SAMPLE_DASHBOARD_DATA.auditLog);
+        const auditLog = Array.isArray(rawAudit) ? rawAudit : SAMPLE_DASHBOARD_DATA.auditLog;
+        dashboardTenders = Array.isArray(allData.tenders) ? allData.tenders : [];
+
+        // Calculate KPIs
+        const totalTenders = dashboardTenders.length;
+        const completeTenders = dashboardTenders.filter(t => t.status === 'Completed').length;
+        const baseTenderFlags = dashboardTenders.reduce((sum, t) => sum + (t.flagged || 0), 0);
+        const auditFlagCount = (auditLog || []).filter(l => /flag/i.test(l.action)).length;
+        const storedEval = getStorage('last-evaluation', null);
+        const evalFlags = storedEval && storedEval.flags ? storedEval.flags.length : 0;
+        const totalFlags = baseTenderFlags + auditFlagCount + evalFlags;
+        const totalVendors = dashboardTenders.reduce((sum, t) => sum + (Number(t.vendors) || 0), 0);
+
+        // Update KPI cards
+        const totalTendersEl = document.getElementById('totalTenders');
+        const completeTendersEl = document.getElementById('completeTenders');
+        const totalFlagsEl = document.getElementById('totalFlags');
+        const totalVendorsEl = document.getElementById('totalVendors');
+
+        if (totalTendersEl) totalTendersEl.textContent = totalTenders;
+        if (completeTendersEl) completeTendersEl.textContent = completeTenders;
+        if (totalFlagsEl) totalFlagsEl.textContent = totalFlags;
+        if (totalVendorsEl) totalVendorsEl.textContent = totalVendors;
+
+        // Calculate and display PFS
+        if (storedEval && storedEval.vendors) {
+          const pfs = calculatePFS(storedEval.vendors, storedEval.tender, storedEval.results);
+          const pfsEl = document.getElementById('pfsValue');
+          const pfsLabel = document.getElementById('pfsLabel');
+          if (pfsEl && pfsLabel) {
+            pfsEl.textContent = pfs + '%';
+            pfsEl.className = 'kpi-value ' + (pfs >= 80 ? 'green' : pfs >= 60 ? 'amber' : 'red');
+            pfsLabel.textContent = pfs >= 80 ? 'High Fairness' : pfs >= 60 ? 'Moderate Fairness' : 'Governance Warning';
+            pfsLabel.style.color = pfs >= 80 ? 'var(--green)' : pfs >= 60 ? 'var(--amber)' : 'var(--red)';
+          }
+        }
+
+        // Render tenders table
+        if (dashboardTenders && dashboardTenders.length > 0) {
+          renderTenderRows(dashboardTenders);
+        } else {
+          renderTenderRows([]);
+        }
+
+        // Render audit trail
+        const auditDiv = document.getElementById('auditTrail');
+        if (auditDiv) {
+          auditDiv.textContent = '';
+          auditLog.slice(0, 8).forEach((log) => {
+            const item = document.createElement('div');
+            item.className = 'audit-item';
+            const dot = document.createElement('div'); dot.className = 'audit-dot';
+            const time = document.createElement('div'); time.className = 'audit-time'; time.textContent = log.time;
+            const wrap = document.createElement('div');
+            const text = document.createElement('div'); text.className = 'audit-text'; text.textContent = log.action;
+            const officer = document.createElement('div'); officer.style.fontSize = '11px'; officer.style.color = 'var(--text3)'; officer.style.marginTop = '3px'; officer.textContent = log.officer;
+            wrap.append(text, officer);
+            item.append(dot, time, wrap);
+            auditDiv.appendChild(item);
+          });
+        }
+
+        // Initialize charts with proper lifecycle management
+        setTimeout(() => {
+          console.log('⏱️ Initializing charts after 100ms delay...');
+          
+          // Prepare chart data
+          let eligible = 0, needsReview = 0, notEligible = 0;
+          
+          if (storedEval && storedEval.results) {
+            eligible = storedEval.results.filter(r => r.status === 'Eligible').length;
+            needsReview = storedEval.results.filter(r => r.status === 'Needs Review').length;
+            notEligible = storedEval.results.filter(r => r.status === 'Not Eligible').length;
+          } else {
+            eligible = 9; needsReview = 2; notEligible = 4;
+          }
+
+          const highRisk = (storedEval && storedEval.flags) ? storedEval.flags.filter(f => /collusion|overlap|shell/i.test(f.type)).length : 0;
+          const medRisk = (storedEval && storedEval.flags) ? storedEval.flags.filter(f => /flagged|review/i.test(f.type)).length : 1;
+          const lowRisk = totalTenders > 0 ? totalTenders : 2;
+
+          const statusData = { eligible, needsReview, notEligible };
+          const riskData = { lowRisk, medRisk, highRisk };
+
+          initializeCharts(statusData, riskData);
+        }, 100);
+
+      } catch (err) {
+        console.error('❌ Dashboard load error:', err);
+        showToast('Dashboard load error — using default data', 'warning');
+        dashboardTenders = SAMPLE_DASHBOARD_DATA.tenders.slice();
+        renderTenderRows(dashboardTenders);
+        initializeCharts(
+          { eligible: 9, needsReview: 2, notEligible: 4 },
+          { lowRisk: 2, medRisk: 1, highRisk: 0 }
+        );
+      }
+    }
+
+    function applyTenderFilters() {
+      const query = document.getElementById('tenderSearch').value.trim().toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = dashboardTenders.filter((t) => {
+        const matchesQuery = !query || t.id.toLowerCase().includes(query) || t.title.toLowerCase().includes(query);
+        const matchesStatus = status === 'all' || t.status === status;
+        return matchesQuery && matchesStatus;
+      });
+
+      renderTenderRows(filtered);
+    }
+
+    function renderTenderRows(tenders) {
+      const tbody = document.getElementById('tendersTable');
+      if (!tbody) { console.warn('Tenders table element not found'); return; }
+      if (!tenders || !tenders.length) {
+        tbody.textContent = '';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.className = 'table-empty';
+        td.textContent = 'No matching tenders found';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      tbody.textContent = '';
+      tenders.forEach((t) => {
+        const tr = document.createElement('tr');
+        const c1 = document.createElement('td'); const s = document.createElement('strong'); s.textContent = t.id; c1.appendChild(s);
+        const c2 = document.createElement('td'); c2.textContent = t.title;
+        const c3 = document.createElement('td'); c3.textContent = String(t.vendors);
+        const c4 = document.createElement('td'); c4.textContent = `${t.eligible} ✓`;
+        const c5 = document.createElement('td'); c5.textContent = `${t.flagged} 🚩`;
+        const c6 = document.createElement('td'); c6.textContent = t.status;
+        tr.append(c1, c2, c3, c4, c5, c6);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportTendersToCSV() {
+      if (!dashboardTenders || !dashboardTenders.length) {
+        showToast('No data available to export', 'warning');
+        return;
+      }
+
+      const headers = ['Tender ID', 'Title', 'Vendors', 'Eligible', 'Flags', 'Status', 'Date'];
+      const rows = dashboardTenders.map(t => [
+        t.id,
+        `"${t.title.replace(/"/g, '""')}"`,
+        t.vendors,
+        t.eligible,
+        t.flagged,
+        t.status,
+        t.date
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(r => r.join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `NyayaBid_Tenders_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Tender data exported successfully', 'success');
+    }
+  </script>
+</body>
+</html>

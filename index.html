@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyayaBid AI | Transparent Government Tender Evaluation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body class="landing-body">
+  <nav class="landing-nav">
+    <div class="landing-nav-brand">
+      <span style="color: var(--accent);">⚖️</span>
+      NyayaBid AI
+    </div>
+    <div class="landing-nav-links">
+      <a href="pages/dashboard.html">Dashboard</a>
+      <a href="pages/evaluate.html">Evaluate</a>
+      <a href="pages/simulation.html">Simulate</a>
+      <a href="pages/report.html">Report</a>
+    </div>
+  </nav>
+
+  <div class="ticker-wrap" style="margin-left: 0;">
+    <div class="ticker">
+      <span>TND-2024-001 evaluated</span>
+      <span>Flag raised: GreenBuild</span>
+      <span>3 vendors cleared</span>
+      <span>CAG audit trail updated</span>
+      <span>NyayaBid AI is live</span>
+      <span>TND-2024-001 evaluated</span>
+      <span>Flag raised: GreenBuild</span>
+      <span>3 vendors cleared</span>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-badge">✨ Built for CRPF Hackathon 2024</div>
+    <h1 class="hero-title">Transparent. Explainable. Fair.</h1>
+    <p class="hero-sub">Government tender evaluation powered by explainable AI. Every decision is auditable, compliant with GFR 2017, and ready for CAG inspection.</p>
+    <div class="hero-cta">
+      <a href="pages/dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
+      <a href="pages/evaluate.html" class="btn btn-secondary">📋 See Evaluation</a>
+      <button class="btn btn-sm btn-secondary" id="viewWorkflowBtn" style="border-color: var(--accent); color: var(--accent);">🗺 View Workflow</button>
+    </div>
+  </section>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">₹15,00,000+</div>
+      <div class="stat-label">Cr Annual procurement volume in India</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">46%</div>
+      <div class="stat-label">Tenders with only 2 bidders — CAG audit</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Existing tools with explainable AI evaluation</div>
+    </div>
+  </section>
+
+  <section class="impact-section" style="max-width:900px;margin:0 auto 40px;padding:0 40px;">
+    <div class="card">
+      <div class="card-title">Why This Matters</div>
+      <div class="card-sub">Economic scale and public impact</div>
+      <p style="color:var(--text2);margin-top:8px;line-height:1.6">₹15 lakh crore+ annual public procurement in India. Even small inefficiencies or collusion can cost taxpayers thousands of crores. NyayaBid AI introduces transparent, explainable, auditable AI-assisted procurement evaluation aligned with GFR and CVC guidelines.</p>
+      <p style="color:var(--text2);margin-top:8px;font-weight:700">This transforms the product from a "cool dashboard" to a national-scale governance infrastructure — improving transparency, reducing leakage, and enabling defensible, auditable procurement decisions.</p>
+    </div>
+  </section>
+
+  <section class="features-grid" style="padding: 0 40px; margin: 0 auto;">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">Explainable AI Engine</div>
+      <div class="feature-desc">Every verdict references the exact criterion, document, and value that drove the decision</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <div class="feature-title">Multi-Format OCR</div>
+      <div class="feature-desc">Reads typed PDFs, scanned documents, photographs, and Word files automatically</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Fraud & Collusion Detection</div>
+      <div class="feature-desc">Detects GST mismatches, address overlaps, and suspicious bid patterns in real-time</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Policy Simulation Engine</div>
+      <div class="feature-desc">Adjust eligibility criteria and instantly preview impact on competition before publishing</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">CAG-Ready Audit Trail</div>
+      <div class="feature-desc">Every action is logged, SHA-256 verified, and ready for controller general audit</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <div class="feature-title">GFR Compliance</div>
+      <div class="feature-desc">Built on GFR Rule 175, Rule 160, and CVC collusion guidelines — legally defensible decisions</div>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="how-title">How NyayaBid Works</div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-num">1</div>
+        <div class="how-step-title">Upload Tender</div>
+        <div class="how-step-desc">Paste tender criteria and vendor documents (PDF, images, Word)</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">2</div>
+        <div class="how-step-title">AI Extraction</div>
+        <div class="how-step-desc">Extract criteria automatically, parse vendor data, validate documents</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">3</div>
+        <div class="how-step-title">Intelligent Evaluation</div>
+        <div class="how-step-desc">Run eligibility checks, detect fraud, flag collusion risks</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">4</div>
+        <div class="how-step-title">Audit & Sign-off</div>
+        <div class="how-step-desc">Export CAG-ready report, digital signature, SHA-256 verification</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    NyayaBid AI v1.0 | Built for CRPF Hackathon 2024 | Powered by AI
+  </footer>
+
+  <!-- Workflow Modal -->
+  <div id="workflowModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
+    <div style="width:800px; max-width:94%; background:rgba(20,25,35,0.95); border:1px solid rgba(100,150,255,0.3); border-radius:12px; padding:32px; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <div style="font-weight:800;font-size:18px;margin-bottom:4px">NyayaBid AI Procurement Intelligence Flow</div>
+          <div style="color:var(--text2);font-size:13px">End-to-End Explainable Procurement Pipeline</div>
+        </div>
+        <button class="btn btn-sm" id="closeWorkflowBtn" style="margin-left:auto;">Close</button>
+      </div>
+      
+      <div style="color:var(--text2);font-size:14px;line-height:1.6;margin-bottom:24px">
+        NyayaBid AI combines AI-assisted extraction, explainable evaluation, fraud detection, and policy simulation into a unified procurement intelligence workflow.
+      </div>
+
+      <!-- Workflow Pipeline -->
+      <div style="background:rgba(var(--accent-rgb, 100,150,255),0.05); border-left:3px solid var(--accent); border-radius:8px; padding:24px; margin-bottom:24px;">
+        <div style="display:grid;gap:16px;">
+          
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">1</div>
+            <div>
+              <div style="font-weight:600;color:white;">Upload Tender</div>
+              <div style="color:var(--text2);font-size:13px;">Paste tender criteria and vendor documents (PDF, images, Word)</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">2</div>
+            <div>
+              <div style="font-weight:600;color:white;">AI Criteria Extraction</div>
+              <div style="color:var(--text2);font-size:13px;">Automatically extract eligibility criteria and parse vendor documents</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">3</div>
+            <div>
+              <div style="font-weight:600;color:white;">Vendor Evaluation</div>
+              <div style="color:var(--text2);font-size:13px;">Run automated eligibility assessment with explainable decision reasoning</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:#ff6b6b;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">4</div>
+            <div>
+              <div style="font-weight:600;color:white;">Fraud & Risk Detection</div>
+              <div style="color:var(--text2);font-size:13px;">Identify GST mismatches, address overlaps, and suspicious bid patterns</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">5</div>
+            <div>
+              <div style="font-weight:600;color:white;">Explainable Decisions</div>
+              <div style="color:var(--text2);font-size:13px;">Every verdict references the exact criterion, document, and evidence</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">6</div>
+            <div>
+              <div style="font-weight:600;color:white;">Policy Simulation</div>
+              <div style="color:var(--text2);font-size:13px;">Adjust criteria and preview impact on competition before publishing</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;color:var(--accent);font-size:20px;">↓</div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">7</div>
+            <div>
+              <div style="font-weight:600;color:white;">Audit Report Generation</div>
+              <div style="color:var(--text2);font-size:13px;">Export CAG-ready reports with SHA-256 verification and digital signature</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:rgba(var(--green-rgb, 100,255,150),0.1);border:1px solid rgba(100,255,150,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--green);font-weight:600;font-size:13px;">✓ Explainable Decisions</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">Every decision includes detailed reasoning</div>
+        </div>
+        <div style="background:rgba(var(--green-rgb, 100,255,150),0.1);border:1px solid rgba(100,255,150,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--green);font-weight:600;font-size:13px;">✓ Audit-Ready Reports</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">CAG compliance and tamper verification</div>
+        </div>
+        <div style="background:rgba(var(--accent-rgb, 100,150,255),0.1);border:1px solid rgba(100,150,255,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--accent);font-weight:600;font-size:13px;">✓ Human-in-the-Loop</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">AI augments officers; humans retain authority</div>
+        </div>
+        <div style="background:rgba(var(--accent-rgb, 100,150,255),0.1);border:1px solid rgba(100,150,255,0.2);border-radius:8px;padding:12px;">
+          <div style="color:var(--accent);font-weight:600;font-size:13px;">✓ Real-Time Simulation</div>
+          <div style="color:var(--text2);font-size:12px;margin-top:4px;">Adjust policy and see impact instantly</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="./scripts/utils.js"></script>
+  <script>
+    // Workflow Modal
+    const workflowModal = document.getElementById('workflowModal');
+    const closeWorkflowBtn = document.getElementById('closeWorkflowBtn');
+    const viewWorkflowBtn = document.getElementById('viewWorkflowBtn');
+
+    if (viewWorkflowBtn && closeWorkflowBtn && workflowModal) {
+      viewWorkflowBtn.addEventListener('click', () => { workflowModal.style.display = 'flex'; });
+      closeWorkflowBtn.addEventListener('click', () => { workflowModal.style.display = 'none'; });
+
+      // Close modal on backdrop click
+      workflowModal.addEventListener('click', (e) => {
+        if (e.target === workflowModal) workflowModal.style.display = 'none';
+      });
+
+      // Close modal on ESC key (with flag to prevent duplicate)
+      if (!window.__workflowEscHandler) {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && workflowModal.style.display === 'flex') {
+            workflowModal.style.display = 'none';
+          }
+        });
+        window.__workflowEscHandler = true;
+      }
+    }
+  </script>
+</body>
+</html>
