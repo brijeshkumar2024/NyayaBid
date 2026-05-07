@@ -42,7 +42,6 @@
     <div class="hero-cta">
       <a href="pages/dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
       <a href="pages/evaluate.html" class="btn btn-secondary">📋 See Evaluation</a>
-      <button class="btn btn-sm btn-secondary" id="demoFlowBtn">🧭 Demo Script</button>
       <button class="btn btn-sm btn-secondary" id="viewWorkflowBtn" style="border-color: var(--accent); color: var(--accent);">🗺 View Workflow</button>
     </div>
   </section>
@@ -246,22 +245,6 @@
     </div>
   </div>
 
-  <!-- Demo Script Modal -->
-  <div id="demoFlowModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
-    <div style="width:720px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-weight:800">4-Minute Winning Demo Script</div>
-        <button class="btn btn-sm" id="closeDemoFlow">Close</button>
-      </div>
-      <ol style="color:var(--text2);line-height:1.6">
-        <li><strong>Minute 1 — Problem:</strong> Explain opacity & scale of public procurement and introduce NyayaBid AI.</li>
-        <li><strong>Minute 2 — Evaluation:</strong> Click Evaluate → Load Demo Tender → Load Demo Vendors → Run Evaluation. Open explainability for a rejected vendor.</li>
-        <li><strong>Minute 3 — Simulation:</strong> Go to Simulate, show Current vs Strict presets, move sliders to demonstrate vendor count change.</li>
-        <li><strong>Minute 4 — Audit Report:</strong> Generate Report, show tamper verification hash and download PDF. Final line: AI augments officers — final authority remains with officials.</li>
-      </ol>
-    </div>
-  </div>
-
   <div id="toast-container"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
@@ -269,31 +252,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="./scripts/utils.js"></script>
   <script>
-    // Demo Flow Modal
-    const demoFlowModal = document.getElementById('demoFlowModal');
-    const closeDemoFlowBtn = document.getElementById('closeDemoFlow');
-    const demoFlowBtn = document.getElementById('demoFlowBtn');
-
-    if (demoFlowBtn && closeDemoFlowBtn && demoFlowModal) {
-      demoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'flex'; });
-      closeDemoFlowBtn.addEventListener('click', () => { demoFlowModal.style.display = 'none'; });
-
-      // Close modal on backdrop click
-      demoFlowModal.addEventListener('click', (e) => {
-        if (e.target === demoFlowModal) demoFlowModal.style.display = 'none';
-      });
-
-      // Close modal on ESC key (with flag to prevent duplicate)
-      if (!window.__demoFlowEscHandler) {
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && demoFlowModal.style.display === 'flex') {
-            demoFlowModal.style.display = 'none';
-          }
-        });
-        window.__demoFlowEscHandler = true;
-      }
-    }
-
     // Workflow Modal
     const workflowModal = document.getElementById('workflowModal');
     const closeWorkflowBtn = document.getElementById('closeWorkflowBtn');
