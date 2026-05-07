@@ -982,9 +982,10 @@ function extractProcurementFields(text) {
     // Min turnover / turnover requirement (OCR-tolerant and phrasing-flexible)
     const turnoverPatterns = [
       /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
-      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:financial standing|turnover requirement|financial eligibility|financial criteria)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
       /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
-      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i
+      /(?:financial standing|turnover requirement|financial criteria)\s*[:\-]?\s*₹?\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
+      /(?:turnover|net worth|financial capacity)\s+(?:shall|must|should)\s+not\s+be\s+less\s+than\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i
     ];
     let turnoverMatch = null;
     let turnoverCr = null;
@@ -1013,10 +1014,10 @@ function extractProcurementFields(text) {
     
     // Experience years / experience requirement
     const expMatch = firstMatch(normalizedText, [
-      /(?:minimum|min|years?\s+of)?\s*experience\s*[:\-]?\s*(\d+)\s*(?:years?|yrs?)\b/i,
-      /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)\b/i,
-      /(?:minimum\s+)?(\d+)\s*(?:years?|yrs?)\s*(?:of\s+)?(?:technical\s+)?experience\b/i,
-      /(?:technical\s+experience|project\s+experience|similar\s+projects|completed\s+projects)\s*[:\-]?\s*(\d+)\b/i
+      /(?:minimum|min|years?\s+of)?\s*(?:work|project|technical|similar)?\s*experience\s*[:\-]?\s*(\d+)\s*(?:years?|yrs?)\b/i,
+      /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp|work|technical)\b/i,
+      /(?:minimum\s+)?(\d+)\s*(?:years?|yrs?)\s*(?:of\s+)?(?:technical|similar|qualifying|relevant)?\s*experience\b/i,
+      /(?:technical\s+experience|project\s+experience|similar\s+projects|completed\s+projects|eligibility criteria)\s*[:\-]?\s*(\d+)\s*(?:years?|yrs?)\b/i
     ]);
     if (expMatch) {
       fields.experienceYears = parseInt(expMatch[1]);
@@ -1094,13 +1095,14 @@ function extractProcurementFields(text) {
     
     // Authority (common pattern)
     const authMatch = firstMatch(normalizedText, [
-      /(?:procuring entity|issued by|issuing authority|tendering authority|authority|department)\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
+      /(?:procuring entity|issued by|issuing authority|tendering authority|authority|department|office of the)\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
       /(?:government of|dept\.?\s+of|department of|ministry)\s+([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
-      /\b(public works department|pwd|central public works department|cpwd|ministry of [a-z\s]+)\b/i,
-      /\btender document\s*-\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i
+      /\b(public works department|pwd|central public works department|cpwd|ministry of [a-z\s]+|municipal corporation|railways|nhai|irctc|ntpc|ongc|bhel|gail)\b/i,
+      /\btender document\s*-\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
+      /(?:executive engineer|superintending engineer|chief engineer|general manager|directorate)\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i
     ]);
     if (authMatch) {
-      fields.authority = authMatch[1].trim().replace(/\s{2,}/g, ' ');
+      fields.authority = authMatch[1] ? authMatch[1].trim().replace(/\s{2,}/g, ' ') : authMatch[0].trim();
       addEvidence(evidence, 'authority', fields.authority, authMatch, 'authority');
     }
     
