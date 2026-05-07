@@ -1,83 +1,162 @@
-# NyayaBid AI — Explainable Tender Evaluation & Policy Simulation Copilot
+# NyayaBid AI
 
-## ⚖️ Fairer Procurement through Explainable Intelligence
+## Governance-Aware Procurement Intelligence Platform
 
-NyayaBid AI is an enterprise-grade, browser-based procurement intelligence platform designed to transform tender evaluation from a "black box" into an explainable, auditable, and transparent process.
+NyayaBid AI is a frontend-first GovTech prototype for explainable tender evaluation and policy simulation.
+It is designed for procurement teams that need transparent, auditable, human-supervised AI assistance, not blind automation.
 
-It bridges the gap between raw document extraction and governance-aware decision making, ensuring that every procurement action is **traceable**, **defensible**, and **fair**.
-
----
-
-## 🌟 High-Impact Hackathon Features
-
-- **⚖️ Why This Bidder Lost (Explainable AI)**: Generates natural-language justifications for every eligibility verdict, backed by extracted evidence. No more "Computer says NO"—NyayaBid says "WHY."
-- **📊 Procurement Fairness Score (PFS)**: A real-time governance metric evaluating tender inclusivity, MSME participation, and competition density.
-- **📉 Competition Health Indicator (CHI)**: A "What-If" simulation engine that predicts market participation risks *before* a tender is published, preventing restrictive and anti-competitive criteria.
-- **🚨 Tender Clause Risk Warnings**: Automatic detection of restrictive or anti-competitive eligibility clauses in uploaded PDF documents.
-- **🕰 Officer Override Accountability Timeline**: A unified, tamper-evident audit log that tracks every human-in-the-loop decision, edit, and override.
-- **🛡️ CAG-Ready Audit Reports**: Professional multi-page PDF generation including vendor breakdowns, risk flags, and SHA-256 verification hashes for tamper-proof data integrity.
+**Positioning:** AI-assisted governance for public procurement workflows.
 
 ---
 
-## 🏗️ Technical Architecture
+## What Is Implemented Today
 
-NyayaBid AI utilizes a modular, client-side-first architecture to ensure data privacy and high-speed local processing.
+- OCR-assisted multi-format ingestion (`PDF`, scanned PDF via OCR fallback, `DOCX`, images)
+- Structured field extraction with confidence scoring and evidence snippets
+- Review-required enforcement before running final evaluation
+- Officer review actions (`verify`, `edit`, `reject`) with timeline logging
+- Mandatory officer identity for review actions
+- Explainable vendor evaluation (criterion checks + confidence)
+- **Why This Bidder Lost** cards for rejected vendors
+- Rule mapping summary from extracted and officer-verified fields
+- Fraud/collusion risk indicators (pattern-based)
+- Procurement Fairness Score (PFS)
+- Competition Health Indicator (CHI)
+- Policy simulation engine with before-vs-after impact reveal
+- Governance trust telemetry bar (evidence coverage, pending reviews, overrides, tamper status, confidence, governance state)
+- Red-team safe rejection flow for unsupported/irrelevant documents
+- Audit timeline + officer override records
+- SHA-256 backed sign-off flow and PDF report export
+- Runtime safety guards (timeouts, chart fallback messaging, empty-state handling)
 
-| Layer | Technology |
+---
+
+## Governance and AI Safety Model
+
+NyayaBid AI is built around **human oversight and audit defensibility**:
+
+- No automatic final award decision without officer review gates
+- Low-confidence or failed extraction paths force manual review
+- Extraction evidence is surfaced with confidence and source context
+- Officer overrides are logged with reason and timestamp
+- Safe-failure behavior blocks fake extraction and provides explicit rejection messaging
+- Trust telemetry exposes governance state in real time
+
+**Principle:** AI-assisted governance, not blind automation.
+
+---
+
+## Technical Architecture (Current)
+
+NyayaBid is a browser-based application with local session state.
+
+| Layer | Current Implementation |
 |---|---|
-| **Core** | HTML5, Vanilla CSS, Javascript (ES6+) |
-| **Parsing** | PDF.js (Text Layer), Mammoth (DOCX) |
-| **OCR** | Tesseract.js (Scanned Documents) |
-| **Data Visualization** | Chart.js |
-| **Report Export** | jsPDF (Multi-page Enterprise Reports) |
-| **Security** | Web Crypto API (SHA-256), XSS-Hardened DOM |
+| UI | HTML5 + Vanilla CSS + Vanilla JavaScript |
+| Parsing | PDF.js (text layer), Mammoth (DOCX) |
+| OCR | Tesseract.js (scanned PDFs / images) |
+| Visualization | Chart.js |
+| Report Export | jsPDF |
+| Integrity | Web Crypto API (SHA-256 hash/signing flow) |
+| State | `localStorage` (review/evaluation/audit session state) |
 
 ---
 
-## 📂 Project Structure
+## Repository Structure (Current)
 
-```
-NyayaBid/
-├── index.html              — Landing Page & Storytelling
+```text
+nyayabid/
+├── index.html
 ├── pages/
-│   ├── dashboard.html      — Live KPI Oversight & Shared Audit Trail
-│   ├── evaluate.html       — PDF Ingestion, AI Extraction & Review Workflow
-│   ├── simulation.html     — Policy "What-If" & Market Health Indicators
-│   └── report.html         — Final Audit Report, Sign-off & PDF Export
+│   ├── dashboard.html
+│   ├── evaluate.html
+│   ├── simulation.html
+│   └── report.html
 ├── scripts/
-│   ├── utils.js            — Shared Governance, Storage & UI Utilities
-│   ├── evaluation.js       — Explainable Eligibility Logic
-│   └── evaluation_core.js  — Document Extraction & OCR Pipeline
+│   ├── app.js
+│   ├── utils.js
+│   ├── data.js
+│   ├── evaluation.js
+│   └── collusion.js
 ├── styles/
-│   └── main.css            — Global Enterprise Design System (Dark Mode)
-└── assets/                 — Brand and Demo Assets
+│   ├── main.css
+│   ├── dashboard.css
+│   ├── simulation.css
+│   └── report.css
+└── assets/
 ```
 
 ---
 
-## 🚀 How to Demo
+## Demo Flow (Judge-Ready)
 
-1. **Reset**: Click **↺ Reset Session** in the sidebar for a clean-room start.
-2. **Simulate**: Start with **Policy Simulation** to show how adjusting turnover/experience criteria affects market health.
-3. **Evaluate**: Upload PDFs (or use Demo Pre-fill). Perform a **Manual Override** to demonstrate the Human-in-the-Loop accountability.
-4. **Explain**: Use the **"Explain"** button in the results table to show AI reasoning.
-5. **Finalize**: Generate the **Signed Audit Report** to show the SHA-256 hash and the accountability timeline.
+1. Open **Dashboard** for KPI and audit context
+2. Go to **Evaluate**
+3. Upload **Tender Document(s)**
+4. Upload **Vendor Document(s)**
+5. Show AI extraction + evidence + confidence
+6. Complete officer verification/edit/reject actions
+7. Run explainable evaluation
+8. Show **Why This Bidder Lost** cards
+9. Open **Simulation** and show before-vs-after policy impact reveal
+10. Highlight live governance trust telemetry
+11. Open **Report**, sign, verify hash status, and export PDF
+
+Include at least one red-team moment:
+- Upload irrelevant/unsupported/corrupted doc
+- Show safe rejection + manual review requirement
 
 ---
 
-## 🎯 Value Proposition
-NyayaBid AI addresses **GFR 2017 Rules 160/173/175** and **CVC Guidelines**, making it directly applicable to India's $500B+ public procurement market. It reduces bidder litigation, prevents corruption, and empowers MSMEs through fairer, more open competition.
+## Procurement Governance Relevance
+
+NyayaBid’s workflow framing aligns with public procurement governance principles such as:
+
+- explainable eligibility checks
+- documented human oversight
+- traceable override rationale
+- defensible audit reporting
+- pre-publication competition risk analysis
+
+This is a prototype and should be validated against department-specific legal/compliance requirements before operational deployment.
 
 ---
 
-> "NyayaBid AI does not just evaluate tenders—it governs the process of evaluation."
+## Current Limitations (Honest)
 
-## Future Scope
+- Frontend-first prototype architecture (no multi-user backend workflow yet)
+- Session state is browser-local (`localStorage`), not immutable server ledger
+- No production RBAC / identity provider integration yet
+- No automated end-to-end browser test suite yet
+- OCR quality may degrade on low-quality scans/noisy images
+- External integrations (GeM/CPPP/live procurement systems) are not yet implemented
 
-- **Backend Integration** with secure database and role-based access control for multi-user procurement workflows
-- **Integration with GeM and CPPP APIs** for real tender and bidder data
-- **Advanced AI models** for semantic understanding of tender clauses beyond rule-based extraction
-- **Face and document verification** for bidder identity validation
-- **Blockchain-backed audit trail** for tamper-proof, immutable logging
-- **Multilingual support** for regional language tender documents
-- **Mobile-friendly interface** for field officers and on-ground verification
+---
+
+## Roadmap
+
+- Backend service with role-based workflow and stronger audit persistence
+- GeM/CPPP integration pathways for live procurement ingestion
+- Multilingual extraction and review support
+- Enhanced semantic clause intelligence for tender risk analysis
+- Automated E2E validation suite for regression safety
+- Expanded procurement analytics and policy benchmarking
+
+---
+
+## Running Locally
+
+Open directly in a modern browser, or run a local static server:
+
+```bash
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`.
+
+---
+
+## Final Note
+
+NyayaBid AI is not a replacement for procurement officers.
+It is a governance-aware decision support layer that improves transparency, consistency, and auditability in tender evaluation.
