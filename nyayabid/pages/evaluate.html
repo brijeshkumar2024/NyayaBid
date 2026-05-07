@@ -59,7 +59,7 @@
 
       <div class="grid-2">
         <div class="upload-zone" id="tenderUploadZone" tabindex="0" role="button" aria-label="Tender upload zone" ondragover="return false;">
-          <div class="upload-zone-inner">
+          <div class="upload-zone-inner" id="tenderUploadZoneInner">
             <div style="font-size:34px">📄</div>
             <div style="font-weight:800; font-size:14px">Tender Documents</div>
             <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • PDF, DOCX, JPG/PNG</div>
@@ -69,12 +69,12 @@
               <span class="badge">JPG</span>
               <span class="badge">PNG</span>
             </div>
-            <input type="file" id="tenderFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
           </div>
+          <input type="file" id="tenderFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
         </div>
 
         <div class="upload-zone" id="vendorUploadZone" tabindex="0" role="button" aria-label="Vendor upload zone" ondragover="return false;">
-          <div class="upload-zone-inner">
+          <div class="upload-zone-inner" id="vendorUploadZoneInner">
             <div style="font-size:34px">🗂️</div>
             <div style="font-weight:800; font-size:14px">Vendor Documents</div>
             <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • GST, PAN, EMD, Experience</div>
@@ -84,8 +84,8 @@
               <span class="badge">EMD</span>
               <span class="badge">Experience</span>
             </div>
-            <input type="file" id="vendorFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
           </div>
+          <input type="file" id="vendorFileInput" multiple accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none" />
         </div>
       </div>
 
@@ -165,6 +165,8 @@
       }
       .upload-zone:hover{border-color:rgba(59,130,246,0.85); background:rgba(59,130,246,0.06); transform:translateY(-2px);}
       .upload-zone.is-dragover{border-color:rgba(16,185,129,0.75); box-shadow:0 0 0 3px rgba(16,185,129,0.15); background:rgba(16,185,129,0.04);}
+      .upload-zone.is-uploaded{border-color:rgba(16,185,129,0.7); background:rgba(16,185,129,0.05);}
+      .upload-zone.is-uploaded:hover{border-color:rgba(16,185,129,0.9); background:rgba(16,185,129,0.08); transform:translateY(-2px);}
       .upload-zone-inner{ text-align:center; position:relative; z-index:1; }
       .evidence-item {
         padding: 12px;
@@ -753,6 +755,54 @@
       if (lowConfidenceNote) lowConfidenceNote.style.display = canRun ? 'none' : 'block';
     }
 
+    // ── FILE UPLOAD HOOKS & TEMPLATES ────────────────────────────
+    const originalTenderZoneHTML = `
+      <div style="font-size:34px">📄</div>
+      <div style="font-weight:800; font-size:14px">Tender Documents</div>
+      <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • PDF, DOCX, JPG/PNG</div>
+      <div class="file-badges" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap; justify-content:center">
+        <span class="badge">PDF</span>
+        <span class="badge">DOCX</span>
+        <span class="badge">JPG</span>
+        <span class="badge">PNG</span>
+      </div>
+    `;
+
+    const originalVendorZoneHTML = `
+      <div style="font-size:34px">🗂️</div>
+      <div style="font-weight:800; font-size:14px">Vendor Documents</div>
+      <div style="color:var(--text2);font-size:13px;margin-top:4px">Drag & Drop • GST, PAN, EMD, Experience</div>
+      <div class="file-badges" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap; justify-content:center">
+        <span class="badge">GST</span>
+        <span class="badge">PAN</span>
+        <span class="badge">EMD</span>
+        <span class="badge">Experience</span>
+      </div>
+    `;
+
+    function resetUploadZone(type) {
+      const zone = document.getElementById(`${type}UploadZone`);
+      const inner = document.getElementById(`${type}UploadZoneInner`);
+      if (zone && inner) {
+        zone.classList.remove('is-uploaded');
+        inner.innerHTML = type === 'tender' ? originalTenderZoneHTML : originalVendorZoneHTML;
+      }
+    }
+
+    function setUploadZoneSuccess(type, fileName) {
+      const zone = document.getElementById(`${type}UploadZone`);
+      const inner = document.getElementById(`${type}UploadZoneInner`);
+      if (zone && inner) {
+        zone.classList.add('is-uploaded');
+        inner.innerHTML = `
+          <div style="font-size:34px">✅</div>
+          <div style="font-weight:800; font-size:14px; color:var(--green)">${type === 'tender' ? 'Tender' : 'Vendor'} Uploaded Successfully</div>
+          <div style="color:var(--text);font-size:12px;margin-top:6px;font-family:monospace;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:4px;display:inline-block;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${fileName}">${fileName}</div>
+          <div style="color:var(--text2);font-size:11px;margin-top:6px">Drag & drop or click to replace</div>
+        `;
+      }
+    }
+
     // ── FILE UPLOAD HANDLERS ──────────────────────────────────────
     function setupUploadZones() {
       const tenderZone = document.getElementById('tenderUploadZone');
@@ -761,6 +811,10 @@
       const vendorInput = document.getElementById('vendorFileInput');
       
       if (!tenderZone || !vendorZone) return;
+      
+      // Stop programmatic click bubbling to prevent infinite loop or browser click blocking
+      tenderInput?.addEventListener('click', (e) => { e.stopPropagation(); });
+      vendorInput?.addEventListener('click', (e) => { e.stopPropagation(); });
       
       // Tender zone handlers
       tenderZone.addEventListener('click', () => { tenderInput?.click(); });
@@ -846,6 +900,13 @@
     // Process tender documents
     async function handleTenderUpload(files) {
       if (!files.length) return;
+      
+      resetUploadZone('tender');
+      localStorage.removeItem('review-logs');
+      localStorage.removeItem('extraction-review-log');
+      localStorage.removeItem('officer-overrides');
+      renderReviewTimeline();
+      
       uploadedTenderFiles = files;
       await showProcessingPipeline();
       
@@ -877,6 +938,7 @@
           
           // Display tender info
           displayTenderInfo(currentTender);
+          setUploadZoneSuccess('tender', results[0].fileName || files[0].name);
           showToast('✓ Tender document extracted successfully (' + results[0].confidence + '% confidence)', 'success');
           logAction('Uploaded and extracted tender: ' + results[0].fileName);
         } else {
@@ -891,6 +953,7 @@
             relevanceScore: result.relevanceScore || 0
           };
           
+          resetUploadZone('tender');
           showToast('⚠ ' + errorMessage, 'warning');
           displayExtractionFailure('tender', result);
           updateEvaluationGate();
@@ -904,6 +967,7 @@
           extractionStatus: 'EXTRACTION_FAILED',
           errorMessage: err.message || 'Unknown extraction error'
         };
+        resetUploadZone('tender');
         showToast('Tender extraction failed — manual review required', 'warning');
         displayExtractionFailure('tender');
         updateEvaluationGate();
@@ -915,6 +979,13 @@
     // Process vendor documents
     async function handleVendorUpload(files) {
       if (!files.length) return;
+      
+      resetUploadZone('vendor');
+      localStorage.removeItem('review-logs');
+      localStorage.removeItem('extraction-review-log');
+      localStorage.removeItem('officer-overrides');
+      renderReviewTimeline();
+      
       uploadedVendorFiles = files;
       await showProcessingPipeline();
       
@@ -950,9 +1021,12 @@
           initVendorReviewState(validatedResults);
           
           if (currentVendors.length > 0) {
+            const vendorFileNames = validatedResults.map(r => r.fileName).join(', ');
+            setUploadZoneSuccess('vendor', vendorFileNames || files.map(f => f.name).join(', '));
             showToast('✓ ' + currentVendors.length + ' vendor documents extracted', 'success');
             logAction('Uploaded ' + currentVendors.length + ' vendor documents');
           } else {
+            resetUploadZone('vendor');
             showToast('⚠ No vendors extracted with sufficient confidence — manual review required', 'warning');
             currentVendors = [];
             displayExtractionFailure('vendor');
@@ -964,6 +1038,7 @@
           const firstInvalid = results.map((r) => validateVendorExtraction(r)).find((v) => !v.valid);
           const errorMessage = firstInvalid?.reason || result.message || 'All vendor extractions failed or low confidence — manual review required';
           
+          resetUploadZone('vendor');
           currentVendors = [];
           showToast('⚠ ' + errorMessage, 'warning');
           displayExtractionFailure('vendor', result);
@@ -972,6 +1047,7 @@
         }
       } catch (err) {
         console.error('Vendor upload error:', err);
+        resetUploadZone('vendor');
         currentVendors = [];
         showToast('Vendor extraction failed — manual review required', 'warning');
         displayExtractionFailure('vendor');
@@ -1213,7 +1289,13 @@
         extractionReviewState = savedState;
       }
       renderReviewTimeline();
-      if (Object.keys(extractionReviewState.tender || {}).length > 0) renderReviewPanel('tender');
+      if (Object.keys(extractionReviewState.tender || {}).length > 0) {
+        renderReviewPanel('tender');
+        setUploadZoneSuccess('tender', 'Tender Criteria Active');
+      }
+      if (Object.keys(extractionReviewState.vendor || {}).length > 0) {
+        setUploadZoneSuccess('vendor', 'Vendor Submissions Active');
+      }
       updateEvaluationGate();
     }
     document.addEventListener('DOMContentLoaded', () => {

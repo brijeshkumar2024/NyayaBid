@@ -969,10 +969,11 @@ function extractProcurementFields(text) {
     for (const pattern of tenderIdPatterns) {
       tenderIdMatch = normalizedText.match(pattern);
       if (tenderIdMatch && tenderIdMatch[1]) {
-        const candidate = String(tenderIdMatch[1]).trim().replace(/\s{2,}/g, ' ');
+        let candidate = String(tenderIdMatch[1]).trim().replace(/\s{2,}/g, ' ');
         if (/^(reference|tender|no|ref|nit)$/i.test(candidate.replace(/[^A-Z0-9]+/gi, ''))) {
           continue;
         }
+        candidate = candidate.replace(/\s+(?:Tender ID|Tender|ID)$/i, '').trim();
         fields.tenderId = candidate;
         addEvidence(evidence, 'tenderId', fields.tenderId, tenderIdMatch, 'tender id');
         break;
@@ -998,10 +999,11 @@ function extractProcurementFields(text) {
 
     // Min turnover / turnover requirement (OCR-tolerant and phrasing-flexible)
     const turnoverPatterns = [
-      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
-      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
-      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*₹\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
-      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:financial standing|turnover requirement)\s*[:\-]?\s*(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover(?:\s+requirement)?\s*[:\-]?\s*(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
+      /(?:financial standing|turnover requirement)\s*[:\-]?\s*(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
+      /(?:turnover|turnover requirement).*?(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i
     ];
     let turnoverMatch = null;
     let turnoverCr = null;
@@ -1024,6 +1026,7 @@ function extractProcurementFields(text) {
     if (Number.isFinite(turnoverCr) && turnoverCr > 0 && turnoverMatch) {
       fields.minTurnover = turnoverCr;
       fields.turnoverRequirement = turnoverCr;
+      fields.turnoverCr = turnoverCr;
       addEvidence(evidence, 'minTurnover', fields.minTurnover, turnoverMatch, 'turnover');
       addEvidence(evidence, 'turnoverRequirement', fields.turnoverRequirement, turnoverMatch, 'turnover requirement');
     } else {
@@ -1039,7 +1042,9 @@ function extractProcurementFields(text) {
       /(?:minimum|min|years?\s+of)?\s*experience\s*[:\-]?\s*(\d+)\s*(?:years?|yrs?)\b/i,
       /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)\b/i,
       /(?:minimum\s+)?(\d+)\s*(?:years?|yrs?)\s*(?:of\s+)?(?:technical\s+)?experience\b/i,
-      /(?:technical\s+experience|project\s+experience|similar\s+projects|completed\s+projects)\s*[:\-]?\s*(\d+)\b/i
+      /(?:technical\s+experience|project\s+experience|similar\s+projects|completed\s+projects)\s*[:\-]?\s*(\d+)\b/i,
+      /(?:experience|exp).*?(\d+)\s*(?:years?|yrs?)\b/i,
+      /(\d+)\s*(?:years?|yrs?).*?(?:experience|exp)\b/i
     ]);
     if (expMatch) {
       fields.experienceYears = parseInt(expMatch[1]);
@@ -1054,15 +1059,17 @@ function extractProcurementFields(text) {
       }
     }
 
-    // EMD amount
     const emdMatch = firstMatch(normalizedText, [
-      /emd\s*(?:amount)?\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:lakh|lac|l|cr|crore)\b/i
+      /(?:emd|earnest money(?: deposit)?|bid security).{0,60}?(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?(\d+(?:,\d+)*(?:\.\d+)?)\s*(lakhs?|lacs?|l|cr|crores?)\b/i,
+      /(?:emd|earnest money(?: deposit)?|bid security).{0,60}?(?:(?:rs\.?|inr|₹|INR|Rs)[.\s]*)?(\d+(?:,\d+)*(?:\.\d+)?)\b/i
     ]);
     if (emdMatch) {
-      fields.emdAmount = emdMatch[1];
+      const amt = emdMatch[1];
+      const unit = emdMatch[2] ? ` ${emdMatch[2].charAt(0).toUpperCase() + emdMatch[2].slice(1)}` : '';
+      fields.emdAmount = `₹${amt}${unit}`;
       evidence.emdAmount = createEvidenceRecord('emdAmount', fields.emdAmount, sourceDocument, 1, 'regex_pattern', emdMatch[0], 'AUTO_EXTRACTED', emdMatch.index, emdMatch.index + emdMatch[0].length);
     } else {
-      const emdPhraseMatch = normalizedText.match(/(?:emd|earnest money deposit).{0,120}?(?:mandatory|required|to be submitted|shall be submitted)/i);
+      const emdPhraseMatch = normalizedText.match(/(?:emd|earnest money(?: deposit)?|bid security).{0,120}?(?:mandatory|required|to be submitted|shall be submitted)/i);
       if (emdPhraseMatch) {
         fields.emdRequirementText = 'EMD submission mandatory';
         addEvidence(evidence, 'emdRequirementText', fields.emdRequirementText, emdPhraseMatch, 'emd requirement');
@@ -1123,7 +1130,9 @@ function extractProcurementFields(text) {
       /(?:company|vendor|bidder|supplier|firm|entity)\s*(?:name)?\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{2,})/i
     ]);
     if (vendorMatch) {
-      fields.vendorName = vendorMatch[1].trim();
+      let vName = vendorMatch[1].trim();
+      vName = vName.replace(/(?:submission document|submission|document|vendor name|basic company details|company details|registered government contractor|registered contractor)/gi, '').trim();
+      fields.vendorName = vName;
       evidence.vendorName = createEvidenceRecord('vendorName', fields.vendorName, sourceDocument, 1, 'regex_pattern', vendorMatch[0], 'AUTO_EXTRACTED', vendorMatch.index, vendorMatch.index + vendorMatch[0].length);
     }
     
@@ -1149,7 +1158,10 @@ function extractProcurementFields(text) {
       /\btender document\s*-\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i
     ]);
     if (authMatch) {
-      fields.authority = authMatch[1].trim().replace(/\s{2,}/g, ' ');
+      let authorityRaw = authMatch[1].trim().replace(/\s{2,}/g, ' ');
+      const stopWords = /^(.*?)(?:\s+(?:Scope of Work|Tender Reference|Eligibility Criteria|Notice Inviting Tender|Submission Details|Tender ID|NIT No|Date|Subject)\b.*)/i;
+      const cleanMatch = authorityRaw.match(stopWords);
+      fields.authority = cleanMatch ? cleanMatch[1].trim() : authorityRaw;
       addEvidence(evidence, 'authority', fields.authority, authMatch, 'authority');
     }
     
@@ -1264,6 +1276,25 @@ function computeGovernanceTelemetry() {
   let evidenceHit = 0;
   let confidenceSum = 0;
   let confidenceN = 0;
+
+  if (reviewState) {
+    const allFields = [
+      ...Object.values(reviewState.tender || {}),
+      ...Object.values(reviewState.vendor || {})
+    ];
+    allFields.forEach((item) => {
+      if (item && item.field) {
+        evidenceTotal += 1;
+        if (item.evidenceSnippet && item.evidenceSnippet.trim() !== '' && item.evidenceSnippet !== 'Requirement not confidently extracted') {
+          evidenceHit += 1;
+        }
+        if (Number.isFinite(Number(item.confidence))) {
+          confidenceSum += Number(item.confidence);
+          confidenceN += 1;
+        }
+      }
+    });
+  }
 
   if (lastEval && Array.isArray(lastEval.results)) {
     lastEval.results.forEach((r) => {

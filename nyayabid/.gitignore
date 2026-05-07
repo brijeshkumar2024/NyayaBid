@@ -1,0 +1,8 @@
+node_modules/
+scratch*.js
+tender_text.txt
+.gemini/
+.env
+.DS_Store
+dist/
+build/
