@@ -262,6 +262,30 @@
         background: rgba(245, 158, 11, 0.2);
         transform: translateY(-1px);
       }
+      .safe-reject-card {
+        margin-top: 12px;
+        border: 1px solid rgba(239,68,68,0.35);
+        border-left: 4px solid var(--red);
+        border-radius: 10px;
+        background: rgba(239,68,68,0.08);
+        padding: 12px;
+        animation: safeRejectIn 0.28s ease both;
+      }
+      .safe-reject-title { font-weight: 800; color: #fca5a5; margin-bottom: 6px; }
+      .safe-reject-sub { font-size: 12px; color: var(--text2); }
+      .loss-card {
+        border: 1px solid rgba(239,68,68,0.3);
+        background: rgba(239,68,68,0.05);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .loss-card summary { cursor: pointer; font-weight: 700; color: #fca5a5; }
+      .loss-meta { margin-top: 8px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+      @keyframes safeRejectIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
     </style>
 
 
@@ -321,6 +345,11 @@
         <div class="card-title">Risk & Anomaly Detection</div>
         <div class="card-sub">Flags and recommendations</div>
         <div id="flagsContainer"></div>
+      </div>
+      <div class="card" style="margin-top: 18px;">
+        <div class="card-title">Why This Bidder Lost</div>
+        <div class="card-sub">Audit-defensible rejection reasoning with evidence and policy context</div>
+        <div id="lossStoryCards"></div>
       </div>
     </div>
   </div>
@@ -935,6 +964,13 @@
       const relevanceMessage = relevanceScore < relevanceThreshold ? `Document relevance: ${relevanceScore}% (Minimum ${relevanceThreshold}% required)` : '';
       
       container.textContent = `EXTRACTION FAILED: ${message}. Confidence: ${confidence}%. ${relevanceMessage} Manual review required before proceeding.`;
+      const warning = document.createElement('div');
+      warning.className = 'safe-reject-card';
+      warning.innerHTML = [
+        '<div class="safe-reject-title">⚠ Unsupported or non-procurement document detected.</div>',
+        '<div class="safe-reject-sub">Safe rejection applied. No automated verdict was produced. Officer review is mandatory before any procurement decision.</div>'
+      ].join('');
+      container.appendChild(warning);
       const ruleMappingSummary = document.getElementById('ruleMappingSummary');
       if (ruleMappingSummary) {
         ruleMappingSummary.textContent = '⚠ Extraction failed — manual review required. Structured procurement fields could not be reliably extracted from the uploaded document.';
@@ -1266,6 +1302,7 @@
       const eligible = results.filter(r => r.status === 'Eligible').length;
       const review = results.filter(r => r.status === 'Needs Review').length;
       const rejected = results.filter(r => r.status === 'Not Eligible').length;
+      renderLossStoryCards(results);
       showToast(`✓ Evaluation complete — ${eligible} Eligible, ${review} Needs Review, ${rejected} Not Eligible`, 'success');
 
       // Scroll to results
@@ -1277,6 +1314,39 @@
         console.error('Evaluation error:', err);
         showToast('Evaluation error — please try again', 'error');
       }
+      }
+      function renderLossStoryCards(results) {
+        const host = document.getElementById('lossStoryCards');
+        if (!host) return;
+        host.textContent = '';
+        const rejected = (Array.isArray(results) ? results : []).filter((r) => {
+          const s = String(r.status || '').toLowerCase();
+          return s === 'not eligible' || s === 'rejected' || s === 'ineligible';
+        });
+        if (!rejected.length) {
+          host.textContent = 'No rejected bidders in current run.';
+          return;
+        }
+        rejected.forEach((r) => {
+          const failed = (Array.isArray(r.checks) ? r.checks.find((c) => !c.passed) : null);
+          const evidenceSnippet = failed?.evidence?.rawEvidenceSnippet || 'No direct evidence snippet available in extraction payload.';
+          const reason = failed
+            ? `${failed.found} does not satisfy required ${failed.required} under ${failed.criterion}.`
+            : (r.flagReason || 'One or more mandatory criteria were not met.');
+          const card = document.createElement('details');
+          card.className = 'loss-card';
+          card.open = true;
+          card.innerHTML = [
+            `<summary>❌ ${r.vendorName} Rejected</summary>`,
+            '<div class="loss-meta">',
+            `<div><strong>Reason:</strong> ${reason}</div>`,
+            `<div><strong>Evidence:</strong> "${evidenceSnippet}"</div>`,
+            '<div><strong>Policy Context:</strong> Aligned with procurement eligibility review workflow and officer verification gates.</div>',
+            `<div><strong>Confidence/Review:</strong> ${r.confidence}% • ${r.flagForReview ? 'Needs officer review' : 'Evidence-backed rejection'}</div>`,
+            '</div>'
+          ].join('');
+          host.appendChild(card);
+        });
       }
       function showExplain(index) {
         const stored = getStorage('last-evaluation', null);

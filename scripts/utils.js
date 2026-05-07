@@ -1099,22 +1099,34 @@ async function extractDocumentData(file, documentType = 'auto') {
     let extractedData = { text: '', confidence: 0, source: 'unknown' };
     
     // Determine file type and extract
+    const withTimeout = async (promise, ms, timeoutMessage) => {
+      let timer = null;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+      });
+      try {
+        return await Promise.race([promise, timeout]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
+
     if (lowerFileName.endsWith('.pdf')) {
-      extractedData = await extractPdfText(file);
+      extractedData = await withTimeout(extractPdfText(file), 20000, 'PDF extraction timeout');
 
       const noSelectableText = !extractedData.text?.trim();
       const canUseOcr = typeof Tesseract !== 'undefined';
 
       if ((noSelectableText || extractedData.source === 'error' || extractedData.source === 'unavailable') && canUseOcr) {
-        const ocrPdf = await extractPdfImageText(file);
+        const ocrPdf = await withTimeout(extractPdfImageText(file), 30000, 'OCR timeout');
         if (ocrPdf.text && ocrPdf.text.trim()) {
           extractedData = ocrPdf;
         }
       }
     } else if (lowerFileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-      extractedData = await extractImageText(file);
+      extractedData = await withTimeout(extractImageText(file), 25000, 'Image OCR timeout');
     } else if (lowerFileName.endsWith('.docx')) {
-      extractedData = await extractDocxText(file);
+      extractedData = await withTimeout(extractDocxText(file), 15000, 'DOCX extraction timeout');
     } else {
       return { success: false, message: 'Unsupported file format. Use PDF, DOCX, JPG, or PNG.', extractionStatus: 'UNVERIFIED' };
     }
@@ -1170,6 +1182,115 @@ async function extractDocumentData(file, documentType = 'auto') {
     return { success: false, message: 'Extraction failed — manual review required.', extractionStatus: 'UNVERIFIED' };
   }
 }
+
+function computeGovernanceTelemetry() {
+  const lastEval = getStorage('last-evaluation', null);
+  const reviewState = getStorage('extraction-review-state', { tender: {}, vendor: {} });
+  const overrides = getStorage('officer-overrides', []);
+  const signoff = getStorage('report-signoff', null);
+
+  let evidenceTotal = 0;
+  let evidenceHit = 0;
+  let confidenceSum = 0;
+  let confidenceN = 0;
+
+  if (lastEval && Array.isArray(lastEval.results)) {
+    lastEval.results.forEach((r) => {
+      const checks = Array.isArray(r.checks) ? r.checks : [];
+      checks.forEach((c) => {
+        evidenceTotal += 1;
+        if (c && c.evidence) evidenceHit += 1;
+      });
+      if (Number.isFinite(Number(r.confidence))) {
+        confidenceSum += Number(r.confidence);
+        confidenceN += 1;
+      }
+    });
+  }
+
+  const tenderItems = Object.values((reviewState && reviewState.tender) || {});
+  const pendingReviewFields = tenderItems.filter((item) => {
+    const s = String(item?.reviewStatus || '');
+    return s !== 'Officer Verified' && s !== 'Officer Modified';
+  }).length;
+  const pendingEvalRows = (lastEval && Array.isArray(lastEval.results))
+    ? lastEval.results.filter((r) => String(r.status || '').toLowerCase() === 'needs review').length
+    : 0;
+  const pendingReviews = pendingReviewFields + pendingEvalRows;
+
+  const evidenceCoverage = evidenceTotal > 0 ? Math.round((evidenceHit / evidenceTotal) * 100) : 0;
+  const avgConfidence = confidenceN > 0 ? Math.round(confidenceSum / confidenceN) : 0;
+
+  const hasSigned = Boolean(signoff && signoff.signing && signoff.signing.verificationStatus === 'SIGNED');
+  const tamperStatus = hasSigned ? 'VERIFIED' : 'UNVERIFIED';
+  const governanceState = pendingReviews === 0 ? 'REVIEW COMPLIANT' : 'REVIEW REQUIRED';
+
+  return {
+    evidenceCoverage,
+    pendingReviews,
+    overridesCount: Array.isArray(overrides) ? overrides.length : 0,
+    tamperStatus,
+    avgConfidence,
+    governanceState
+  };
+}
+
+function ensureGovernanceTrustBar() {
+  const path = (location.pathname || '').toLowerCase();
+  const supported = path.includes('/pages/evaluate') || path.includes('/pages/simulation') || path.includes('/pages/report');
+  if (!supported) return;
+
+  let bar = document.getElementById('gov-trustbar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'gov-trustbar';
+    bar.className = 'gov-trustbar';
+    bar.innerHTML = [
+      '<div class="gov-trustbar-grid">',
+      '<div class="gov-chip"><div class="gov-chip-label">Evidence Coverage</div><div id="gov-evidence" class="gov-chip-value">0%</div></div>',
+      '<div class="gov-chip"><div class="gov-chip-label">Pending Reviews</div><div id="gov-pending" class="gov-chip-value">0</div></div>',
+      '<div class="gov-chip"><div class="gov-chip-label">Officer Overrides</div><div id="gov-overrides" class="gov-chip-value">0</div></div>',
+      '<div class="gov-chip"><div class="gov-chip-label">Tamper Verification</div><div id="gov-tamper" class="gov-chip-value">UNVERIFIED</div></div>',
+      '<div class="gov-chip"><div class="gov-chip-label">Avg Confidence</div><div id="gov-confidence" class="gov-chip-value">0%</div></div>',
+      '<div class="gov-chip"><div class="gov-chip-label">Governance State</div><div id="gov-state" class="gov-chip-value">REVIEW REQUIRED</div></div>',
+      '</div>'
+    ].join('');
+    const main = document.querySelector('.main');
+    if (main) main.prepend(bar);
+  }
+
+  const render = () => {
+    const t = computeGovernanceTelemetry();
+    const ev = document.getElementById('gov-evidence');
+    const pr = document.getElementById('gov-pending');
+    const ov = document.getElementById('gov-overrides');
+    const tm = document.getElementById('gov-tamper');
+    const cf = document.getElementById('gov-confidence');
+    const st = document.getElementById('gov-state');
+    if (!ev || !pr || !ov || !tm || !cf || !st) return;
+
+    ev.textContent = `${t.evidenceCoverage}%`;
+    pr.textContent = String(t.pendingReviews);
+    ov.textContent = String(t.overridesCount);
+    tm.textContent = t.tamperStatus;
+    cf.textContent = `${t.avgConfidence}%`;
+    st.textContent = t.governanceState;
+
+    ev.className = `gov-chip-value ${t.evidenceCoverage >= 80 ? 'ok' : t.evidenceCoverage >= 50 ? 'warn' : 'danger'}`;
+    pr.className = `gov-chip-value ${t.pendingReviews === 0 ? 'ok' : t.pendingReviews <= 2 ? 'warn' : 'danger'}`;
+    ov.className = `gov-chip-value ${t.overridesCount === 0 ? 'ok' : 'warn'}`;
+    tm.className = `gov-chip-value ${t.tamperStatus === 'VERIFIED' ? 'ok' : 'warn'}`;
+    cf.className = `gov-chip-value ${t.avgConfidence >= 80 ? 'ok' : t.avgConfidence >= 65 ? 'warn' : 'danger'}`;
+    st.className = `gov-chip-value ${t.governanceState === 'REVIEW COMPLIANT' ? 'ok' : 'warn'}`;
+  };
+
+  render();
+  if (!window.__nyayabidTrustBarTimer) {
+    window.__nyayabidTrustBarTimer = setInterval(render, 2500);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ensureGovernanceTrustBar);
 
 async function signAuditPayload(payloadText, signedBy) {
   try {

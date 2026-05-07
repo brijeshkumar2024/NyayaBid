@@ -108,6 +108,22 @@
     </div>
 
     <!-- CHART SECTION -->
+    <div class="card" style="margin-top:24px">
+      <div class="card-title">Before vs After Policy Impact</div>
+      <div class="card-sub">Governance impact reveal for policy threshold changes</div>
+      <div class="grid-2">
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:rgba(255,255,255,0.02)">
+          <div style="font-weight:700;margin-bottom:8px">BEFORE POLICY CHANGE</div>
+          <div id="beforeMetrics" style="font-size:13px;color:var(--text2);line-height:1.8"></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:rgba(255,255,255,0.02)">
+          <div style="font-weight:700;margin-bottom:8px">AFTER POLICY CHANGE</div>
+          <div id="afterMetrics" style="font-size:13px;color:var(--text2);line-height:1.8"></div>
+        </div>
+      </div>
+      <div id="deltaBanner" style="margin-top:12px;padding:11px;border-radius:10px;border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.10);color:#fcd34d;font-weight:700;"></div>
+    </div>
+
     <div id="chartSection" style="margin-top:24px">
       <div class="card" style="margin-bottom:20px">
         <div class="card-title">Vendor Competition Chart</div>
@@ -139,6 +155,7 @@
   <script>
     let simChart = null;
     let baselineEligible = 0;
+    let baselineSnapshot = null;
     const STRICT_MODE = true;
 
     const PRESETS = {
@@ -271,14 +288,90 @@
 
       renderSimChart(results);
       renderSimTable(results);
+      renderImpactReveal({
+        eligible,
+        total: simulationVendors.length,
+        riskLevel,
+        fairness: estimateFairness(results),
+        competition: eligible < 3 ? 'CRITICAL' : eligible < 5 ? 'WEAK' : 'HEALTHY',
+        turnover,
+        exp
+      });
 
       if (scrollToChart) {
         setTimeout(() => { document.getElementById('chartSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
       }
     }
 
+    function estimateFairness(results) {
+      const mockCriteria = { msmeRelaxation: document.getElementById('msmeCheck').checked ? 0.75 : 1 };
+      return calculatePFS(results, mockCriteria, results);
+    }
+
+    function renderImpactReveal(current) {
+      if (!baselineSnapshot) baselineSnapshot = { ...current };
+      const before = baselineSnapshot;
+      const after = current;
+      const beforeMetrics = document.getElementById('beforeMetrics');
+      const afterMetrics = document.getElementById('afterMetrics');
+      const deltaBanner = document.getElementById('deltaBanner');
+      if (!beforeMetrics || !afterMetrics || !deltaBanner) return;
+
+      beforeMetrics.innerHTML = [
+        `<div>Eligible Vendors: <strong>${before.eligible}/${before.total}</strong></div>`,
+        `<div>Fairness Score: <strong>${before.fairness}%</strong></div>`,
+        `<div>Competition Health: <strong>${before.competition}</strong></div>`,
+        `<div>Projected Risk: <strong>${before.riskLevel}</strong></div>`
+      ].join('');
+      afterMetrics.innerHTML = [
+        `<div>Eligible Vendors: <strong>${after.eligible}/${after.total}</strong></div>`,
+        `<div>Fairness Score: <strong>${after.fairness}%</strong></div>`,
+        `<div>Competition Health: <strong>${after.competition}</strong></div>`,
+        `<div>Projected Risk: <strong>${after.riskLevel}</strong></div>`
+      ].join('');
+
+      const deltaEligible = after.eligible - before.eligible;
+      const deltaFairness = after.fairness - before.fairness;
+      const approxCostRiskLakh = Math.max(0, (before.eligible - after.eligible) * 45);
+      const riskWarning = after.eligible < before.eligible && after.competition !== 'HEALTHY';
+      deltaBanner.style.borderColor = riskWarning ? 'rgba(239,68,68,0.40)' : 'rgba(16,185,129,0.35)';
+      deltaBanner.style.background = riskWarning ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)';
+      deltaBanner.style.color = riskWarning ? '#fca5a5' : '#6ee7b7';
+      deltaBanner.textContent = riskWarning
+        ? `⚠ Restrictive policy change may significantly reduce market competition. Eligible vendors ${before.eligible} → ${after.eligible}; Fairness ${before.fairness}% → ${after.fairness}%; Projected cost risk +₹${approxCostRiskLakh} lakh.`
+        : `✓ Policy posture improved competition balance. Eligible vendors ${before.eligible} → ${after.eligible}; Fairness ${before.fairness}% → ${after.fairness}%.`;
+
+      const impactChangeEl = document.getElementById('impactChange');
+      if (impactChangeEl) {
+        impactChangeEl.style.transition = 'all 0.28s ease';
+        impactChangeEl.style.transform = 'scale(1.08)';
+        setTimeout(() => { impactChangeEl.style.transform = 'scale(1)'; }, 220);
+        impactChangeEl.textContent = (deltaEligible >= 0 ? '+' : '') + deltaEligible;
+      }
+      const impactVendorsEl = document.getElementById('impactVendors');
+      if (impactVendorsEl) impactVendorsEl.textContent = `${deltaEligible >= 0 ? '+' : ''}${deltaEligible} vendors`;
+      const impactCompEl = document.getElementById('impactComp');
+      if (impactCompEl) impactCompEl.textContent = `${deltaFairness >= 0 ? '↑' : '↓'} ${Math.abs(deltaFairness)} fairness pts`;
+    }
+
     function renderSimChart(results) {
       try {
+        if (typeof Chart === 'undefined') {
+          const chartSection = document.getElementById('chartSection');
+          if (chartSection) {
+            let existing = document.getElementById('simChartFallback');
+            if (!existing) {
+              existing = document.createElement('div');
+              existing.id = 'simChartFallback';
+              existing.className = 'card';
+              existing.style.marginTop = '10px';
+              existing.style.borderLeft = '4px solid var(--amber)';
+              existing.textContent = 'Chart module unavailable. Tabular simulation output remains available for governance review.';
+              chartSection.prepend(existing);
+            }
+          }
+          return;
+        }
         const canvas = document.getElementById('simChart');
         if (!canvas) { console.warn('Chart canvas not found'); return; }
         const ctx = canvas.getContext('2d');
