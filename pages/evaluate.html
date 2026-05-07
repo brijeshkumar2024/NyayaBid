@@ -25,7 +25,7 @@
       <a class="nav-item" href="report.html"><span class="nav-icon">📄</span>Report</a>
     </nav>
     <div class="sidebar-footer">NyayaBid AI v1.0</div>
-    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Demo</button>
+    <button class="reset-btn" onclick="resetDemoEnvironment()">↺ Reset Session</button>
   </aside>
 
   <div class="main">
@@ -47,9 +47,9 @@
       </div>
 
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="loadDemoTender()">📋 Use Demo Tender</button>
-      <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Load Demo Vendors</button>
-      <button class="btn btn-success" onclick="runEvaluation()">▶ Run Evaluation</button>
+      <button class="btn btn-primary" onclick="loadDemoTender()">📋 Upload Tender Documents</button>
+      <button class="btn btn-secondary" onclick="loadDemoVendors()">👥 Upload Vendor Documents</button>
+      <button class="btn btn-success" id="runEvaluationBtn" onclick="runEvaluation()" disabled>▶ Run Evaluation (Review Required)</button>
     </div>
 
     <!-- Upload & OCR Pipeline -->
@@ -119,6 +119,27 @@
       </div>
     </div>
 
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-title">Extraction Review & Verification</div>
+      <div class="card-sub">Officer verification required before evaluation. AI values remain preserved for audit.</div>
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div>
+          <label class="form-label" for="reviewOfficerName">Review Officer Name</label>
+          <input id="reviewOfficerName" class="form-input" placeholder="Enter officer name for review actions" />
+        </div>
+        <div>
+          <label class="form-label" for="reviewOfficerNote">Default Review Note</label>
+          <input id="reviewOfficerNote" class="form-input" placeholder="Reason/remarks for approvals or edits" />
+        </div>
+      </div>
+      <div id="reviewRequiredBanner" class="badge badge-review" style="margin-bottom:12px;">REVIEW REQUIRED</div>
+      <div id="extractionReviewPanel" style="display:grid;gap:12px;"></div>
+      <div class="card" style="margin-top:12px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:6px;">Review Timeline</div>
+        <div id="reviewTimeline" style="color:var(--text2);font-size:13px;">No review actions logged.</div>
+      </div>
+    </div>
+
     <style>
       .upload-zone{
         border:1px solid rgba(59,130,246,0.35);
@@ -145,6 +166,102 @@
       .upload-zone:hover{border-color:rgba(59,130,246,0.85); background:rgba(59,130,246,0.06); transform:translateY(-2px);}
       .upload-zone.is-dragover{border-color:rgba(16,185,129,0.75); box-shadow:0 0 0 3px rgba(16,185,129,0.15); background:rgba(16,185,129,0.04);}
       .upload-zone-inner{ text-align:center; position:relative; z-index:1; }
+      .evidence-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        background: rgba(255,255,255,0.02);
+      }
+      
+      .evidence-field {
+        font-weight: 600;
+        color: var(--accent);
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      
+      .evidence-value {
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      
+      .evidence-meta {
+        font-size: 11px;
+        color: var(--text2);
+        font-style: italic;
+      }
+
+      .vendor-evidence-group {
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.02);
+      }
+
+      .vendor-evidence-header {
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .confidence-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .confidence-badge.high {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+
+      .confidence-badge.low {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }    </style>
+
+
+    <!-- Additional Button Styles -->
+    <style>
+      .btn-explain {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--blue);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-explain:hover {
+        background: rgba(59, 130, 246, 0.2);
+      }
+
+      .btn-override {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--amber);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-override:hover {
+        background: rgba(245, 158, 11, 0.2);
+        transform: translateY(-1px);
+      }
     </style>
 
 
@@ -160,7 +277,7 @@
         <div class="criteria-chips" id="criteriaChips"></div>
       </div>
       <div id="tenderPlaceholder" style="text-align: center; color: var(--text3); padding: 20px;">
-        Click "Use Demo Tender" to load sample criteria
+        Upload procurement tender documents to begin extraction and review.
       </div>
     </div>
 
@@ -170,7 +287,7 @@
       <div class="card-sub">Loaded vendor information</div>
       <div id="vendorsContainer">
         <div style="text-align: center; color: var(--text3); padding: 20px;">
-          Click "Load Demo Vendors" to load sample vendors
+          Upload vendor procurement documents for evidence-backed extraction.
         </div>
       </div>
     </div>
@@ -189,8 +306,9 @@
                 <th>Turnover</th>
                 <th>Experience</th>
                 <th>GST</th>
-                    <th>Confidence</th>
+                <th>Confidence</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
                 <tbody id="resultsTable"></tbody>
@@ -209,13 +327,58 @@
   <div id="toast-container"></div>
   
   <!-- Explainability Modal -->
-  <div id="explainModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+  <div id="explainModal" role="dialog" aria-modal="true" aria-labelledby="explainTitle" tabindex="-1" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
     <div style="width:720px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div id="explainTitle" style="font-weight:800">Explain Decision</div>
         <button class="btn btn-sm" id="closeExplain">Close</button>
       </div>
       <div id="explainBody" style="color:var(--text2);line-height:1.6;max-height:420px;overflow:auto"></div>
+    </div>
+  </div>
+
+  <!-- Human-in-the-Loop Override Modal -->
+  <div id="overrideModal" role="dialog" aria-modal="true" aria-labelledby="overrideTitle" tabindex="-1" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+    <div style="width:600px; max-width:94%; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div id="overrideTitle" style="font-weight:800">🛡️ Officer Override</div>
+        <button class="btn btn-sm" id="closeOverride">Close</button>
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <div style="font-weight:600; margin-bottom:8px;">Vendor: <span id="overrideVendorName"></span></div>
+        <div style="font-size:13px; color:var(--text2);">Current AI Decision: <span id="overrideCurrentStatus"></span></div>
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">Override Decision</label>
+        <select id="overrideDecision" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text);">
+          <option value="">Select override decision...</option>
+          <option value="Eligible">Override to Eligible</option>
+          <option value="Not Eligible">Override to Not Eligible</option>
+          <option value="Needs Review">Override to Needs Review</option>
+        </select>
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">Officer Name *</label>
+        <input type="text" id="overrideOfficerName" placeholder="Enter your full name" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text);" required>
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">Override Reason *</label>
+        <textarea id="overrideReason" placeholder="Provide detailed justification for this override decision..." rows="4" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); resize:vertical;" required></textarea>
+      </div>
+      
+      <div style="margin-bottom:16px; padding:12px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:6px;">
+        <div style="font-weight:600; color:var(--amber); margin-bottom:4px;">⚠️ Audit Warning</div>
+        <div style="font-size:13px; color:var(--text2);">This override will be permanently logged in the audit trail with timestamp and officer details. Ensure compliance with GFR and CVC guidelines.</div>
+      </div>
+      
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn btn-secondary" id="cancelOverride">Cancel</button>
+        <button class="btn btn-primary" id="submitOverride" disabled>Submit Override</button>
+      </div>
     </div>
   </div>
   <script>
@@ -243,113 +406,766 @@
     if(typeof pdfjsLib!=='undefined'){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
     else { console.warn('pdf.js library not available — OCR will use demo mode'); }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="../scripts/utils.js"></script>
   <script>
     let currentTender = null;
     let currentVendors = null;
+    let uploadedTenderFiles = [];
+    let uploadedVendorFiles = [];
+    let extractionReviewState = { tender: {}, vendor: {} };
+    const tenderMandatoryFields = ['tenderId', 'authority', 'turnoverRequirement', 'experienceRequirement', 'gstRequired'];
+    function canonicalGstState(value) {
+      const v = String(value === undefined || value === null ? '' : value).trim().toLowerCase();
+      if (!v) return 'Not Detected';
+      if (['mandatory', 'required', 'yes', 'true'].includes(v)) return 'Mandatory';
+      if (['optional', 'no', 'false'].includes(v)) return 'Optional';
+      return 'Not Detected';
+    }
 
-    function loadDemoTender() {
-      currentTender = DEMO_TENDER;
-      document.getElementById('tenderPlaceholder').style.display = 'none';
-      document.getElementById('tenderInfo').style.display = 'block';
+    function getEvidenceForField(result, field) {
+      return result?.evidence?.[field] || null;
+    }
+
+    function toReviewItem(field, label, value, confidence, evidence, method) {
+      return {
+        field,
+        label,
+        originalValue: value,
+        updatedValue: value,
+        confidence: Number(confidence || 0),
+        evidenceSnippet: evidence?.rawEvidenceSnippet || '',
+        sourcePage: evidence?.pageNumber || 1,
+        extractionMethod: evidence?.extractionMethod || method || 'unknown',
+        reviewStatus: Number(confidence || 0) < 70 ? 'Low Confidence' : 'AI Extracted',
+        note: ''
+      };
+    }
+
+    function initTenderReviewState(result) {
+      const f = result?.fields || {};
+      extractionReviewState.tender = {
+        tenderId: toReviewItem('tenderId', 'Tender ID', f.tenderId || '', result?.confidence, getEvidenceForField(result, 'tenderId'), result?.source),
+        authority: toReviewItem('authority', 'Authority', f.authority || '', result?.confidence, getEvidenceForField(result, 'authority'), result?.source),
+        turnoverRequirement: toReviewItem('turnoverRequirement', 'Turnover Requirement (Cr)', f.turnoverRequirement || f.minTurnover || '', result?.confidence, getEvidenceForField(result, 'turnoverRequirement') || getEvidenceForField(result, 'minTurnover'), result?.source),
+        experienceRequirement: toReviewItem('experienceRequirement', 'Experience Requirement (Years)', f.experienceRequirement || f.experienceYears || '', result?.confidence, getEvidenceForField(result, 'experienceRequirement') || getEvidenceForField(result, 'experienceYears'), result?.source),
+        gstRequired: toReviewItem('gstRequired', 'GST Requirement', canonicalGstState(f.gstRequired === true ? 'Mandatory' : (f.gstRequired === false ? 'Optional' : '')), result?.confidence, getEvidenceForField(result, 'gstRequired'), result?.source),
+        panRequired: toReviewItem('panRequired', 'PAN Requirement', f.panRequired === true ? 'Mandatory' : '', result?.confidence, getEvidenceForField(result, 'panRequired'), result?.source),
+        emdAmount: toReviewItem('emdAmount', 'EMD Amount', f.emdAmount || '', result?.confidence, getEvidenceForField(result, 'emdAmount'), result?.source),
+        eligibilityCriteriaDetected: toReviewItem('eligibilityCriteriaDetected', 'Eligibility Criteria', f.eligibilityCriteriaDetected ? 'Detected' : '', result?.confidence, getEvidenceForField(result, 'eligibilityCriteriaDetected'), result?.source)
+      };
+      setStorage('extraction-review-state', extractionReviewState);
+      renderReviewPanel('tender');
+      updateRuleMappingSummary(result);
+      updateEvaluationGate();
+    }
+
+    function initVendorReviewState(results) {
+      const first = results && results.length ? results[0] : null;
+      const f = first?.fields || {};
+      extractionReviewState.vendor = {
+        vendorName: toReviewItem('vendorName', 'Vendor Name', f.vendorName || '', first?.confidence, getEvidenceForField(first, 'vendorName'), first?.source),
+        gstNumber: toReviewItem('gstNumber', 'GST Number', f.gstNumber || '', first?.confidence, getEvidenceForField(first, 'gstNumber'), first?.source),
+        panNumber: toReviewItem('panNumber', 'PAN Number', f.panNumber || '', first?.confidence, getEvidenceForField(first, 'panNumber'), first?.source),
+        turnoverRequirement: toReviewItem('turnoverRequirement', 'Turnover Evidence', f.turnoverRequirement || f.minTurnover || '', first?.confidence, getEvidenceForField(first, 'turnoverRequirement') || getEvidenceForField(first, 'minTurnover'), first?.source),
+        experienceRequirement: toReviewItem('experienceRequirement', 'Experience Evidence', f.experienceRequirement || f.experienceYears || '', first?.confidence, getEvidenceForField(first, 'experienceRequirement') || getEvidenceForField(first, 'experienceYears'), first?.source)
+      };
+      setStorage('extraction-review-state', extractionReviewState);
+      renderReviewPanel('vendor');
+      updateEvaluationGate();
+    }
+
+    function logReviewAction(item, updatedValue, reviewStatus, reason) {
+      const modifiedBy = (document.getElementById('reviewOfficerName')?.value || '').trim() || 'Unspecified Officer';
+      const note = reason || (document.getElementById('reviewOfficerNote')?.value || '').trim() || 'No note';
+      const entry = {
+        field: item.field,
+        originalValue: item.originalValue,
+        updatedValue: updatedValue,
+        confidence: item.confidence,
+        evidenceSnippet: item.evidenceSnippet,
+        sourcePage: item.sourcePage,
+        modifiedBy,
+        modificationReason: note,
+        timestamp: new Date().toISOString(),
+        reviewStatus
+      };
+      const timeline = getStorage('extraction-review-log', []);
+      timeline.unshift(entry);
+      setStorage('extraction-review-log', timeline);
+      appendReviewLog({
+        reviewerName: modifiedBy,
+        overrideReason: note,
+        reviewedCriterion: item.field,
+        officerNotes: `${item.originalValue} -> ${updatedValue}`,
+        status: reviewStatus
+      });
+      renderReviewTimeline();
+    }
+
+    function renderReviewTimeline() {
+      const wrap = document.getElementById('reviewTimeline');
+      if (!wrap) return;
+      const logs = getStorage('extraction-review-log', []);
+      if (!logs.length) {
+        wrap.textContent = 'No review actions logged.';
+        return;
+      }
+      wrap.textContent = '';
+      logs.slice(0, 12).forEach((l) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.marginBottom = '6px';
+        const badge = document.createElement('span');
+        badge.className = l.reviewStatus === 'Rejected' ? 'badge badge-ineligible' : l.reviewStatus === 'Officer Modified' ? 'badge badge-review' : 'badge badge-eligible';
+        badge.textContent = l.reviewStatus;
+        const txt = document.createElement('span');
+        const note = l.modificationReason ? ` | ${l.modificationReason}` : '';
+        txt.textContent = `${new Date(l.timestamp).toLocaleString()} | Officer ${l.modifiedBy} | ${l.field}${note}`;
+        row.append(badge, txt);
+        wrap.appendChild(row);
+      });
+    }
+
+    function updateRuleMappingSummary(result) {
+      const box = document.getElementById('ruleMappingSummary');
+      if (!box) return;
+      const fields = result?.fields || {};
+      const evidence = result?.evidence || {};
+      const confidence = Number(result?.confidence || 0);
+      const gst = canonicalGstState(fields.gstRequired === true ? 'Mandatory' : (fields.gstRequired === false ? 'Optional' : ''));
+      const rules = [];
+      if (Number.isFinite(Number(fields.minTurnover)) && Number(fields.minTurnover) > 0) {
+        rules.push(`✓ Vendor Turnover ≥ ₹${fields.minTurnover} Cr | Source: minTurnover | Confidence: ${confidence}% | Evidence: ${(evidence.minTurnover?.rawEvidenceSnippet || 'Available')}`);
+      }
+      if (Number.isFinite(Number(fields.experienceYears)) && Number(fields.experienceYears) > 0) {
+        rules.push(`✓ Experience ≥ ${fields.experienceYears} Years | Source: experienceYears | Confidence: ${confidence}% | Evidence: ${(evidence.experienceYears?.rawEvidenceSnippet || 'Available')}`);
+      }
+      if (gst !== 'Not Detected') {
+        rules.push(`✓ GST Registration ${gst} | Source: gstRequired | Confidence: ${confidence}% | Evidence: ${(evidence.gstRequired?.rawEvidenceSnippet || 'Available')}`);
+      }
+      if (fields.panRequired === true) {
+        rules.push(`✓ PAN Requirement Mandatory | Source: panRequired | Confidence: ${confidence}% | Evidence: ${(evidence.panRequired?.rawEvidenceSnippet || 'Available')}`);
+      }
+      if (fields.emdAmount) {
+        rules.push(`✓ EMD Required (${fields.emdAmount}) | Source: emdAmount | Confidence: ${confidence}% | Evidence: ${(evidence.emdAmount?.rawEvidenceSnippet || 'Available')}`);
+      }
+      if (!rules.length) {
+        box.textContent = 'Review required: no reliably mappable procurement rules detected yet.';
+        return;
+      }
+      box.textContent = rules.join(' || ');
+    }
+
+    function updateRuleMappingFromReviewState() {
+      const box = document.getElementById('ruleMappingSummary');
+      if (!box) return;
+      const t = extractionReviewState.tender || {};
+      const rules = [];
+      if (String(t.turnoverRequirement?.updatedValue || '').trim()) rules.push(`✓ Vendor Turnover ≥ ${t.turnoverRequirement.updatedValue} Cr | Officer ${t.turnoverRequirement.reviewStatus}`);
+      if (String(t.experienceRequirement?.updatedValue || '').trim()) rules.push(`✓ Experience ≥ ${t.experienceRequirement.updatedValue} Years | Officer ${t.experienceRequirement.reviewStatus}`);
+      if (String(t.gstRequired?.updatedValue || '').trim()) rules.push(`✓ GST Requirement: ${canonicalGstState(t.gstRequired.updatedValue)} | Officer ${t.gstRequired.reviewStatus}`);
+      if (String(t.panRequired?.updatedValue || '').trim()) rules.push(`✓ PAN Requirement: ${t.panRequired.updatedValue} | Officer ${t.panRequired.reviewStatus}`);
+      if (String(t.emdAmount?.updatedValue || '').trim()) rules.push(`✓ EMD Required: ${t.emdAmount.updatedValue} | Officer ${t.emdAmount.reviewStatus}`);
+      box.textContent = rules.length ? rules.join(' || ') : 'Review required: no reliably mappable procurement rules detected yet.';
+    }
+
+    function renderReviewPanel(scope) {
+      const panel = document.getElementById('extractionReviewPanel');
+      if (!panel) return;
+      panel.textContent = '';
+      const state = extractionReviewState[scope] || {};
+      const fields = Object.values(state);
+      if (!fields.length) {
+        panel.textContent = 'No extraction fields available for review yet.';
+        return;
+      }
+      fields.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.padding = '12px';
+        const title = document.createElement('div');
+        title.style.fontWeight = '700';
+        title.textContent = `${item.label} (${item.reviewStatus})`;
+        const meta = document.createElement('div');
+        meta.style.fontSize = '12px';
+        meta.style.color = 'var(--text2)';
+        meta.textContent = `Confidence: ${item.confidence}% | Page: ${item.sourcePage} | Method: ${item.extractionMethod}`;
+        const original = document.createElement('div');
+        original.style.marginTop = '6px';
+        original.textContent = `AI Extracted: ${item.originalValue || '[empty]'}`;
+        const evidence = document.createElement('div');
+        evidence.style.fontSize = '12px';
+        evidence.style.color = 'var(--text2)';
+        evidence.textContent = `Evidence: ${item.evidenceSnippet || 'No snippet'}`;
+        const input = document.createElement('input');
+        input.className = 'form-input';
+        input.value = item.updatedValue || '';
+        input.setAttribute('aria-label', `Editable value for ${item.label}`);
+        input.addEventListener('input', (e) => { item.updatedValue = e.target.value; });
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '8px';
+        actions.style.marginTop = '8px';
+        const approve = document.createElement('button');
+        approve.className = 'btn btn-secondary';
+        approve.textContent = 'Approve';
+        approve.addEventListener('click', () => {
+          item.reviewStatus = 'Officer Verified';
+          logReviewAction(item, item.updatedValue, item.reviewStatus, 'Verified');
+          setStorage('extraction-review-state', extractionReviewState);
+          renderReviewPanel(scope);
+          updateRuleMappingFromReviewState();
+          updateEvaluationGate();
+        });
+        const modify = document.createElement('button');
+        modify.className = 'btn btn-primary';
+        modify.textContent = 'Save Edit';
+        modify.addEventListener('click', () => {
+          item.reviewStatus = 'Officer Modified';
+          logReviewAction(item, item.updatedValue, item.reviewStatus, 'Field corrected');
+          setStorage('extraction-review-state', extractionReviewState);
+          renderReviewPanel(scope);
+          updateRuleMappingFromReviewState();
+          updateEvaluationGate();
+        });
+        const reject = document.createElement('button');
+        reject.className = 'btn btn-danger';
+        reject.textContent = 'Reject';
+        reject.addEventListener('click', () => {
+          item.reviewStatus = 'Rejected';
+          logReviewAction(item, item.updatedValue, item.reviewStatus, 'Rejected');
+          setStorage('extraction-review-state', extractionReviewState);
+          renderReviewPanel(scope);
+          updateRuleMappingFromReviewState();
+          updateEvaluationGate();
+        });
+        actions.append(approve, modify, reject);
+        card.append(title, meta, original, evidence, input, actions);
+        panel.appendChild(card);
+      });
+    }
+
+    function updateEvaluationGate() {
+      const btn = document.getElementById('runEvaluationBtn');
+      const banner = document.getElementById('reviewRequiredBanner');
+      if (!btn || !banner) return;
+      const tenderState = extractionReviewState.tender || {};
+      const mandatoryOk = tenderMandatoryFields.every((key) => {
+        const item = tenderState[key];
+        return item && (item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim() !== '';
+      });
+      const rejected = Object.values(tenderState).some((i) => i.reviewStatus === 'Rejected');
+      const canRun = mandatoryOk && !rejected && currentTender?.extractionStatus === 'VERIFIED' && Array.isArray(currentVendors) && currentVendors.length > 0;
+      btn.disabled = !canRun;
+      btn.textContent = canRun ? '▶ Run Evaluation' : '▶ Run Evaluation (Review Required)';
+      banner.className = canRun ? 'badge badge-eligible' : 'badge badge-review';
+      banner.textContent = canRun ? 'OFFICER VERIFIED' : 'REVIEW REQUIRED';
+      const lowConfidenceNote = document.getElementById('lowConfidenceNote');
+      if (lowConfidenceNote) lowConfidenceNote.style.display = canRun ? 'none' : 'block';
+    }
+
+    // ── FILE UPLOAD HANDLERS ──────────────────────────────────────
+    function setupUploadZones() {
+      const tenderZone = document.getElementById('tenderUploadZone');
+      const vendorZone = document.getElementById('vendorUploadZone');
+      const tenderInput = document.getElementById('tenderFileInput');
+      const vendorInput = document.getElementById('vendorFileInput');
       
-      document.getElementById('tenderTitle').textContent = currentTender.title;
-      document.getElementById('tenderDesc').innerHTML = `
-        <strong>Authority:</strong> ${currentTender.authority}<br>
-        <strong>ID:</strong> ${currentTender.id}<br>
-        <strong>Min Turnover:</strong> ₹${currentTender.minTurnoverCr} Cr | 
-        <strong>Experience:</strong> ${currentTender.minExperienceYears} years |
-        <strong>GST Required:</strong> ${currentTender.gstMandatory ? 'Yes' : 'No'}
-      `;
+      if (!tenderZone || !vendorZone) return;
+      
+      // Tender zone handlers
+      tenderZone.addEventListener('click', () => { tenderInput?.click(); });
+      tenderZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          tenderInput?.click();
+        }
+      });
+      tenderZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        tenderZone.classList.add('is-dragover');
+      });
+      tenderZone.addEventListener('dragleave', () => { tenderZone.classList.remove('is-dragover'); });
+      tenderZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        tenderZone.classList.remove('is-dragover');
+        const files = Array.from(e.dataTransfer.files);
+        await handleTenderUpload(files);
+      });
+      tenderInput?.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        handleTenderUpload(files);
+      });
+      
+      // Vendor zone handlers
+      vendorZone.addEventListener('click', () => { vendorInput?.click(); });
+      vendorZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          vendorInput?.click();
+        }
+      });
+      vendorZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        vendorZone.classList.add('is-dragover');
+      });
+      vendorZone.addEventListener('dragleave', () => { vendorZone.classList.remove('is-dragover'); });
+      vendorZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        vendorZone.classList.remove('is-dragover');
+        const files = Array.from(e.dataTransfer.files);
+        await handleVendorUpload(files);
+      });
+      vendorInput?.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        handleVendorUpload(files);
+      });
+    }
+
+    // Process tender documents
+    async function showProcessingPipeline() {
+      const queue = document.getElementById('uploadQueue');
+      const pipeline = document.getElementById('processingPipeline');
+      if (!queue || !pipeline) return;
+      queue.style.display = 'block';
+      const steps = [
+        'Document Uploaded',
+        'Running OCR/PDF Extraction',
+        'Validating Procurement Relevance',
+        'Extracting Evidence Fields',
+        'Applying Governance Checks'
+      ];
+      pipeline.textContent = '';
+      for (const stepText of steps) {
+        const row = document.createElement('div');
+        row.style.padding = '8px 12px';
+        row.style.marginBottom = '6px';
+        row.style.borderRadius = '6px';
+        row.style.background = 'rgba(100,150,255,0.08)';
+        row.style.border = '1px solid rgba(100,150,255,0.2)';
+        row.style.color = 'var(--text2)';
+        row.style.fontSize = '13px';
+        row.textContent = stepText;
+        pipeline.appendChild(row);
+        await new Promise((r) => setTimeout(r, 140));
+        row.style.background = 'rgba(16,185,129,0.1)';
+        row.style.borderColor = 'rgba(16,185,129,0.3)';
+        row.style.color = 'var(--text)';
+      }
+    }
+
+    // Process tender documents
+    async function handleTenderUpload(files) {
+      if (!files.length) return;
+      uploadedTenderFiles = files;
+      await showProcessingPipeline();
+      
+      try {
+        const results = await processTenderDocuments(files);
+        
+        const result = results[0] || {};
+        const validation = validateTenderExtraction(result);
+        if (validation.valid) {
+          const extracted = results[0].fields;
+          currentTender = {
+            id: extracted.tenderId || 'TENDER_UPLOADED',
+            title: `${extracted.authority} Tender`,
+            authority: extracted.authority,
+            minTurnoverCr: Number(extracted.minTurnover),
+            minExperienceYears: Number(extracted.experienceYears || 0),
+            gstMandatory: extracted.gstRequired !== false,
+            sourceFile: results[0].fileName,
+            extractionConfidence: results[0].confidence,
+            relevanceScore: results[0].relevanceScore,
+            sourceTraceability: results[0].sourceTraceability,
+            extractionStatus: 'VERIFIED',
+            evidence: results[0].evidence
+          };
+          
+          // Display extraction results
+          displayTenderExtractionResults(results[0], currentTender);
+          initTenderReviewState(results[0]);
+          
+          // Display tender info
+          displayTenderInfo(currentTender);
+          showToast('✓ Tender document extracted successfully (' + results[0].confidence + '% confidence)', 'success');
+          logAction('Uploaded and extracted tender: ' + results[0].fileName);
+        } else {
+          // Extraction failed or low confidence
+          const errorMessage = validation.reason || result.message || 'Extraction confidence too low for automated processing';
+          
+          currentTender = {
+            id: 'EXTRACTION_FAILED',
+            title: 'Document Processing Failed',
+            extractionStatus: 'EXTRACTION_FAILED',
+            errorMessage: errorMessage,
+            relevanceScore: result.relevanceScore || 0
+          };
+          
+          showToast('⚠ ' + errorMessage, 'warning');
+          displayExtractionFailure('tender', result);
+          updateEvaluationGate();
+          logAction('Tender extraction failed: ' + errorMessage);
+        }
+      } catch (err) {
+        console.error('Tender upload error:', err);
+        currentTender = {
+          id: 'EXTRACTION_FAILED',
+          title: 'Document Processing Error',
+          extractionStatus: 'EXTRACTION_FAILED',
+          errorMessage: err.message || 'Unknown extraction error'
+        };
+        showToast('Tender extraction failed — manual review required', 'warning');
+        displayExtractionFailure('tender');
+        updateEvaluationGate();
+      }
+      
+      document.getElementById('uploadQueue').style.display = 'none';
+    }
+
+    // Process vendor documents
+    async function handleVendorUpload(files) {
+      if (!files.length) return;
+      uploadedVendorFiles = files;
+      await showProcessingPipeline();
+      
+      try {
+        const results = await processVendorDocuments(files);
+        
+        const validatedResults = results
+          .map((r) => ({ r, v: validateVendorExtraction(r) }))
+          .filter((item) => item.v.valid)
+          .map((item) => item.r);
+        
+        if (validatedResults.length > 0) {
+          currentVendors = validatedResults.map((r, idx) => ({
+            name: r.fields.vendorName || `Vendor ${idx + 1}`,
+            city: r.fields.city || 'Not Extracted',
+            turnoverCr: Number(r.fields.minTurnover || 0) || null,
+            experienceYears: Number(r.fields.experienceYears || 0) || null,
+            gstNumber: r.fields.gstNumber || null,
+            gstValid: Boolean(r.fields.gstNumber),
+            panNumber: r.fields.panNumber || null,
+            confidence: r.confidence,
+            relevanceScore: r.relevanceScore,
+            docs: [r.fileName],
+            sourceTraceability: r.sourceTraceability,
+            extractionStatus: 'VERIFIED',
+            evidence: r.evidence,
+            isMSME: false, // Cannot be determined from extraction alone
+            bidValue: parseInt(r.fields.projectValue) || null
+          }));
+          
+          // Display results
+          displayVendorExtractionResults(validatedResults);
+          initVendorReviewState(validatedResults);
+          
+          if (currentVendors.length > 0) {
+            showToast('✓ ' + currentVendors.length + ' vendor documents extracted', 'success');
+            logAction('Uploaded ' + currentVendors.length + ' vendor documents');
+          } else {
+            showToast('⚠ No vendors extracted with sufficient confidence — manual review required', 'warning');
+            currentVendors = [];
+            displayExtractionFailure('vendor');
+            updateEvaluationGate();
+          }
+        } else {
+          // All extractions failed or low confidence
+          const result = results[0] || {};
+          const firstInvalid = results.map((r) => validateVendorExtraction(r)).find((v) => !v.valid);
+          const errorMessage = firstInvalid?.reason || result.message || 'All vendor extractions failed or low confidence — manual review required';
+          
+          currentVendors = [];
+          showToast('⚠ ' + errorMessage, 'warning');
+          displayExtractionFailure('vendor', result);
+          updateEvaluationGate();
+          logAction('All vendor extractions failed: ' + errorMessage);
+        }
+      } catch (err) {
+        console.error('Vendor upload error:', err);
+        currentVendors = [];
+        showToast('Vendor extraction failed — manual review required', 'warning');
+        displayExtractionFailure('vendor');
+        updateEvaluationGate();
+      }
+      
+      document.getElementById('uploadQueue').style.display = 'none';
+    }
+
+    // Display extraction failure state
+    function displayExtractionFailure(documentType, result = null) {
+      const container = documentType === 'tender' ? 
+        document.getElementById('tenderInfo') : 
+        document.getElementById('vendorsContainer');
+      
+      if (!container) return;
+      
+      const confidence = result?.confidence || 0;
+      const relevanceScore = result?.relevanceScore || 0;
+      const message = result?.message || 'Extraction confidence too low for automated processing';
+      const relevanceThreshold = result?.relevanceThreshold || 30;
+      const relevanceMessage = relevanceScore < relevanceThreshold ? `Document relevance: ${relevanceScore}% (Minimum ${relevanceThreshold}% required)` : '';
+      
+      container.textContent = `EXTRACTION FAILED: ${message}. Confidence: ${confidence}%. ${relevanceMessage} Manual review required before proceeding.`;
+      const ruleMappingSummary = document.getElementById('ruleMappingSummary');
+      if (ruleMappingSummary) {
+        ruleMappingSummary.textContent = '⚠ Extraction failed — manual review required. Structured procurement fields could not be reliably extracted from the uploaded document.';
+      }
+      const lowConfidenceNote = document.getElementById('lowConfidenceNote');
+      if (lowConfidenceNote) lowConfidenceNote.style.display = 'block';
+      const resultsSection = document.getElementById('resultsSection');
+      if (resultsSection) resultsSection.style.display = 'none';
+    }
+
+    function validText(v) {
+      return typeof v === 'string' && v.trim() !== '' && v !== 'undefined' && v !== 'null' && v !== 'EXTRACTION_FAILED';
+    }
+    function validNumber(v) {
+      return Number.isFinite(Number(v)) && Number(v) > 0;
+    }
+    function validConfidence(v) {
+      return Number.isFinite(Number(v)) && Number(v) >= 70 && Number(v) <= 100;
+    }
+    function hasTenderEvidence(result) {
+      return result?.evidence && Object.keys(result.evidence).length > 0;
+    }
+    function hasVendorIdentifier(fields) {
+      return validText(fields?.vendorName) || validText(fields?.gstNumber) || validText(fields?.panNumber);
+    }
+    function hasVendorEligibilityEvidence(fields) {
+      return validNumber(fields?.minTurnover) || validNumber(fields?.experienceYears);
+    }
+    function validateTenderExtraction(result) {
+      const fields = result?.fields || {};
+      if (!result?.success) return { valid: false, reason: result?.message || 'Extraction failed — manual review required.' };
+      if (!validConfidence(result?.confidence)) return { valid: false, reason: 'Extraction confidence too low — manual review required.' };
+      if (!validText(fields.authority)) return { valid: false, reason: 'Structured procurement fields could not be reliably extracted from the uploaded document.' };
+      const hasCriterion = validNumber(fields.minTurnover) || validNumber(fields.experienceYears) || fields.gstRequired === true || fields.eligibilityCriteriaDetected === true;
+      if (!hasCriterion) return { valid: false, reason: 'Structured procurement fields could not be reliably extracted from the uploaded document.' };
+      if (!hasTenderEvidence(result)) return { valid: false, reason: 'Evidence missing for extracted tender fields.' };
+      return { valid: true, reason: '' };
+    }
+    function validateVendorExtraction(result) {
+      const fields = result?.fields || {};
+      if (!result?.success) return { valid: false, reason: result?.message || 'Extraction failed — manual review required.' };
+      if (!validConfidence(result?.confidence)) return { valid: false, reason: 'Extraction confidence too low — manual review required.' };
+      if (!(hasVendorIdentifier(fields) || hasVendorEligibilityEvidence(fields))) {
+        return { valid: false, reason: 'Structured vendor fields could not be reliably extracted from the uploaded document.' };
+      }
+      if (!result?.evidence || Object.keys(result.evidence).length === 0) {
+        return { valid: false, reason: 'Evidence missing for extracted vendor fields.' };
+      }
+      return { valid: true, reason: '' };
+    }
+    
+
+    // Display tender extraction results
+    function displayTenderExtractionResults(result, tender) {
+      const panels = document.getElementById('extractionPanels');
+      const tenderKV = document.getElementById('tenderCriteriaKV');
+      const confidenceWrap = document.getElementById('tenderExtractedConfidenceWrap');
+      
+      if (!panels || !tenderKV) return;
+      
+      panels.style.display = 'block';
+      
+      const gstState = canonicalGstState(result.fields.gstRequired === true ? 'Mandatory' : (result.fields.gstRequired === false ? 'Optional' : ''));
+      const kvItems = [
+        ['Tender ID', result.fields.tenderId || tender.id, 'AI EXTRACTED'],
+        ['Authority', result.fields.authority || tender.authority, 'VERIFIED'],
+        ['Min Turnover', '₹' + (result.fields.minTurnover || tender.minTurnoverCr) + ' Cr', 'EVIDENCE LINKED'],
+        ['Experience', (result.fields.experienceYears || tender.minExperienceYears) + ' Years', 'EVIDENCE LINKED'],
+        ['GST Requirement', gstState, gstState === 'Not Detected' ? 'REVIEW REQUIRED' : 'VERIFIED']
+      ];
+      tenderKV.textContent = '';
+      kvItems.forEach(([key, val, status]) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '8px 0';
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+        const left = document.createElement('div');
+        left.textContent = `${key}: ${val}`;
+        const chip = document.createElement('span');
+        chip.className = status === 'REVIEW REQUIRED' ? 'badge badge-review' : 'badge badge-eligible';
+        chip.textContent = status;
+        row.append(left, chip);
+        tenderKV.appendChild(row);
+      });
+      const sourceName = result.sourceTraceability?.fileName || '';
+      confidenceWrap.textContent = `AI Parsing Confidence: ${result.confidence}% | Source: ${sourceName} • ${result.sourceTraceability.method} | AUDIT LOGGED`;
+    }
+
+    // Display vendor extraction results
+    function displayVendorExtractionResults(results) {
+      const vendorKV = document.getElementById('vendorExtractedKV');
+      if (!vendorKV || !results.length) return;
+      
+      vendorKV.textContent = results.map((r, idx) => {
+        const name = r.fields.vendorName || `Vendor ${idx + 1}`;
+        const gst = r.fields.gstNumber || 'Not found';
+        const exp = validNumber(r.fields.experienceYears) ? `${r.fields.experienceYears} years` : 'N/A';
+        return `${name} | GST: ${gst} | Experience: ${exp} | Confidence: ${r.confidence}%`;
+      }).join(' || ');
+    }
+
+    // Display tender info
+    function displayTenderInfo(tender) {
+      const placeholder = document.getElementById('tenderPlaceholder');
+      const info = document.getElementById('tenderInfo');
+      if (!placeholder || !info) return;
+      
+      placeholder.style.display = 'none';
+      info.style.display = 'block';
+      
+      document.getElementById('tenderTitle').textContent = tender.title;
+      const turnoverText = validNumber(tender.minTurnoverCr) ? `₹${tender.minTurnoverCr} Cr` : 'Not extracted';
+      const expText = validNumber(tender.minExperienceYears) ? `${tender.minExperienceYears} years` : 'Not extracted';
+      const gstState = canonicalGstState(tender.gstMandatory ? 'Mandatory' : 'Optional');
+      document.getElementById('tenderDesc').textContent = `Authority: ${tender.authority} | ID: ${tender.id} | Min Turnover: ${turnoverText} | Experience: ${expText} | GST Requirement: ${gstState}`;
 
       const chips = [
-        `Min Turnover: ₹${currentTender.minTurnoverCr} Cr`,
-        `Min Experience: ${currentTender.minExperienceYears} years`,
-        currentTender.gstMandatory ? 'GST: Mandatory' : 'GST: Optional',
-        ...(Array.isArray(currentTender.otherCriteria) ? currentTender.otherCriteria : [])
+        `Min Turnover: ${turnoverText}`,
+        `Min Experience: ${expText}`,
+        `GST: ${gstState}`,
+        ...(Array.isArray(tender.otherCriteria) ? tender.otherCriteria : [])
       ];
-      document.getElementById('criteriaChips').innerHTML = chips.map(c => `<div class="chip">${c}</div>`).join('');
-      
-      showToast('Demo tender loaded — TND-2024-CRPF-001', 'success');
-      logAction('Loaded demo tender TND-2024-CRPF-001');
+      const chipsWrap = document.getElementById('criteriaChips');
+      chipsWrap.textContent = '';
+      chips.forEach((c) => { const d = document.createElement('div'); d.className = 'chip'; d.textContent = c; chipsWrap.appendChild(d); });
+    }
+
+    // Initialize upload zones on page load
+    function initializeReviewStateFromStorage() {
+      const savedState = getStorage('extraction-review-state', null);
+      if (savedState && typeof savedState === 'object') {
+        extractionReviewState = savedState;
+      }
+      renderReviewTimeline();
+      if (Object.keys(extractionReviewState.tender || {}).length > 0) renderReviewPanel('tender');
+      updateEvaluationGate();
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      setupUploadZones();
+      initializeReviewStateFromStorage();
+    });
+
+    // Load demo tender preview (GOVERNMENT MODE: DISABLED)
+    function loadDemoTender() {
+      const input = document.getElementById('tenderFileInput');
+      if (input) input.click();
+      showToast('Upload procurement tender documents to begin evaluation.', 'info');
     }
 
     function loadDemoVendors() {
-      if (!currentTender) {
-        showToast('Load demo tender first', 'warning');
-        return;
-      }
-      currentVendors = DEMO_VENDORS;
-      const container = document.getElementById('vendorsContainer');
-      container.innerHTML = currentVendors.map(v => `
-        <div class="vendor-card">
-          <div class="vendor-card-name">${v.name}</div>
-          <div class="vendor-card-meta">
-            <span>📍 ${v.city}</span>
-            <span>💰 ₹${v.turnoverCr} Cr</span>
-            <span>📅 ${v.experienceYears} years</span>
-            <span>✓ ${v.docs.length} docs</span>
-          </div>
-        </div>
-      `).join('');
-      
-      showToast('5 vendor documents loaded', 'success');
-      logAction('Loaded 5 demo vendors for evaluation');
+      const input = document.getElementById('vendorFileInput');
+      if (input) input.click();
+      showToast('Upload vendor procurement documents for extraction and review.', 'info');
     }
 
     function runEvaluation() {
       try {
-        if (!currentTender) {
-          showToast('Load demo tender first', 'warning');
+        const tenderState = extractionReviewState.tender || {};
+        const mandatoryOk = tenderMandatoryFields.every((key) => {
+          const item = tenderState[key];
+          return item && (item.reviewStatus === 'Officer Verified' || item.reviewStatus === 'Officer Modified') && String(item.updatedValue || '').trim() !== '';
+        });
+        if (!mandatoryOk) {
+          showToast('Manual verification required before evaluation.', 'warning');
           return;
         }
-        if (!currentVendors) {
-          showToast('Load demo vendors first', 'warning');
+        if (currentTender) {
+          currentTender.id = tenderState.tenderId?.updatedValue || currentTender.id;
+          currentTender.authority = tenderState.authority?.updatedValue || currentTender.authority;
+          currentTender.minTurnoverCr = Number(tenderState.turnoverRequirement?.updatedValue || currentTender.minTurnoverCr);
+          currentTender.minExperienceYears = Number(tenderState.experienceRequirement?.updatedValue || currentTender.minExperienceYears);
+          currentTender.gstMandatory = /mandatory|required|yes|true/i.test(String(tenderState.gstRequired?.updatedValue || ''));
+        }
+
+        // Check if tender was properly extracted
+        if (!currentTender || currentTender.extractionStatus === 'EXTRACTION_FAILED') {
+          showToast('❌ Tender extraction failed — manual review required before evaluation', 'error');
           return;
         }
 
-        // Evaluate each vendor
+        if (currentTender.extractionStatus === 'REVIEW_REQUIRED') {
+          showToast('⚠ Tender extraction confidence low — officer review required', 'warning');
+          return;
+        }
+
+        // Check if vendors were properly extracted
+        if (!currentVendors || currentVendors.length === 0) {
+          showToast('❌ No vendors extracted — upload vendor documents first', 'error');
+          return;
+        }
+
+        const lowConfidenceVendors = currentVendors.filter(v => v.extractionStatus === 'REVIEW_REQUIRED');
+        if (lowConfidenceVendors.length > 0) {
+          showToast(`⚠ ${lowConfidenceVendors.length} vendor(s) have low extraction confidence — review required`, 'warning');
+          return;
+        }
+
+        // Check if any vendors have extraction failures
+        const failedVendors = currentVendors.filter(v => v.extractionStatus === 'EXTRACTION_FAILED');
+        if (failedVendors.length > 0) {
+          showToast('❌ Some vendor extractions failed — manual review required', 'error');
+          return;
+        }
+
+        // All checks passed - proceed with evaluation
         const results = currentVendors.map(v => evaluateVendor(v, currentTender));
         const flags = detectCollusion(currentVendors);
 
-      // Save to storage
-      setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags });
-      logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
+        // Save to storage
+        setStorage('last-evaluation', { tender: currentTender, vendors: currentVendors, results, flags });
+        logAction(`Evaluation complete — ${results.filter(r=>r.status==='Eligible').length} Eligible, ${results.filter(r=>r.status==='Needs Review').length} Needs Review`);
 
-      // Display results
-      const resultsSection = document.getElementById('resultsSection');
-      const tbody = document.getElementById('resultsTable');
-      if (!resultsSection || !tbody) { showToast('Results container not found', 'error'); return; }
-      resultsSection.style.display = 'block';
-      tbody.innerHTML = results.map((r, idx) => {
-        const confClass = r.confidence >= 80 ? 'high' : (r.confidence >= 60 ? 'mid' : 'low');
-        return `
-        <tr>
-          <td><strong>${r.vendorName}</strong><div style="margin-top:6px"><button class="btn-explain" onclick="showExplain(${idx})">🔍 Explain</button></div></td>
-          <td>${r.city}</td>
-          <td>₹${r.turnoverCr} Cr</td>
-          <td>${r.experienceYears} yrs</td>
-          <td>${r.gstValid ? '✓' : '✗'}</td>
-          <td style="width:120px"><div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap"><div class="progress-fill ${confClass}" style="width:${r.confidence}%"></div></div><div style="min-width:28px;text-align:right;font-weight:700">${r.confidence}%</div></div></td>
-          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}">${r.status}</span></td>
-        </tr>
-      `}).join('');
+        // Display results
+        const resultsSection = document.getElementById('resultsSection');
+        const tbody = document.getElementById('resultsTable');
+        if (!resultsSection || !tbody) { showToast('Results container not found', 'error'); return; }
+        resultsSection.style.display = 'block';
+        tbody.textContent = '';
+        results.forEach((r, idx) => {
+          const tr = document.createElement('tr');
+          const c1 = document.createElement('td');
+          const strong = document.createElement('strong'); strong.textContent = r.vendorName; c1.appendChild(strong);
+          const btnWrap = document.createElement('div'); btnWrap.style.marginTop = '6px';
+          const exBtn = document.createElement('button'); exBtn.className = 'btn-explain'; exBtn.textContent = 'Explain'; exBtn.addEventListener('click', () => showExplain(idx));
+          btnWrap.appendChild(exBtn); c1.appendChild(btnWrap);
+          const c2 = document.createElement('td'); c2.textContent = r.city;
+          const c3 = document.createElement('td'); c3.textContent = `₹${r.turnoverCr} Cr`;
+          const c4 = document.createElement('td'); c4.textContent = `${r.experienceYears} yrs`;
+          const c5 = document.createElement('td'); c5.textContent = r.gstValid ? '✓' : '✗';
+          const c6 = document.createElement('td'); c6.textContent = `${r.confidence}%`;
+          const c7 = document.createElement('td'); c7.textContent = r.status;
+          const c8 = document.createElement('td');
+          const oBtn = document.createElement('button'); oBtn.className = 'btn-override'; oBtn.textContent = 'Override'; oBtn.addEventListener('click', () => showOverrideModal(idx));
+          c8.appendChild(oBtn);
+          tr.append(c1, c2, c3, c4, c5, c6, c7, c8);
+          tbody.appendChild(tr);
+        });
 
       const flagsContainer = document.getElementById('flagsContainer');
       if (!flagsContainer) { showToast('Flags container not found', 'error'); return; }
       if (flags.length === 0) {
-        flagsContainer.innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No flags detected</div>';
+        flagsContainer.textContent = '✓ No flags detected';
       } else {
-        flagsContainer.innerHTML = flags.map(f => `
-          <div class="card" style="margin-bottom: 12px; background: var(--red-bg); border-color: rgba(239,68,68,0.3);">
-            <div style="font-weight: 600; color: var(--red);">${f.type}</div>
-            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${f.vendor}</div>
-            <div style="font-size: 13px; color: var(--text2);">📍 ${f.detail}</div>
-            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">→ ${f.action}</div>
-          </div>
-        `).join('');
+        flagsContainer.textContent = '';
+        flags.forEach((f) => {
+          const d = document.createElement('div');
+          d.className = 'card';
+          d.style.marginBottom = '12px';
+          d.textContent = `${f.type}: ${f.vendor || ''}. ${f.detail || ''}. ${f.action || ''}`;
+          flagsContainer.appendChild(d);
+        });
       }
 
       const eligible = results.filter(r => r.status === 'Eligible').length;
@@ -375,12 +1191,139 @@
         if (!r) { showToast('Result not found', 'error'); return; }
         const body = document.getElementById('explainBody');
         if (!body) { showToast('Explain modal not found', 'error'); return; }
-        body.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${r.vendorName} — ${r.status} (Confidence ${r.confidence}%)</div>` +
-          `<div style="margin-bottom:8px;color:var(--text2)">Detailed checks:</div>` +
-          r.checks.map(c => `<div style="margin-bottom:8px"><div style="font-weight:600">${c.criterion}</div><div style="color:var(--text2);font-size:13px">Required: ${c.required} — Found: ${c.found}</div><div style="margin-top:4px;color:${c.passed ? 'var(--green)' : 'var(--red)'}">${c.reason}</div></div>`).join('') +
-          (r.flagForReview ? `<div style="margin-top:12px;color:var(--amber);font-weight:700">Flag: ${r.flagReason}</div>` : '');
+        body.textContent = `${r.vendorName} - ${r.status} (Confidence ${r.confidence}%). ` +
+          r.checks.map(c => `${c.criterion}. Required: ${c.required}. Found: ${c.found}. ${c.reason}.`).join(' ') +
+          (r.flagForReview ? `Flag: ${r.flagReason}` : '');
         const modal = document.getElementById('explainModal');
         if (modal) modal.style.display = 'flex';
+      }
+
+      // Human-in-the-Loop Override Functions
+      let lastFocusedElement = null;
+      function trapModalFocus(modal, event) {
+        if (event.key !== 'Tab') return;
+        const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+
+      function showOverrideModal(index) {
+        const stored = getStorage('last-evaluation', null);
+        if (!stored || !stored.results) { showToast('No evaluation found for override', 'warning'); return; }
+        const r = stored.results[index];
+        if (!r) { showToast('Result not found', 'error'); return; }
+        
+        // Store current vendor index for override submission
+        window.currentOverrideIndex = index;
+        
+        // Populate modal
+        document.getElementById('overrideVendorName').textContent = r.vendorName;
+        document.getElementById('overrideCurrentStatus').textContent = r.status;
+        
+        // Reset form
+        document.getElementById('overrideDecision').value = '';
+        document.getElementById('overrideOfficerName').value = '';
+        document.getElementById('overrideReason').value = '';
+        document.getElementById('submitOverride').disabled = true;
+        
+        // Show modal
+        const modal = document.getElementById('overrideModal');
+        if (modal) {
+          lastFocusedElement = document.activeElement;
+          modal.style.display = 'flex';
+          modal.focus();
+        }
+      }
+
+      function submitOverride() {
+        const decision = document.getElementById('overrideDecision').value;
+        const officerName = document.getElementById('overrideOfficerName').value.trim();
+        const reason = document.getElementById('overrideReason').value.trim();
+        
+        if (!decision || !officerName || !reason) {
+          showToast('Please fill all required fields', 'error');
+          return;
+        }
+        
+        // Get current evaluation data
+        const stored = getStorage('last-evaluation', null);
+        if (!stored || !stored.results) {
+          showToast('Evaluation data not found', 'error');
+          return;
+        }
+        
+        const index = window.currentOverrideIndex;
+        const result = stored.results[index];
+        
+        // Create override record
+        const overrideRecord = {
+          vendorName: result.vendorName,
+          originalDecision: result.status,
+          overrideDecision: decision,
+          officerName: officerName,
+          reason: reason,
+          timestamp: new Date().toISOString(),
+          tenderId: stored.tender?.id || 'Unknown',
+          auditTrailId: 'OVR-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+        };
+        
+        // Update the result
+        result.status = decision;
+        result.overrideApplied = true;
+        result.overrideRecord = overrideRecord;
+        
+        // Save updated evaluation
+        setStorage('last-evaluation', stored);
+        
+        // Log the override
+        logOverride(overrideRecord);
+        
+        // Update UI
+        updateResultsTable();
+        
+        // Close modal
+        closeOverrideModal();
+        
+        showToast(`✓ Override applied by ${officerName}`, 'success');
+      }
+
+      function closeOverrideModal() {
+        const modal = document.getElementById('overrideModal');
+        if (modal) modal.style.display = 'none';
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
+      }
+
+      function updateResultsTable() {
+        const stored = getStorage('last-evaluation', null);
+        if (!stored || !stored.results) return;
+        
+        const tbody = document.getElementById('resultsTable');
+        if (!tbody) return;
+        
+        tbody.textContent = '';
+        stored.results.forEach((r, idx) => {
+          const tr = document.createElement('tr');
+          const c1 = document.createElement('td'); c1.textContent = r.vendorName;
+          const c2 = document.createElement('td'); c2.textContent = r.city;
+          const c3 = document.createElement('td'); c3.textContent = `₹${r.turnoverCr} Cr`;
+          const c4 = document.createElement('td'); c4.textContent = `${r.experienceYears} yrs`;
+          const c5 = document.createElement('td'); c5.textContent = r.gstValid ? '✓' : '✗';
+          const c6 = document.createElement('td'); c6.textContent = `${r.confidence}%`;
+          const c7 = document.createElement('td'); c7.textContent = r.overrideApplied ? `${r.status} (Overridden)` : r.status;
+          const c8 = document.createElement('td');
+          const btn = document.createElement('button'); btn.className = 'btn-override'; btn.textContent = 'Override'; btn.addEventListener('click', () => showOverrideModal(idx));
+          c8.appendChild(btn);
+          tr.append(c1, c2, c3, c4, c5, c6, c7, c8);
+          tbody.appendChild(tr);
+        });
       }
 
       const closeBtn = document.getElementById('closeExplain');
@@ -391,6 +1334,54 @@
         });
         closeBtn.__handlerAttached = true;
       }
+
+      // Override modal event listeners
+      const closeOverrideBtn = document.getElementById('closeOverride');
+      if (closeOverrideBtn && !closeOverrideBtn.__handlerAttached) {
+        closeOverrideBtn.addEventListener('click', closeOverrideModal);
+        closeOverrideBtn.__handlerAttached = true;
+      }
+      
+      const cancelOverrideBtn = document.getElementById('cancelOverride');
+      if (cancelOverrideBtn && !cancelOverrideBtn.__handlerAttached) {
+        cancelOverrideBtn.addEventListener('click', closeOverrideModal);
+        cancelOverrideBtn.__handlerAttached = true;
+      }
+      
+      const submitOverrideBtn = document.getElementById('submitOverride');
+      if (submitOverrideBtn && !submitOverrideBtn.__handlerAttached) {
+        submitOverrideBtn.addEventListener('click', submitOverride);
+        submitOverrideBtn.__handlerAttached = true;
+      }
+      
+      // Form validation for override modal
+      function validateOverrideForm() {
+        const decision = document.getElementById('overrideDecision').value;
+        const officerName = document.getElementById('overrideOfficerName').value.trim();
+        const reason = document.getElementById('overrideReason').value.trim();
+        const submitBtn = document.getElementById('submitOverride');
+        
+        submitBtn.disabled = !decision || !officerName || !reason;
+      }
+      
+      document.getElementById('overrideDecision')?.addEventListener('change', validateOverrideForm);
+      document.getElementById('overrideOfficerName')?.addEventListener('input', validateOverrideForm);
+      document.getElementById('overrideReason')?.addEventListener('input', validateOverrideForm);
+      
+      // Close modals when clicking outside
+      document.getElementById('explainModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'explainModal') {
+          document.getElementById('explainModal').style.display = 'none';
+        }
+      });
+      
+      document.getElementById('overrideModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'overrideModal') {
+          closeOverrideModal();
+        }
+      });
+      document.getElementById('explainModal')?.addEventListener('keydown', (e) => trapModalFocus(document.getElementById('explainModal'), e));
+      document.getElementById('overrideModal')?.addEventListener('keydown', (e) => trapModalFocus(document.getElementById('overrideModal'), e));
 
       // Helper to read file content (PDF or Image/Text)
       async function readUploadedFile(file) {
@@ -416,106 +1407,20 @@
         });
       }
 
-      // Upload zone interactions & Simulation Pipeline
-      async function simulateExtraction(type, files) {
-        const queue = document.getElementById('uploadQueue');
-        const pipeline = document.getElementById('processingPipeline');
-        const extractionPanels = document.getElementById('extractionPanels');
-        
-        if (!queue || !pipeline) {
-          setTimeout(type === 'tender' ? loadDemoTender : loadDemoVendors, 1500);
-          return;
-        }
+      // Simulated extraction is intentionally removed in strict governance mode.
 
-        queue.style.display = 'block';
-        
-        // 1. Read actual file content to satisfy requirements (background)
-        readUploadedFile(files[0]).catch(e => console.log(e));
-
-        const steps = [
-          '📄 Document Uploaded',
-          '🔍 Running OCR Extraction',
-          '🧠 Parsing Procurement Clauses',
-          '⚖️ Mapping Eligibility Rules',
-          '🚩 Running Compliance Checks',
-          '✅ Structured Evaluation Ready'
-        ];
-
-        let currentStep = 0;
-
-        function renderPipeline() {
-          pipeline.innerHTML = steps.map((step, idx) => {
-            let color = 'var(--text2)', weight = '400', opacity = '0.4';
-            if (idx < currentStep) { color = 'var(--green)'; opacity = '1'; } 
-            else if (idx === currentStep) { color = 'var(--accent)'; weight = '600'; opacity = '1'; }
-            return `<div style="padding: 8px 0; color: ${color}; font-weight: ${weight}; opacity: ${opacity}; display: flex; align-items: center; font-size: 14px; transition: all 0.3s ease;">
-              <span>${step}</span>
-            </div>`;
-          }).join('');
-        }
-
-        renderPipeline();
-
-        const interval = setInterval(() => {
-          currentStep++;
-          renderPipeline();
-
-          if (currentStep >= steps.length) {
-            clearInterval(interval);
-            setTimeout(() => {
-              queue.style.display = 'none';
-              extractionPanels.style.display = 'block';
-              
-              if (type === 'tender') {
-                const kv = document.getElementById('tenderCriteriaKV');
-                kv.innerHTML = `<div style="display:grid;grid-template-columns:120px 1fr;gap:8px;font-size:14px;color:var(--text);">
-                  <div style="font-weight:600;color:var(--text2)">Authority:</div> <div>${DEMO_TENDER.authority}</div>
-                  <div style="font-weight:600;color:var(--text2)">Min Turnover:</div> <div>₹${DEMO_TENDER.minTurnoverCr} Cr</div>
-                  <div style="font-weight:600;color:var(--text2)">Experience:</div> <div>${DEMO_TENDER.minExperienceYears} years</div>
-                  <div style="font-weight:600;color:var(--text2)">GST Required:</div> <div>${DEMO_TENDER.gstMandatory ? 'Yes' : 'No'}</div>
-                </div>`;
-                document.getElementById('tenderExtractedConfidenceWrap').innerHTML = `<div style="color:var(--green);font-size:13px;font-weight:700">✓ 98% Average Extraction Confidence</div>`;
-                loadDemoTender();
-                document.getElementById('tenderInfo')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              } else {
-                const kv = document.getElementById('vendorExtractedKV');
-                kv.innerHTML = DEMO_VENDORS.map(v => `<div style="margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;font-size:14px;">
-                  <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">${v.name}</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;color:var(--text2);">
-                    <div>💰 ₹${v.turnoverCr} Cr</div>
-                    <div>📅 ${v.experienceYears} yrs</div>
-                    <div>${v.gstValid ? '✓ GST Valid' : '✗ GST Invalid'}</div>
-                  </div>
-                </div>`).join('');
-                loadDemoVendors();
-                document.getElementById('vendorsContainer')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }
-            }, 400);
-          }
-        }, 350);
-      }
-
-      const tenderZone = document.getElementById('tenderUploadZone');
-      const tenderInput = document.getElementById('tenderFileInput');
-      if (tenderZone && tenderInput) {
-        tenderZone.addEventListener('click', () => tenderInput.click());
-        tenderInput.addEventListener('change', (e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            simulateExtraction('tender', e.target.files);
-          }
-        });
-      }
-
-      const vendorZone = document.getElementById('vendorUploadZone');
-      const vendorInput = document.getElementById('vendorFileInput');
-      if (vendorZone && vendorInput) {
-        vendorZone.addEventListener('click', () => vendorInput.click());
-        vendorInput.addEventListener('change', (e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            simulateExtraction('vendor', e.target.files);
-          }
-        });
-      }
+      // Strict governance mode: disable demo shortcuts.
+      window.loadDemoTender = function () {
+        const input = document.getElementById('tenderFileInput');
+        if (input) input.click();
+      };
+      window.loadDemoVendors = function () {
+        const input = document.getElementById('vendorFileInput');
+        if (input) input.click();
+      };
+      window.simulateExtraction = async function () {
+        showToast('Simulated extraction disabled. Real extraction only.', 'warning');
+      };
   </script>
 </body>
 </html>

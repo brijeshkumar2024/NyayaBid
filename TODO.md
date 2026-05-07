@@ -1,27 +1,68 @@
-# NyayaBid AI — Hackathon Upgrade TODO
+# NyayaBid AI — Audit-safe “STRICT MODE” Implementation TODO
 
-> Goal: Add realistic OCR + PDF intelligence and significantly enhance Fraud & Risk Detection while keeping offline demo flows stable.
+> Goal: remove hallucination/demo fallbacks by default; enforce evidence-linked extraction and human review gates.
 
-## Plan Summary
-- Upgrade `pages/evaluate.html` with drag-drop upload UI (Tender + Vendor), animated processing pipeline, extraction panels (confidence + source traceability), and officer workflow.
-- Add lightweight browser-side extraction helpers to `scripts/utils.js` (PDF.js text extraction + OCR fallback with Tesseract.js, regex/heuristics for GST/PAN/turnover/EMD/dates).
-- Upgrade fraud/risk detection logic and add demo intelligence datasets in `scripts/collusion.js` and `scripts/data.js`.
-- Ensure no backend dependency, no API keys, offline demo remains functional.
+## Step 1 — Repo audit & mapping
+- [x] Identified demo fallbacks in `pages/evaluate.html` and demo mapping in `scripts/utils.js`.
+- [x] Identified unsafe `innerHTML` usage across pages and risk of XSS.
+- [x] Identified collusion heuristic using bid similarity.
 
-## Steps
-1. [ ] Inspect current evaluate page DOM + script wiring.
-2. [ ] Implement upload UI + states + toasts (glassmorphism cards).
-3. [ ] Implement animated OCR processing pipeline stepper.
-4. [ ] Implement extraction confidence tiers + UI badges.
-5. [ ] Implement Source Reference traceability for each extracted field.
-6. [ ] Implement extraction engine (PDF.js + Tesseract.js dynamic loading) with regex/heuristics.
-7. [ ] Wire extracted data into evaluation flow without breaking demo buttons.
-8. [ ] Extend fraud detection: bid collusion, address overlap, rotation pattern, abnormally low bids, tampering simulation, blacklist watchlist simulation.
-9. [ ] Implement Risk Scoring Engine (0–100) + severity categories + heatmap-style dashboard.
-10. [ ] Add officer review workflow buttons that log actions to audit trail (localStorage).
-11. [ ] Update/extend dashboard visuals if necessary; verify charts still render.
-12. [ ] Manual validation checklist: OCR upload → parsing → panels → flags/risk → no console errors → responsive layout.
+## Step 2 — Add STRICT MODE as default
+- [ ] Introduce `DEMO_MODE` toggle (visible in UI) and set default to STRICT.
+- [ ] Block all demo conveniences unless DEMO_MODE is ON.
 
-## Progress
-- 1. Inspect evaluate page DOM + wiring: 
+## Step 3 — Remove hallucination fallbacks (critical)
+- [ ] Remove/disable `applyDemoMapping()` imputation.
+- [ ] In `handleTenderUpload()` remove `DEMO_TENDER` fallback on extraction failure.
+- [ ] In `handleVendorUpload()` remove `DEMO_VENDORS` fallback on extraction failure.
+- [ ] If extraction fails: show `Extraction failed — manual review required.`, set `extractionStatus = "UNVERIFIED"`, disable evaluation+export+finalize.
+
+## Step 4 — Rework extraction outputs into evidence schema
+- [ ] Replace scalar `fields` in `extractProcurementFields()` with EvidenceSchema per extracted field.
+- [ ] Ensure each extracted field stores: evidence snippet, indices, page number (when possible), method, confidence, reviewStatus.
+
+## Step 5 — Human-in-the-loop gates
+- [ ] Add reviewStatus per criterion: `AUTO_BLOCKED | NEEDS_HUMAN | APPROVED`.
+- [ ] Disable report export/finalize unless all required items are APPROVED.
+- [ ] Create officer override log with reviewer name, timestamp, override reason, criterion reviewed.
+
+## Step 6 — Evidence-anchored evaluation
+- [ ] Update evaluation logic to reference evidence snippets + page numbers.
+- [ ] If evidence missing -> criterion marked `Needs Human Review` and never auto-pass.
+
+## Step 7 — Document relevance classifier
+- [ ] Implement procurement relevance classifier before OCR/extraction.
+- [ ] If relevance < threshold: show `Uploaded document does not appear procurement-related.` and stop pipeline.
+
+## Step 8 — Security hardening
+- [ ] Remove all unsafe `innerHTML` sinks in `evaluate.html`, `report.html`, `dashboard.html`, and rendering helpers.
+- [ ] Render with `textContent` / DOM nodes only.
+- [ ] Sanitize filenames/OCR text.
+
+## Step 9 — Cryptographic reporting (audit-safe)
+- [ ] Replace weak SHA-only with WebCrypto signing.
+- [ ] Add immutable audit chain (hashes linked) and verificationStatus gating.
+- [ ] Prevent modification after sign-off.
+
+## Step 10 — Canonical schema
+- [ ] Create one unified schema module for Tender/Vendor/Evaluation/Evidence/Review.
+- [ ] Update mappings across `utils.js`, `evaluation.js`, `collusion.js`, and pages.
+
+## Step 11 — Collusion detection safety
+- [ ] Remove bid similarity heuristic.
+- [ ] Require corroborating evidence (directors/addresses/GST/bank/metadata patterns).
+- [ ] If insufficient evidence: show `Insufficient evidence for collusion determination.`
+
+## Step 12 — OCR/extraction robustness
+- [ ] Fail-safe on blank/corrupted/unsupported docs.
+- [ ] Implement pipeline completion validation and extraction status tracking.
+
+## Step 13 — UI/UX trust & accessibility
+- [ ] Add visible states: VERIFIED / UNVERIFIED / REVIEW REQUIRED / SIGNED / TAMPER CHECK FAILED.
+- [ ] Add evidence panels with page-linked citations.
+- [ ] Add ARIA labels and focus handling for modals.
+
+## Step 14 — Final validation artifacts
+- [ ] Generate: `security_audit_report.md`, `hallucination_safety_report.md`, `architecture_changes.md`, `government_readiness_checklist.md`.
+- [ ] Run full smoke test: no demo fallbacks, no unsafe innerHTML, no evaluation without evidence, no finalize without approval.
 

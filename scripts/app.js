@@ -48,16 +48,27 @@
       const rows      = root.NyayaBid.evaluation.runBatchEvaluation(data.vendors);
       const tableBody = document.getElementById('recent-evals-body');
       if (tableBody) {
-        tableBody.innerHTML = rows.map(function (entry) {
+        tableBody.textContent = '';
+        rows.forEach(function (entry) {
+          const tr = document.createElement('tr');
           const statusClass = entry.result.status === 'Eligible' ? 'ok' : 'reject';
-          return '<tr>' +
-            '<td>' + data.tender.id + '</td>' +
-            '<td>' + entry.vendor.name + '</td>' +
-            '<td><span class="status-pill ' + statusClass + '">' + entry.result.status + '</span></td>' +
-            '<td>' + entry.result.confidence + '%</td>' +
-            '<td><a href="evaluate.html" class="btn btn-secondary tiny-btn">Open</a></td>' +
-            '</tr>';
-        }).join('');
+          const c1 = document.createElement('td'); c1.textContent = data.tender.id;
+          const c2 = document.createElement('td'); c2.textContent = entry.vendor.name;
+          const c3 = document.createElement('td');
+          const span = document.createElement('span');
+          span.className = 'status-pill ' + statusClass;
+          span.textContent = entry.result.status;
+          c3.appendChild(span);
+          const c4 = document.createElement('td'); c4.textContent = entry.result.confidence + '%';
+          const c5 = document.createElement('td');
+          const a = document.createElement('a');
+          a.href = 'evaluate.html';
+          a.className = 'btn btn-secondary tiny-btn';
+          a.textContent = 'Open';
+          c5.appendChild(a);
+          tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4); tr.appendChild(c5);
+          tableBody.appendChild(tr);
+        });
       }
     } catch (e) {
       console.error('NyayaBid dashboard eval error:', e);
@@ -148,7 +159,12 @@
     const popup = document.createElement('div');
     popup.className    = 'judge-helper-popup';
     popup.style.display = 'none';
-    popup.innerHTML = '<strong>Judge Helper</strong><p>Upload a tender PDF or use the demo tender to run an evaluation. Then open the Report page to generate a CAG-ready audit report.</p>';
+    const s = document.createElement('strong');
+    s.textContent = 'Judge Helper';
+    const p = document.createElement('p');
+    p.textContent = 'Upload tender and vendor documents, run evaluation, then open Report for audit output.';
+    popup.appendChild(s);
+    popup.appendChild(p);
     btn.addEventListener('click', function () {
       popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
     });

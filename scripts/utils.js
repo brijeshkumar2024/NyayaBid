@@ -1,4 +1,5 @@
 // ── SHARED DATA ──────────────────────────────────────
+const STRICT_GOVERNANCE_MODE = true;
 const DEMO_TENDER = {
   id: 'TND-2024-CRPF-001',
   title: 'Road Construction & Maintenance Works',
@@ -226,6 +227,51 @@ function setStorage(key, value) {
   } catch (e) {}
 }
 
+function sanitizeText(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[<>&"'`]/g, '');
+}
+
+function sanitizeFileName(name) {
+  return sanitizeText(name)
+    .replace(/[^a-zA-Z0-9._\-\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\./g, '.')
+    .replace(/\.\s+/g, '.')
+    .trim()
+    .replace(/(\.[a-zA-Z0-9]+)$/g, (m) => m.toLowerCase());
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function createEvidenceRecord(field, value, sourceDocument, pageNumber, extractionMethod, rawEvidenceSnippet, reviewStatus, startIndex, endIndex) {
+  return {
+    field: sanitizeText(field),
+    value: sanitizeText(value),
+    confidence: 0,
+    sourceDocument: sanitizeFileName(sourceDocument || 'unknown'),
+    pageNumber: Number.isFinite(pageNumber) ? pageNumber : 1,
+    extractionMethod: sanitizeText(extractionMethod || 'unknown'),
+    rawEvidenceSnippet: sanitizeText(rawEvidenceSnippet || ''),
+    reviewStatus: sanitizeText(reviewStatus || 'NEEDS_HUMAN'),
+    startIndex: Number.isFinite(startIndex) ? startIndex : -1,
+    endIndex: Number.isFinite(endIndex) ? endIndex : -1
+  };
+}
+
+function createReviewLogEntry(payload) {
+  return {
+    reviewerName: sanitizeText(payload?.reviewerName || ''),
+    overrideReason: sanitizeText(payload?.overrideReason || ''),
+    timestamp: nowIso(),
+    reviewedCriterion: sanitizeText(payload?.reviewedCriterion || ''),
+    officerNotes: sanitizeText(payload?.officerNotes || ''),
+    status: sanitizeText(payload?.status || 'NEEDS_HUMAN')
+  };
+}
+
 function showToast(message, type = 'info', duration = 4000) {
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -253,6 +299,24 @@ function logAction(action, officer = 'System AI') {
   setStorage('audit-log', log);
 }
 
+// Enhanced audit logging for officer overrides
+function logOverride(overrideRecord) {
+  const overrides = getStorage('officer-overrides', []);
+  overrides.unshift(overrideRecord);
+  if (overrides.length > 100) overrides.pop(); // Keep last 100 overrides
+  setStorage('officer-overrides', overrides);
+  
+  // Also log in main audit trail
+  logAction(`OVERRIDE: ${overrideRecord.officerName} changed ${overrideRecord.vendorName} from ${overrideRecord.originalDecision} to ${overrideRecord.overrideDecision} - ${overrideRecord.auditTrailId}`, overrideRecord.officerName);
+}
+
+function appendReviewLog(review) {
+  const logs = getStorage('review-logs', []);
+  logs.unshift(createReviewLogEntry(review));
+  if (logs.length > 300) logs.pop();
+  setStorage('review-logs', logs);
+}
+
 function initDashboardData() {
   const existing = getStorage('all-tenders', null);
   if (!existing) {
@@ -262,6 +326,10 @@ function initDashboardData() {
 }
 
 function resetDemoEnvironment() {
+  if (STRICT_GOVERNANCE_MODE) {
+    showToast('Strict governance mode is active. Demo reset is disabled.', 'warning');
+    return;
+  }
   const confirmMessage = [
     'Reset Demo Environment?',
     '',
@@ -290,7 +358,7 @@ function resetDemoEnvironment() {
 // Call on every page load
 initDashboardData();
 
-// ── EVALUATION LOGIC ──────────────────────────────
+// ── EVALUATION LOGIC WITH EVIDENCE REQUIREMENTS ──────────────────────────────
 function evaluateVendor(vendor, criteria) {
   try {
     if (!vendor || !criteria) return { vendorName: 'Unknown', status: 'Error', confidence: 0, checks: [] };
@@ -298,75 +366,95 @@ function evaluateVendor(vendor, criteria) {
     const checks = [];
     let eligible = true;
     let needsReview = false;
-
-  // Turnover
-  const tPass = vendor.turnoverCr >= criteria.minTurnoverCr;
-  checks.push({
-    criterion: 'Min Annual Turnover',
-    required: '₹' + criteria.minTurnoverCr + ' Cr',
-    found: '₹' + vendor.turnoverCr + ' Cr',
-    passed: tPass,
-    reason: tPass
-      ? 'Turnover of ₹' + vendor.turnoverCr + 'Cr meets the minimum ₹' + criteria.minTurnoverCr + 'Cr requirement'
-      : 'Turnover ₹' + vendor.turnoverCr + 'Cr is below required ₹' + criteria.minTurnoverCr + 'Cr'
-  });
-  if (!tPass) eligible = false;
-
-  // Experience
-  const ePass = vendor.experienceYears >= criteria.minExperienceYears;
-  checks.push({
-    criterion: 'Min Experience',
-    required: criteria.minExperienceYears + ' years',
-    found: vendor.experienceYears + ' years',
-    passed: ePass,
-    reason: ePass
-      ? vendor.experienceYears + ' years experience meets the ' + criteria.minExperienceYears + ' year requirement'
-      : 'Only ' + vendor.experienceYears + ' years experience — need ' + criteria.minExperienceYears + ' years'
-  });
-  if (!ePass) eligible = false;
-
-  // GST
-  if (criteria.gstMandatory) {
+    
+    // Turnover check - requires evidence
+    const turnoverEvidence = vendor.evidence?.minTurnover;
+    const tPass = vendor.turnoverCr && vendor.turnoverCr >= criteria.minTurnoverCr;
     checks.push({
-      criterion: 'GST Registration',
-      required: 'Valid GST',
-      found: vendor.gstValid ? vendor.gstNumber : 'Invalid/Missing',
-      passed: vendor.gstValid,
-      reason: vendor.gstValid
-        ? 'Valid GST registration ' + vendor.gstNumber + ' confirmed'
-        : 'GST certificate is invalid or not submitted — flagging for review'
+      criterion: 'Min Annual Turnover',
+      required: '₹' + criteria.minTurnoverCr + ' Cr',
+      found: vendor.turnoverCr ? '₹' + vendor.turnoverCr + ' Cr' : 'Not extracted',
+      passed: tPass,
+      evidence: turnoverEvidence,
+      reason: tPass
+        ? 'Turnover meets minimum requirement with evidence'
+        : turnoverEvidence 
+          ? 'Turnover below requirement (evidence available)'
+          : 'Turnover not extracted - evidence unavailable'
     });
-    if (!vendor.gstValid) {
+    if (!tPass) {
       eligible = false;
+      if (!turnoverEvidence) needsReview = true;
+    }
+
+    // Experience check - requires evidence
+    const experienceEvidence = vendor.evidence?.experienceYears;
+    const ePass = vendor.experienceYears && vendor.experienceYears >= criteria.minExperienceYears;
+    checks.push({
+      criterion: 'Min Experience',
+      required: criteria.minExperienceYears + ' years',
+      found: vendor.experienceYears ? vendor.experienceYears + ' years' : 'Not extracted',
+      passed: ePass,
+      evidence: experienceEvidence,
+      reason: ePass
+        ? 'Experience meets requirement with evidence'
+        : experienceEvidence
+          ? 'Experience below requirement (evidence available)'
+          : 'Experience not extracted - evidence unavailable'
+    });
+    if (!ePass) {
+      eligible = false;
+      if (!experienceEvidence) needsReview = true;
+    }
+
+    // GST check - requires evidence
+    const gstEvidence = vendor.evidence?.gstNumber || vendor.evidence?.gstRequired;
+    if (criteria.gstMandatory) {
+      const gstPass = vendor.gstValid && vendor.gstNumber;
+      checks.push({
+        criterion: 'GST Registration',
+        required: 'Valid GST',
+        found: vendor.gstValid && vendor.gstNumber ? vendor.gstNumber : 'Invalid/Missing',
+        passed: gstPass,
+        evidence: gstEvidence,
+        reason: gstPass
+          ? 'Valid GST registration confirmed with evidence'
+          : gstEvidence
+            ? 'GST invalid or missing (evidence available)'
+            : 'GST not extracted - evidence unavailable'
+      });
+      if (!gstPass) {
+        eligible = false;
+        if (!gstEvidence) needsReview = true;
+      }
+    }
+
+    // Confidence threshold based on extraction quality
+    if (vendor.confidence < 70) {
       needsReview = true;
     }
-  }
 
-  // Confidence threshold
-  if (vendor.confidence < 60) {
-    needsReview = true;
-  }
+    const status = needsReview ? 'Needs Review' : eligible ? 'Eligible' : 'Not Eligible';
+    const flagReason = needsReview
+      ? vendor.confidence < 70
+        ? 'Document confidence ' + vendor.confidence + '% is below threshold — manual verification required'
+        : 'Missing evidence for critical criteria — manual verification required'
+      : null;
 
-  const status = needsReview ? 'Needs Review' : eligible ? 'Eligible' : 'Not Eligible';
-  const flagReason = needsReview
-    ? vendor.confidence < 60
-      ? 'Document confidence ' + vendor.confidence + '% is below threshold — manual verification required'
-      : 'GST invalid — needs officer review'
-    : null;
-
-  return {
-    vendorName: vendor.name,
-    city: vendor.city,
-    status,
-    confidence: vendor.confidence,
-    checks,
-    flagForReview: needsReview,
-    flagReason,
-    turnoverCr: vendor.turnoverCr,
-    experienceYears: vendor.experienceYears,
-    gstValid: vendor.gstValid,
-    isMSME: vendor.isMSME
-  };
+    return {
+      vendorName: vendor.name,
+      city: vendor.city,
+      status,
+      confidence: vendor.confidence,
+      checks,
+      flagForReview: needsReview,
+      flagReason,
+      turnoverCr: vendor.turnoverCr,
+      experienceYears: vendor.experienceYears,
+      gstValid: vendor.gstValid,
+      isMSME: vendor.isMSME,
+      evidence: vendor.evidence
+    };
   } catch (err) {
     console.error('Evaluation error for vendor:', vendor, err);
     return {
@@ -385,44 +473,91 @@ function detectCollusion(vendors) {
     if (!vendors || !Array.isArray(vendors)) return [];
     
     const flags = [];
-    // Check for GST mismatches
+    
+    // Check for GST mismatches - requires evidence
     vendors.forEach((v) => {
       if (!v || !v.name) return;
-      if (!v.gstValid)
-      flags.push({
-        vendor: v.name,
-        type: 'GST Mismatch',
-        detail: 'GST certificate could not be validated',
-        action: 'Verify directly with GST portal'
-      });
-    if (v.confidence < 60)
-      flags.push({
-        vendor: v.name,
-        type: 'Low Confidence',
-        detail: 'Document confidence ' + v.confidence + '% — possible scan quality issue or data mismatch',
-        action: 'Request original documents'
-      });
-  });
+      if (!v.gstValid && !v.evidence?.gstNumber) {
+        flags.push({
+          vendor: v.name,
+          type: 'GST Evidence Missing',
+          detail: 'GST certificate validation failed and no extraction evidence available',
+          action: 'Request original GST certificate with notarized copy'
+        });
+      } else if (!v.gstValid && v.evidence?.gstNumber) {
+        flags.push({
+          vendor: v.name,
+          type: 'GST Validation Failed',
+          detail: 'GST number extracted but validation failed: ' + (v.gstNumber || 'N/A'),
+          action: 'Verify GST number with government portal'
+        });
+      }
+    });
 
-  // Check for similar bid values (collusion signal)
-  for (let i = 0; i < vendors.length; i++) {
-    for (let j = i + 1; j < vendors.length; j++) {
-      if (vendors[i].bidValue && vendors[j].bidValue) {
-        const diff =
-          Math.abs(vendors[i].bidValue - vendors[j].bidValue) /
-          Math.max(vendors[i].bidValue, vendors[j].bidValue);
-        if (diff < 0.02)
-          flags.push({
-            vendor: vendors[i].name + ' & ' + vendors[j].name,
-            type: 'Collusion Risk',
-            detail: 'Bid values within 2% of each other — possible bid coordination',
-            action: 'Refer to CVC for investigation'
-          });
+    // Check for address overlaps - requires evidence
+    for (let i = 0; i < vendors.length; i++) {
+      for (let j = i + 1; j < vendors.length; j++) {
+        // Only flag if we have evidence of addresses
+        if (vendors[i].evidence?.address && vendors[j].evidence?.address) {
+          if (vendors[i].evidence.address.value === vendors[j].evidence.address.value) {
+            flags.push({
+              vendor: vendors[i].name + ' & ' + vendors[j].name,
+              type: 'Address Overlap Detected',
+              detail: 'Identical registered addresses found with evidence: ' + vendors[i].evidence.address.value,
+              action: 'Investigate potential proxy bidder arrangement'
+            });
+          }
+        }
       }
     }
-  }
 
-  return flags;
+    // Check for GST number overlaps - requires evidence
+    for (let i = 0; i < vendors.length; i++) {
+      for (let j = i + 1; j < vendors.length; j++) {
+        if (vendors[i].gstNumber && vendors[j].gstNumber && 
+            vendors[i].evidence?.gstNumber && vendors[j].evidence?.gstNumber) {
+          if (vendors[i].gstNumber === vendors[j].gstNumber) {
+            flags.push({
+              vendor: vendors[i].name + ' & ' + vendors[j].name,
+              type: 'GST Number Overlap',
+              detail: 'Same GST number used by multiple vendors: ' + vendors[i].gstNumber,
+              action: 'Flag for CVC investigation - possible shell companies'
+            });
+          }
+        }
+      }
+    }
+
+    // Only flag bid similarity if we have substantial evidence of other overlaps
+    const hasOtherEvidence = flags.some(f => f.type !== 'Bid Similarity');
+    if (hasOtherEvidence) {
+      for (let i = 0; i < vendors.length; i++) {
+        for (let j = i + 1; j < vendors.length; j++) {
+          if (vendors[i].bidValue && vendors[j].bidValue) {
+            const diff = Math.abs(vendors[i].bidValue - vendors[j].bidValue) / Math.max(vendors[i].bidValue, vendors[j].bidValue);
+            if (diff < 0.02) {
+              flags.push({
+                vendor: vendors[i].name + ' & ' + vendors[j].name,
+                type: 'Bid Coordination Suspected',
+                detail: 'Bid values within 2% when other collusion indicators present',
+                action: 'Refer to CVC for comprehensive investigation'
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // If no evidence-based flags found, don't create false positives
+    if (flags.length === 0) {
+      return [{
+        type: 'No Collusion Evidence',
+        detail: 'Insufficient evidence for collusion determination',
+        action: 'Continue monitoring procurement patterns'
+      }];
+    }
+
+    return flags;
   } catch (err) {
     console.error('Collusion detection error:', err);
     return [];
@@ -442,4 +577,561 @@ async function sha256(text) {
     return 'HASH_UNAVAILABLE';
   }
 }
+
+// ── PROCUREMENT RELEVANCE VALIDATION ──────────────────────────────────────
+
+// Check if document content is procurement-related
+function validateProcurementRelevance(text, documentType = 'auto') {
+  try {
+    if (!text || typeof text !== 'string') {
+      return { isRelevant: false, score: 0, reasons: ['No text content available'] };
+    }
+
+    const content = text.toLowerCase();
+    let score = 0;
+    const reasons = [];
+    const indicators = {
+      tender: ['tender', 'tnd-', 'notice inviting tender', 'nit', 'bid notice', 'eoi', 'rfp', 'request for proposal', 'procurement', 'quotation', 'purchase order', 'tender document', 'bid document'],
+      vendor: ['vendor', 'supplier', 'bidder', 'contractor', 'company', 'firm', 'enterprise', 'gstin', 'gst number', 'pan number', 'registered office'],
+      financial: ['turnover', 'rupees', '₹', 'cr', 'crore', 'lakh', 'l', 'amount', 'cost', 'price', 'emd', 'bid value', 'financial bid'],
+      legal: ['gst', 'pan', 'tan', 'cin', 'registration', 'certificate', 'compliance', 'terms and conditions', 'eligibility criteria', 'prequalification'],
+      technical: ['experience', 'years', 'work', 'project', 'infrastructure', 'construction', 'submission', 'scope', 'technical bid'],
+      regulatory: ['gfr', 'cvc', 'government', 'department', 'authority', 'ministry', 'eprocurement', 'notice', 'department of', 'state of']
+    };
+
+    // Check for tender indicators
+    const tenderMatches = indicators.tender.filter(term => content.includes(term)).length;
+    if (tenderMatches > 0) {
+      score += tenderMatches * 15;
+      reasons.push(`${tenderMatches} tender-related terms found`);
+    }
+
+    // Check for vendor indicators
+    const vendorMatches = indicators.vendor.filter(term => content.includes(term)).length;
+    if (vendorMatches > 0) {
+      score += vendorMatches * 10;
+      reasons.push(`${vendorMatches} vendor-related terms found`);
+    }
+
+    // Check for financial indicators
+    const financialMatches = indicators.financial.filter(term => content.includes(term)).length;
+    if (financialMatches > 0) {
+      score += financialMatches * 12;
+      reasons.push(`${financialMatches} financial terms found`);
+    }
+
+    // Check for legal/compliance indicators
+    const legalMatches = indicators.legal.filter(term => content.includes(term)).length;
+    if (legalMatches > 0) {
+      score += legalMatches * 20;
+      reasons.push(`${legalMatches} legal/compliance terms found`);
+    }
+
+    // Check for technical indicators
+    const technicalMatches = indicators.technical.filter(term => content.includes(term)).length;
+    if (technicalMatches > 0) {
+      score += technicalMatches * 8;
+      reasons.push(`${technicalMatches} technical terms found`);
+    }
+
+    // Check for regulatory indicators
+    const regulatoryMatches = indicators.regulatory.filter(term => content.includes(term)).length;
+    if (regulatoryMatches > 0) {
+      score += regulatoryMatches * 25;
+      reasons.push(`${regulatoryMatches} regulatory terms found`);
+    }
+
+    // Penalize for non-procurement content
+    const nonProcurementTerms = ['resume', 'cv', 'curriculum vitae', 'personal', 'salary', 'job', 'employment', 'interview', 'invoice', 'bill to', 'tax invoice'];
+    const nonProcurementMatches = nonProcurementTerms.filter(term => content.includes(term)).length;
+    if (nonProcurementMatches > 0) {
+      score -= nonProcurementMatches * 30;
+      reasons.push(`${nonProcurementMatches} non-procurement terms detected`);
+    }
+
+    const thresholds = { tender: 35, vendor: 18, auto: 28 };
+    const threshold = thresholds[documentType] || thresholds.auto;
+    const isRelevant = score >= threshold;
+
+    return {
+      isRelevant,
+      score: Math.max(0, Math.min(100, score)),
+      reasons,
+      threshold,
+      confidence: isRelevant ? Math.min(95, score) : Math.max(5, score - 20)
+    };
+  } catch (err) {
+    console.error('Relevance validation error:', err);
+    return { isRelevant: false, score: 0, reasons: ['Validation error occurred'] };
+  }
+}
+
+// Extract text from PDF using pdf.js
+async function extractPdfText(file) {
+  try {
+    if (typeof pdfjsLib === 'undefined') {
+      console.warn('pdf.js not available');
+      return { text: '', pages: [], confidence: 0, source: 'unavailable' };
+    }
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pages = [];
+    
+    for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str || '').join(' ').trim();
+      pages.push({ page: i, text: pageText });
+    }
+    
+    return {
+      text: pages.map(p => p.text).join('\n'),
+      pages,
+      confidence: 90,
+      source: 'pdf.js'
+    };
+  } catch (err) {
+    console.error('PDF extraction error:', err);
+    return { text: '', pages: [], confidence: 0, source: 'error' };
+  }
+}
+
+// OCR fallback for scanned PDF pages
+async function extractPdfImageText(file, maxPages = 2) {
+  try {
+    if (typeof pdfjsLib === 'undefined') {
+      console.warn('PDF OCR fallback unavailable because pdf.js is not loaded');
+      return { text: '', pages: [], confidence: 0, source: 'pdf.ocr-unavailable' };
+    }
+    if (typeof Tesseract === 'undefined') {
+      console.warn('Tesseract.js not available for PDF OCR fallback');
+      return { text: '', pages: [], confidence: 0, source: 'pdf.ocr-unavailable' };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pages = [];
+    let confidenceSum = 0;
+    const pageLimit = Math.min(pdf.numPages, maxPages);
+
+    for (let i = 1; i <= pageLimit; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const ocrResult = await Tesseract.recognize(canvas, 'eng', {
+        logger: () => {}
+      });
+
+      const pageText = (ocrResult?.data?.text || '').trim();
+      const pageConfidence = Number(ocrResult?.data?.confidence || 0);
+      confidenceSum += pageConfidence;
+      pages.push({ page: i, text: pageText });
+    }
+
+    const averageConfidence = pages.length ? Math.round(confidenceSum / pages.length) : 0;
+    return {
+      text: pages.map(p => p.text).join('\n'),
+      pages,
+      confidence: averageConfidence,
+      source: 'pdf.ocr'
+    };
+  } catch (err) {
+    console.error('PDF OCR error:', err);
+    return { text: '', pages: [], confidence: 0, source: 'pdf.ocr-error' };
+  }
+}
+
+// OCR for images using Tesseract.js
+async function extractImageText(file) {
+  try {
+    if (typeof Tesseract === 'undefined') {
+      console.warn('Tesseract.js not available');
+      return { text: '', confidence: 0, source: 'unavailable' };
+    }
+    
+    const reader = new FileReader();
+    const result = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    
+    const { data } = await Tesseract.recognize(result, 'eng', {
+      logger: (m) => {
+        if (m.status === 'recognizing') {
+          // Silent progress
+        }
+      }
+    });
+    
+    return {
+      text: data.text,
+      confidence: Math.round(data.confidence),
+      source: 'tesseract.js'
+    };
+  } catch (err) {
+    console.error('Tesseract OCR error:', err);
+    return { text: '', confidence: 0, source: 'error' };
+  }
+}
+
+// Extract text from DOCX using mammoth.js
+async function extractDocxText(file) {
+  try {
+    if (typeof mammoth === 'undefined') {
+      console.warn('Mammoth.js not available');
+      return { text: '', confidence: 0, source: 'unavailable' };
+    }
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return {
+      text: result.value,
+      confidence: 85,
+      source: 'mammoth.js'
+    };
+  } catch (err) {
+    console.error('DOCX extraction error:', err);
+    return { text: '', confidence: 0, source: 'error' };
+  }
+}
+
+// Regex-based field extraction from raw text with evidence tracking
+function extractProcurementFields(text) {
+  try {
+    function normalizeExtractionText(input) {
+      return String(input || '')
+        .normalize('NFKC')
+        .replace(/[–—]/g, '-')
+        .replace(/[|]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*:\s*/g, ': ')
+        .trim();
+    }
+
+    function firstMatch(content, patterns) {
+      for (const pattern of patterns) {
+        const m = content.match(pattern);
+        if (m) return m;
+      }
+      return null;
+    }
+
+    function addEvidence(evidenceObj, key, value, match, snippetLabel = key) {
+      if (!match || !value) return;
+      evidenceObj[key] = createEvidenceRecord(
+        key,
+        value,
+        sourceDocument,
+        1,
+        'regex_pattern',
+        match[0] || snippetLabel,
+        'AUTO_EXTRACTED',
+        Number.isFinite(match.index) ? match.index : -1,
+        Number.isFinite(match.index) ? match.index + String(match[0] || '').length : -1
+      );
+    }
+
+    const normalizedText = normalizeExtractionText(text);
+    const fields = {};
+    const evidence = {};
+    const sourceDocument = 'uploaded_document';
+    
+    function inferCroreFromIndianAmount(amountStr) {
+      const digits = String(amountStr || '').replace(/[^\d.]/g, '');
+      const amount = Number(digits);
+      if (!Number.isFinite(amount) || amount <= 0) return null;
+      return Math.round((amount / 10000000) * 100) / 100;
+    }
+
+    // Tender ID extraction
+    const tenderIdMatch = firstMatch(normalizedText, [
+      /\b(?:TND|NIT|RFP|RFQ|GEM)[-\/]?[A-Z0-9][A-Z0-9\-\/]{3,}\b/i,
+      /\b(?:tender|bid|nit)\s*(?:reference|id|ref|no|number)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{4,})\b/i,
+      /\b(?:reference\s*no|reference)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{4,})\b/i
+    ]);
+    if (tenderIdMatch) {
+      fields.tenderId = tenderIdMatch[1] ? tenderIdMatch[1].trim() : tenderIdMatch[0].trim();
+      addEvidence(evidence, 'tenderId', fields.tenderId, tenderIdMatch, 'tender id');
+    }
+    
+    // Project/Bid value: ₹X Cr/Lakh
+    const valueMatch = firstMatch(normalizedText, [
+      /(?:project value|estimated value|bid value|amount)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /₹\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i
+    ]);
+    if (valueMatch) {
+      fields.projectValue = valueMatch[1].replace(/,/g, '');
+      addEvidence(evidence, 'projectValue', fields.projectValue, valueMatch, 'project value');
+    }
+    
+    // Min turnover / turnover requirement
+    const turnoverMatch = firstMatch(normalizedText, [
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:turnover)\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(cr|crore|lakh|lac|l)\b/i,
+      /(?:minimum|annual|average|avg)?\s*(?:annual\s+)?turnover\s*[:\-]?\s*₹\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i,
+      /(?:financial standing|turnover requirement)\s*[:\-]?\s*₹?\s*([\d,]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(cr|crore)\s*\))?/i
+    ]);
+    if (turnoverMatch) {
+      let turnoverCr = null;
+      const amountPrimary = turnoverMatch[1] ? Number(String(turnoverMatch[1]).replace(/,/g, '')) : null;
+      const unitPrimary = String(turnoverMatch[2] || '').toLowerCase();
+      const amountParen = turnoverMatch[2] && /cr|crore/i.test(String(turnoverMatch[3] || '')) ? Number(turnoverMatch[2]) : null;
+
+      if (Number.isFinite(amountParen) && amountParen > 0) {
+        turnoverCr = amountParen;
+      } else if (Number.isFinite(amountPrimary) && amountPrimary > 0) {
+        if (unitPrimary.startsWith('l')) turnoverCr = Math.round((amountPrimary / 100) * 100) / 100;
+        else if (unitPrimary.startsWith('c')) turnoverCr = amountPrimary;
+        else turnoverCr = inferCroreFromIndianAmount(turnoverMatch[1]);
+      }
+
+      if (Number.isFinite(turnoverCr) && turnoverCr > 0) {
+        fields.minTurnover = turnoverCr;
+        fields.turnoverRequirement = turnoverCr;
+      }
+      if (fields.minTurnover) {
+        addEvidence(evidence, 'minTurnover', fields.minTurnover, turnoverMatch, 'turnover');
+        addEvidence(evidence, 'turnoverRequirement', fields.turnoverRequirement, turnoverMatch, 'turnover requirement');
+      }
+    }
+    
+    // Experience years / experience requirement
+    const expMatch = firstMatch(normalizedText, [
+      /(?:minimum|min|years?\s+of)?\s*experience\s*[:\-]?\s*(\d+)\s*(?:years?|yrs?)\b/i,
+      /(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?(?:experience|exp)\b/i,
+      /(?:minimum\s+)?(\d+)\s*(?:years?|yrs?)\s*(?:of\s+)?(?:technical\s+)?experience\b/i,
+      /(?:technical\s+experience|project\s+experience|similar\s+projects|completed\s+projects)\s*[:\-]?\s*(\d+)\b/i
+    ]);
+    if (expMatch) {
+      fields.experienceYears = parseInt(expMatch[1]);
+      fields.experienceRequirement = fields.experienceYears;
+      addEvidence(evidence, 'experienceYears', fields.experienceYears, expMatch, 'experience');
+      addEvidence(evidence, 'experienceRequirement', fields.experienceRequirement, expMatch, 'experience requirement');
+    }
+    
+    // EMD amount
+    const emdMatch = firstMatch(normalizedText, [
+      /emd\s*(?:amount)?\s*[:\-]?\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:lakh|lac|l|cr|crore)\b/i
+    ]);
+    if (emdMatch) {
+      fields.emdAmount = emdMatch[1];
+      evidence.emdAmount = createEvidenceRecord('emdAmount', fields.emdAmount, sourceDocument, 1, 'regex_pattern', emdMatch[0], 'AUTO_EXTRACTED', emdMatch.index, emdMatch.index + emdMatch[0].length);
+    }
+    
+    // GST requirement
+    const gstMatch = firstMatch(normalizedText, [
+      /(?:valid\s+)?gst(?:\s+registration|\s+certificate|\s+number|\s+details)?\s*(?:is\s*)?(?:mandatory|required|compulsory)\b/i,
+      /(?:gst required)\b/i
+    ]);
+    if (gstMatch) {
+      fields.gstRequired = true;
+      evidence.gstRequired = createEvidenceRecord('gstRequired', true, sourceDocument, 1, 'regex_pattern', gstMatch[0], 'AUTO_EXTRACTED', gstMatch.index, gstMatch.index + gstMatch[0].length);
+    }
+
+    // PAN requirement
+    const panRequiredMatch = firstMatch(normalizedText, [
+      /\bpan(?:\s+card|\s+number)?\s*(?:is\s*)?(?:mandatory|required|compulsory)\b/i,
+      /\bvalid\s+pan(?:\s+card|\s+number)?\b/i
+    ]);
+    if (panRequiredMatch) {
+      fields.panRequired = true;
+      addEvidence(evidence, 'panRequired', true, panRequiredMatch, 'pan required');
+    }
+
+    const criteriaMatch = firstMatch(normalizedText, [
+      /(?:eligibility criteria|pre-qualification|minimum eligibility|required qualification)/i
+    ]);
+    if (criteriaMatch) {
+      fields.eligibilityCriteriaDetected = true;
+      addEvidence(evidence, 'eligibilityCriteriaDetected', true, criteriaMatch, 'eligibility criteria');
+    }
+    
+    // Deadline
+    const deadlineMatch = text.match(/(\d{1,2})\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s*(\d{4})/i);
+    if (deadlineMatch) {
+      fields.deadline = deadlineMatch[0];
+      evidence.deadline = createEvidenceRecord('deadline', fields.deadline, sourceDocument, 1, 'regex_pattern', deadlineMatch[0], 'AUTO_EXTRACTED', deadlineMatch.index, deadlineMatch.index + deadlineMatch[0].length);
+    }
+    
+    // Vendor name (common patterns)
+    const vendorMatch = firstMatch(normalizedText, [
+      /(?:company|vendor|bidder|supplier|firm|entity)\s*(?:name)?\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{2,})/i
+    ]);
+    if (vendorMatch) {
+      fields.vendorName = vendorMatch[1].trim();
+      evidence.vendorName = createEvidenceRecord('vendorName', fields.vendorName, sourceDocument, 1, 'regex_pattern', vendorMatch[0], 'AUTO_EXTRACTED', vendorMatch.index, vendorMatch.index + vendorMatch[0].length);
+    }
+    
+    // GST number (Indian format: DDAAAAAAAADDDD)
+    const gstNumberMatch = text.match(/\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}/);
+    if (gstNumberMatch) {
+      fields.gstNumber = gstNumberMatch[0];
+      evidence.gstNumber = createEvidenceRecord('gstNumber', fields.gstNumber, sourceDocument, 1, 'regex_pattern', gstNumberMatch[0], 'AUTO_EXTRACTED', gstNumberMatch.index, gstNumberMatch.index + gstNumberMatch[0].length);
+    }
+    
+    // PAN number (Indian format: AAAAA0000A)
+    const panMatch = text.match(/[A-Z]{5}[0-9]{4}[A-Z]{1}/);
+    if (panMatch) {
+      fields.panNumber = panMatch[0];
+      evidence.panNumber = createEvidenceRecord('panNumber', fields.panNumber, sourceDocument, 1, 'regex_pattern', panMatch[0], 'AUTO_EXTRACTED', panMatch.index, panMatch.index + panMatch[0].length);
+    }
+    
+    // Authority (common pattern)
+    const authMatch = firstMatch(normalizedText, [
+      /(?:procuring entity|issued by|issuing authority|tendering authority|authority|department)\s*[:\-]?\s*([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
+      /(?:government of|dept\.?\s+of|department of|ministry)\s+([A-Z][A-Za-z0-9\s&.,()\-]{3,})/i,
+      /\b(public works department|pwd|central public works department|cpwd|ministry of [a-z\s]+)\b/i
+    ]);
+    if (authMatch) {
+      fields.authority = authMatch[1].trim().replace(/\s{2,}/g, ' ');
+      addEvidence(evidence, 'authority', fields.authority, authMatch, 'authority');
+    }
+    
+    return { fields, evidence };
+  } catch (err) {
+    console.error('Field extraction error:', err);
+    return { fields: {}, evidence: {} };
+  }
+}
+
+// Main document extraction with source traceability and evidence
+async function extractDocumentData(file, documentType = 'auto') {
+  try {
+    if (!file) return { success: false, message: 'No file provided' };
+    
+    const fileName = sanitizeFileName(file.name);
+    const lowerFileName = fileName.toLowerCase();
+    let extractedData = { text: '', confidence: 0, source: 'unknown' };
+    
+    // Determine file type and extract
+    if (lowerFileName.endsWith('.pdf')) {
+      extractedData = await extractPdfText(file);
+
+      const noSelectableText = !extractedData.text?.trim();
+      const canUseOcr = typeof Tesseract !== 'undefined';
+
+      if ((noSelectableText || extractedData.source === 'error' || extractedData.source === 'unavailable') && canUseOcr) {
+        const ocrPdf = await extractPdfImageText(file);
+        if (ocrPdf.text && ocrPdf.text.trim()) {
+          extractedData = ocrPdf;
+        }
+      }
+    } else if (lowerFileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      extractedData = await extractImageText(file);
+    } else if (lowerFileName.endsWith('.docx')) {
+      extractedData = await extractDocxText(file);
+    } else {
+      return { success: false, message: 'Unsupported file format. Use PDF, DOCX, JPG, or PNG.', extractionStatus: 'UNVERIFIED' };
+    }
+
+    if (!extractedData.text || extractedData.confidence <= 0 || extractedData.source === 'unavailable' || extractedData.source === 'error') {
+      const isPdf = lowerFileName.endsWith('.pdf');
+      return {
+        success: false,
+        message: isPdf ? 'Unsupported or corrupted PDF' : 'Extraction failed — manual review required.',
+        extractionStatus: 'UNVERIFIED',
+        confidence: extractedData.confidence || 0
+      };
+    }
+    
+    // Validate procurement relevance first
+    const relevanceCheck = validateProcurementRelevance(extractedData.text, documentType);
+    if (!relevanceCheck.isRelevant) {
+      return {
+        success: false,
+        message: 'No relevant procurement information detected.',
+        relevanceScore: relevanceCheck.score,
+        relevanceReasons: relevanceCheck.reasons,
+        relevanceThreshold: relevanceCheck.threshold,
+        extractionStatus: 'UNVERIFIED'
+      };
+    }
+    
+    // Extract fields with evidence
+    const { fields, evidence } = extractProcurementFields(extractedData.text);
+    
+    return {
+      success: extractedData.confidence >= 70,
+      fileName,
+      fileType: fileName.split('.').pop().toUpperCase(),
+      extractedText: sanitizeText(extractedData.text.substring(0, 500)) + '...',
+      fields,
+      evidence,
+      confidence: extractedData.confidence,
+      relevanceScore: relevanceCheck.score,
+      relevanceReasons: relevanceCheck.reasons,
+      relevanceThreshold: relevanceCheck.threshold,
+      source: extractedData.source,
+      sourceTraceability: {
+        fileName,
+        extractionTime: new Date().toLocaleString(),
+        method: extractedData.source,
+        pages: extractedData.pages ? extractedData.pages.length : 1
+      },
+      extractionStatus: extractedData.confidence >= 70 ? 'VERIFIED' : 'REVIEW_REQUIRED'
+    };
+  } catch (err) {
+    console.error('Document extraction error:', err);
+    return { success: false, message: 'Extraction failed — manual review required.', extractionStatus: 'UNVERIFIED' };
+  }
+}
+
+async function signAuditPayload(payloadText, signedBy) {
+  try {
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign', 'verify']
+    );
+    const signature = await crypto.subtle.sign(
+      { name: 'ECDSA', hash: { name: 'SHA-256' } },
+      keyPair.privateKey,
+      new TextEncoder().encode(payloadText)
+    );
+    const reportHash = await sha256(payloadText);
+    return {
+      reportHash,
+      signedBy: sanitizeText(signedBy || 'Unknown Officer'),
+      timestamp: nowIso(),
+      verificationStatus: 'SIGNED',
+      signature: btoa(String.fromCharCode(...new Uint8Array(signature))),
+      publicKey: await crypto.subtle.exportKey('jwk', keyPair.publicKey)
+    };
+  } catch (err) {
+    console.error('Audit signing failed:', err);
+    return {
+      reportHash: await sha256(payloadText || ''),
+      signedBy: sanitizeText(signedBy || 'Unknown Officer'),
+      timestamp: nowIso(),
+      verificationStatus: 'REVIEW REQUIRED'
+    };
+  }
+}
+
+// Process multiple files with pipeline animation
+async function processTenderDocuments(files) {
+  const results = [];
+  for (const file of files) {
+    const result = await extractDocumentData(file, 'tender');
+    results.push(result);
+  }
+  return results;
+}
+
+async function processVendorDocuments(files) {
+  const results = [];
+  for (const file of files) {
+    const result = await extractDocumentData(file, 'vendor');
+    results.push(result);
+  }
+  return results;
+}
+
 

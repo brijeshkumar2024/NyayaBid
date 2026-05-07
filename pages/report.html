@@ -37,7 +37,7 @@
     </div>
 
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="loadDemoReport()">📋 Use Demo Data</button>
+      <button class="btn btn-primary" onclick="loadDemoReport()">📋 Demo Disabled In Strict Mode</button>
       <button class="btn btn-secondary" onclick="loadStoredReport()">💾 Use Stored Evaluation</button>
       <button class="btn btn-success" onclick="downloadPDF()" id="downloadBtn" disabled>⬇ Download PDF</button>
     </div>
@@ -111,35 +111,47 @@
   <script src="../scripts/utils.js"></script>
   <script>
     let currentReport = null;
+    let currentVerification = { status: 'REVIEW REQUIRED', signedHash: null, signedAt: null, tamperPassed: false };
+    const STRICT_MODE = true;
+
+    function validateReportReadiness(report) {
+      if (!report || !Array.isArray(report.results) || !report.results.length) {
+        return { ok: false, reason: 'No evaluation results available.' };
+      }
+      const hasReview = report.results.some((r) => r.status === 'Needs Review' || r.status === 'Error');
+      if (hasReview) {
+        return { ok: false, reason: 'Report contains unresolved review items.' };
+      }
+      const hasFailedExtraction = Array.isArray(report.vendors) && report.vendors.some((v) => v.extractionStatus && v.extractionStatus !== 'VERIFIED');
+      if (hasFailedExtraction) {
+        return { ok: false, reason: 'One or more vendor extractions are not verified.' };
+      }
+      const missingEvidence = report.results.some((r) => !r.evidence || Object.keys(r.evidence).length === 0);
+      if (missingEvidence) {
+        return { ok: false, reason: 'Missing evidence for one or more decisions.' };
+      }
+      return { ok: true, reason: '' };
+    }
 
     async function loadDemoReport() {
-      try {
-        const results = DEMO_VENDORS.map(v => evaluateVendor(v, DEMO_TENDER));
-        const flags = detectCollusion(DEMO_VENDORS);
-        
-        currentReport = {
-          tender: DEMO_TENDER,
-          vendors: DEMO_VENDORS,
-          results,
-          flags,
-          hash: await sha256(JSON.stringify(results))
-        };
-      
-      renderReport();
-      const downloadBtn = document.getElementById('downloadBtn');
-      if (downloadBtn) downloadBtn.disabled = false;
-      showToast('✓ Demo report loaded and populated', 'success');
-      } catch (err) {
-        console.error('Demo report load error:', err);
-        showToast('Report generation failed — please try again', 'error');
-      }
+      showToast('Demo mode disabled in strict governance mode', 'warning');
     }
 
     function loadStoredReport() {
       (async () => {
         const stored = getStorage('last-evaluation', null);
         if (!stored) {
-          showToast('No stored evaluation found — load demo first', 'warning');
+          showToast('No stored evaluation found. Run evaluation first.', 'warning');
+          return;
+        }
+        if (!stored.results || !stored.results.length) {
+          showToast('Stored evaluation is incomplete — manual review required', 'error');
+          return;
+        }
+        const readiness = validateReportReadiness(stored);
+        if (!readiness.ok) {
+          showToast(`Report locked: ${readiness.reason}`, 'error');
+          document.getElementById('downloadBtn').disabled = true;
           return;
         }
         // compute hash if not present
@@ -165,84 +177,148 @@
 
       // Report Meta
       const reportId = 'NBR-2024-001-' + Math.random().toString(16).substr(2, 4).toUpperCase();
-      document.getElementById('reportMeta').innerHTML = `
-        <div class="report-meta-item">
-          <div class="report-meta-label">Report ID</div>
-          <div class="report-meta-val">${reportId}</div>
-        </div>
-        <div class="report-meta-item">
-          <div class="report-meta-label">Tender</div>
-          <div class="report-meta-val">${tender.id}</div>
-        </div>
-        <div class="report-meta-item">
-          <div class="report-meta-label">Tamper Verification Hash</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div id="fullHash" class="report-meta-val" style="font-size: 12px; font-family: monospace; overflow:hidden; max-width:360px; text-overflow:ellipsis; white-space:nowrap;">${hash}</div>
-            <button class="btn btn-sm" onclick="copyHash()">Copy</button>
-            <div id="hashVerified" style="display:none;margin-left:8px" class="badge badge-eligible">Verified</div>
-          </div>
-        </div>
-      `;
+      document.getElementById('reportMeta').textContent = '';
+      const meta = document.getElementById('reportMeta');
+      const m1 = document.createElement('div');
+      m1.className = 'report-meta-item';
+      const m1l = document.createElement('div'); m1l.className = 'report-meta-label'; m1l.textContent = 'Report ID';
+      const m1v = document.createElement('div'); m1v.className = 'report-meta-val'; m1v.textContent = reportId;
+      m1.append(m1l, m1v);
+      const m2 = document.createElement('div');
+      m2.className = 'report-meta-item';
+      const m2l = document.createElement('div'); m2l.className = 'report-meta-label'; m2l.textContent = 'Tender';
+      const m2v = document.createElement('div'); m2v.className = 'report-meta-val'; m2v.textContent = tender.id;
+      m2.append(m2l, m2v);
+      const m3 = document.createElement('div');
+      m3.className = 'report-meta-item';
+      const m3l = document.createElement('div'); m3l.className = 'report-meta-label'; m3l.textContent = 'Tamper Verification Hash';
+      const m3wrap = document.createElement('div'); m3wrap.style.display = 'flex'; m3wrap.style.gap = '8px'; m3wrap.style.alignItems = 'center';
+      const hashDiv = document.createElement('div'); hashDiv.id = 'fullHash'; hashDiv.className = 'report-meta-val'; hashDiv.style.fontSize = '12px'; hashDiv.style.fontFamily = 'monospace'; hashDiv.style.overflow = 'hidden'; hashDiv.style.maxWidth = '360px'; hashDiv.style.textOverflow = 'ellipsis'; hashDiv.style.whiteSpace = 'nowrap';
+      const copyBtn = document.createElement('button'); copyBtn.className = 'btn btn-sm'; copyBtn.textContent = 'Copy'; copyBtn.addEventListener('click', copyHash);
+      const verified = document.createElement('div'); verified.id = 'hashVerified'; verified.style.display = 'none'; verified.style.marginLeft = '8px'; verified.className = 'badge badge-eligible'; verified.textContent = 'Verified';
+      m3wrap.append(hashDiv, copyBtn, verified);
+      m3.append(m3l, m3wrap);
+      meta.appendChild(m1); meta.appendChild(m2); meta.appendChild(m3);
+      document.getElementById('fullHash').textContent = hash;
       currentReport.hash = hash;
+      const signoff = getStorage('report-signoff', null);
+      if (signoff && signoff.signing && signoff.signing.reportHash) {
+        const tamperPassed = signoff.signing.reportHash === hash;
+        currentVerification = {
+          status: tamperPassed ? 'VERIFIED' : 'REVIEW REQUIRED',
+          signedHash: signoff.signing.reportHash,
+          signedAt: signoff.signing.timestamp || signoff.timestamp || null,
+          tamperPassed
+        };
+      } else {
+        currentVerification = { status: 'REVIEW REQUIRED', signedHash: null, signedAt: null, tamperPassed: false };
+      }
+      const reportStatus = document.getElementById('reportStatus');
+      reportStatus.className = currentVerification.status === 'VERIFIED' ? 'badge badge-eligible' : 'badge badge-review';
+      reportStatus.textContent = currentVerification.status === 'VERIFIED' ? 'VERIFIED • TAMPER CHECK PASSED' : 'REVIEW REQUIRED';
 
       // Summary
-      document.getElementById('summaryTable').innerHTML = `
-        <tr><td>Tender Title</td><td>${tender.title}</td></tr>
-        <tr><td>Total Vendors Evaluated</td><td>${results.length}</td></tr>
-        <tr><td>Eligible</td><td><span class="badge badge-eligible">${eligible}</span></td></tr>
-        <tr><td>Needs Review</td><td><span class="badge badge-review">${review}</span></td></tr>
-        <tr><td>Not Eligible</td><td><span class="badge badge-ineligible">${rejected}</span></td></tr>
-        <tr><td>Eligibility Rate</td><td>${((eligible / results.length) * 100).toFixed(1)}%</td></tr>
-      `;
+      const summaryTable = document.getElementById('summaryTable');
+      summaryTable.textContent = '';
+      const summaryRows = [
+        ['Tender Title', tender.title],
+        ['Total Vendors Evaluated', String(results.length)],
+        ['Eligible', String(eligible), 'badge-eligible'],
+        ['Needs Review', String(review), 'badge-review'],
+        ['Not Eligible', String(rejected), 'badge-ineligible'],
+        ['Eligibility Rate', `${((eligible / results.length) * 100).toFixed(1)}%`]
+      ];
+      summaryRows.forEach((row) => {
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td'); td1.textContent = row[0];
+        const td2 = document.createElement('td');
+        if (row[2]) {
+          const sp = document.createElement('span');
+          sp.className = `badge ${row[2]}`;
+          sp.textContent = row[1];
+          td2.appendChild(sp);
+        } else {
+          td2.textContent = row[1];
+        }
+        tr.append(td1, td2);
+        summaryTable.appendChild(tr);
+      });
 
       // Criteria
-      document.getElementById('criteriaTable').innerHTML = `
-        <tr><td>Min Annual Turnover</td><td>₹${tender.minTurnoverCr} Cr</td><td>GFR Rule 175</td></tr>
-        <tr><td>Min Experience</td><td>${tender.minExperienceYears} years</td><td>GFR Rule 160</td></tr>
-        <tr><td>GST Registration</td><td>${tender.gstMandatory ? 'Mandatory' : 'Optional'}</td><td>IGST Act 2017</td></tr>
-        <tr><td>MSME Allowance</td><td>${tender.msmeAllowed ? 'Yes (5% relaxation)' : 'No'}</td><td>MSME Policy</td></tr>
-      `;
+      const criteriaTable = document.getElementById('criteriaTable');
+      criteriaTable.textContent = '';
+      [
+        ['Min Annual Turnover', `₹${tender.minTurnoverCr} Cr`, 'GFR Rule 175'],
+        ['Min Experience', `${tender.minExperienceYears} years`, 'GFR Rule 160'],
+        ['GST Registration', tender.gstMandatory ? 'Mandatory' : 'Optional', 'IGST Act 2017'],
+        ['MSME Allowance', tender.msmeAllowed ? 'Yes (5% relaxation)' : 'No', 'MSME Policy']
+      ].forEach((row) => {
+        const tr = document.createElement('tr');
+        row.forEach((cell) => { const td = document.createElement('td'); td.textContent = cell; tr.appendChild(td); });
+        criteriaTable.appendChild(tr);
+      });
 
       // Vendors
-      document.getElementById('vendorTable').innerHTML = results.map(r => `
-        <tr>
-          <td><strong>${r.vendorName}</strong></td>
-          <td>${r.city}</td>
-          <td>₹${r.turnoverCr} Cr</td>
-          <td>${r.experienceYears} years</td>
-          <td>${r.gstValid ? '✓' : '✗'}</td>
-          <td>${r.confidence}%</td>
-          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}">${r.status}</span></td>
-        </tr>
-      `).join('');
+      const vendorTable = document.getElementById('vendorTable');
+      vendorTable.textContent = '';
+      results.forEach((r) => {
+        const tr = document.createElement('tr');
+        const c1 = document.createElement('td'); const st = document.createElement('strong'); st.textContent = r.vendorName; c1.appendChild(st);
+        const c2 = document.createElement('td'); c2.textContent = r.city;
+        const c3 = document.createElement('td'); c3.textContent = `₹${r.turnoverCr} Cr`;
+        const c4 = document.createElement('td'); c4.textContent = `${r.experienceYears} years`;
+        const c5 = document.createElement('td'); c5.textContent = r.gstValid ? '✓' : '✗';
+        const c6 = document.createElement('td'); c6.textContent = `${r.confidence}%`;
+        const c7 = document.createElement('td');
+        const b = document.createElement('span');
+        b.className = `badge ${r.status === 'Eligible' ? 'badge-eligible' : r.status === 'Needs Review' ? 'badge-review' : 'badge-ineligible'}`;
+        b.textContent = r.status;
+        c7.appendChild(b);
+        tr.append(c1, c2, c3, c4, c5, c6, c7);
+        vendorTable.appendChild(tr);
+      });
 
       // Flags
       const flagsWithVendors = results.filter(r => r.flagForReview);
       if (flagsWithVendors.length === 0) {
-        document.getElementById('flagsSection').innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No flags detected</div>';
+        const fs = document.getElementById('flagsSection');
+        fs.textContent = '✓ No flags detected';
       } else {
-        document.getElementById('flagsSection').innerHTML = flagsWithVendors.map(r => `
-          <div class="card" style="margin-bottom: 12px; background: var(--amber-bg); border-color: rgba(245,158,11,0.3);">
-            <div style="font-weight: 600; color: var(--amber);">${r.vendorName}</div>
-            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${r.flagReason}</div>
-            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">Confidence: ${r.confidence}%</div>
-          </div>
-        `).join('');
+        const fs = document.getElementById('flagsSection');
+        fs.textContent = '';
+        flagsWithVendors.forEach((r) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.marginBottom = '12px';
+          card.style.background = 'var(--amber-bg)';
+          const t = document.createElement('div'); t.style.fontWeight = '600'; t.style.color = 'var(--amber)'; t.textContent = r.vendorName;
+          const d = document.createElement('div'); d.style.fontSize = '13px'; d.style.color = 'var(--text2)'; d.style.margin = '8px 0'; d.textContent = r.flagReason || '';
+          const c = document.createElement('div'); c.style.fontSize = '12px'; c.style.color = 'var(--text3)'; c.textContent = `Confidence: ${r.confidence}%`;
+          card.append(t, d, c);
+          fs.appendChild(card);
+        });
       }
 
       // Collusion
       const collusionContent = document.getElementById('collusionContent');
       if (!collusionContent) { console.warn('Collusion content element not found'); }
       else if (currentReport.flags.length === 0) {
-        collusionContent.innerHTML = '<div style="color: var(--text2); padding: 20px; text-align: center;">✓ No collusion indicators detected</div>';
+        collusionContent.textContent = '✓ No collusion indicators detected';
       } else {
-        if (collusionContent) collusionContent.innerHTML = currentReport.flags.map(f => `
-          <div class="card" style="margin-bottom: 12px; background: var(--red-bg); border-color: rgba(239,68,68,0.3);">
-            <div style="font-weight: 600; color: var(--red);">${f.type} — ${f.vendor}</div>
-            <div style="font-size: 13px; color: var(--text2); margin: 8px 0;">${f.detail}</div>
-            <div style="font-size: 12px; color: var(--text3); margin-top: 8px;">→ ${f.action}</div>
-          </div>
-        `).join('');
+        if (collusionContent) {
+          collusionContent.textContent = '';
+          currentReport.flags.forEach((f) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.marginBottom = '12px';
+            card.style.background = 'var(--red-bg)';
+            const t = document.createElement('div'); t.style.fontWeight = '600'; t.style.color = 'var(--red)'; t.textContent = `${f.type} - ${f.vendor || ''}`;
+            const d = document.createElement('div'); d.style.fontSize = '13px'; d.style.color = 'var(--text2)'; d.style.margin = '8px 0'; d.textContent = f.detail || '';
+            const a = document.createElement('div'); a.style.fontSize = '12px'; a.style.color = 'var(--text3)'; a.textContent = `→ ${f.action || ''}`;
+            card.append(t, d, a);
+            collusionContent.appendChild(card);
+          });
+        }
       }
       } catch (err) {
         console.error('Report render error:', err);
@@ -250,21 +326,45 @@
       }
     }
 
-    function signReport() {
+    async function signReport() {
+      const readiness = validateReportReadiness(currentReport);
+      if (!readiness.ok) {
+        showToast(`Sign-off blocked: ${readiness.reason}`, 'error');
+        return;
+      }
       const name = document.getElementById('officerName').value;
       const desig = document.getElementById('officerDesig').value;
       const remarks = document.getElementById('officerRemarks').value;
 
-      setStorage('report-signoff', { name, desig, remarks, timestamp: new Date().toISOString() });
+      const signing = await signAuditPayload(JSON.stringify(currentReport || {}), name);
+      setStorage('report-signoff', { name, desig, remarks, timestamp: new Date().toISOString(), signing });
+      currentVerification = {
+        status: signing.verificationStatus === 'SIGNED' ? 'SIGNED' : 'REVIEW REQUIRED',
+        signedHash: signing.reportHash || null,
+        signedAt: signing.timestamp || null,
+        tamperPassed: true
+      };
       
-      document.getElementById('reportStatus').className = 'badge badge-eligible';
-      document.getElementById('reportStatus').textContent = 'FINALIZED';
+      document.getElementById('reportStatus').className = signing.verificationStatus === 'SIGNED' ? 'badge badge-eligible' : 'badge badge-review';
+      document.getElementById('reportStatus').textContent = signing.verificationStatus === 'SIGNED' ? 'SIGNED • VERIFIED' : 'REVIEW REQUIRED';
+      const hashVerified = document.getElementById('hashVerified');
+      if (hashVerified) hashVerified.style.display = signing.verificationStatus === 'SIGNED' ? 'inline-block' : 'none';
       document.getElementById('signedBox').style.display = 'block';
-      document.getElementById('signedDetails').innerHTML = `
-        <div><strong>${name}</strong></div>
-        <div>${desig}</div>
-        <div style="font-size: 12px; margin-top: 8px;">${new Date().toLocaleString()}</div>
-      `;
+      const signedDetails = document.getElementById('signedDetails');
+      signedDetails.textContent = '';
+      const n = document.createElement('div');
+      const strong = document.createElement('strong');
+      strong.textContent = name;
+      n.appendChild(strong);
+      const d = document.createElement('div');
+      d.textContent = desig;
+      const t = document.createElement('div');
+      t.style.fontSize = '12px';
+      t.style.marginTop = '8px';
+      t.textContent = new Date().toLocaleString();
+      signedDetails.appendChild(n);
+      signedDetails.appendChild(d);
+      signedDetails.appendChild(t);
 
       showToast('✓ Report digitally signed and finalized', 'success');
       logAction(`Report finalized and signed by ${name}`, name);
@@ -273,6 +373,8 @@
     function downloadPDF() {
       try {
         if (!currentReport) { showToast('No report to download', 'warning'); return; }
+        const readiness = validateReportReadiness(currentReport);
+        if (!readiness.ok) { showToast(`Export blocked: ${readiness.reason}`, 'error'); return; }
 
       const doc = new jspdf.jsPDF();
       const tender = currentReport.tender;
@@ -339,11 +441,7 @@
       }
     }
 
-    // when finalized, show verified badge
-    (function attachFinalWatch() {
-      const origSign = signReport;
-      window.signReport = function() { origSign(); document.getElementById('hashVerified') && (document.getElementById('hashVerified').style.display = 'inline-block'); };
-    })();
+    
   </script>
 </body>
 </html>

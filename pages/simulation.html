@@ -129,6 +129,7 @@
   <script>
     let simChart = null;
     let baselineEligible = 0;
+    const STRICT_MODE = true;
 
     const PRESETS = {
       default: { turnover: 10, exp: 5, gst: true, msme: false },
@@ -157,6 +158,13 @@
     }
 
     function runSimulation(scrollToChart = false) {
+      if (STRICT_MODE) {
+        const evalData = getStorage('last-evaluation', null);
+        if (!evalData || !Array.isArray(evalData.vendors) || evalData.vendors.length === 0) {
+          showToast('Run document-backed evaluation first. Simulation requires extracted evidence-backed vendors.', 'warning');
+          return;
+        }
+      }
       const turnover = parseInt(document.getElementById('turnoverSlider').value);
       const exp = parseInt(document.getElementById('expSlider').value);
       const gstRequired = document.getElementById('gstCheck').checked;
@@ -180,7 +188,18 @@
       document.getElementById('eligibleCount').textContent = eligible;
       const riskLevel = eligible < 3 ? 'HIGH' : eligible < 5 ? 'MEDIUM' : 'LOW';
       const riskColor = riskLevel === 'HIGH' ? 'var(--red)' : riskLevel === 'MEDIUM' ? 'var(--amber)' : 'var(--green)';
-      document.getElementById('riskBadge').innerHTML = `<div style="display:inline-block; padding: 8px 16px; border-radius: 8px; background: ${riskColor}20; color: ${riskColor}; font-weight: 600; font-size: 12px;">${riskLevel} RISK</div>`;
+      const riskBadge = document.getElementById('riskBadge');
+      riskBadge.textContent = '';
+      const rb = document.createElement('div');
+      rb.style.display = 'inline-block';
+      rb.style.padding = '8px 16px';
+      rb.style.borderRadius = '8px';
+      rb.style.background = riskColor + '20';
+      rb.style.color = riskColor;
+      rb.style.fontWeight = '600';
+      rb.style.fontSize = '12px';
+      rb.textContent = riskLevel + ' RISK';
+      riskBadge.appendChild(rb);
 
       // Calculate impact
       if (baselineEligible === 0) baselineEligible = eligible;
@@ -237,17 +256,26 @@
       try {
         const tbody = document.getElementById('simTableBody');
         if (!tbody) { console.warn('Simulation table body not found'); return; }
-        tbody.innerHTML = results.map(r => `
-        <tr>
-          <td><strong>${r.name}</strong></td>
-          <td>${r.city}</td>
-          <td>${r.turnoverCr} Cr</td>
-          <td>${r.experienceYears} years</td>
-          <td>${r.gstValid ? '✓' : '✗'}</td>
-          <td>${r.isMSME ? '✓' : '✗'}</td>
-          <td><span class="badge ${r.status === 'Eligible' ? 'badge-eligible' : 'badge-ineligible'}">${r.status}</span></td>
-        </tr>
-      `).join('');
+        tbody.textContent = '';
+        results.forEach((r) => {
+          const tr = document.createElement('tr');
+          const c1 = document.createElement('td');
+          const s = document.createElement('strong');
+          s.textContent = r.name;
+          c1.appendChild(s);
+          const c2 = document.createElement('td'); c2.textContent = r.city;
+          const c3 = document.createElement('td'); c3.textContent = `${r.turnoverCr} Cr`;
+          const c4 = document.createElement('td'); c4.textContent = `${r.experienceYears} years`;
+          const c5 = document.createElement('td'); c5.textContent = r.gstValid ? '✓' : '✗';
+          const c6 = document.createElement('td'); c6.textContent = r.isMSME ? '✓' : '✗';
+          const c7 = document.createElement('td');
+          const b = document.createElement('span');
+          b.className = `badge ${r.status === 'Eligible' ? 'badge-eligible' : 'badge-ineligible'}`;
+          b.textContent = r.status;
+          c7.appendChild(b);
+          tr.append(c1, c2, c3, c4, c5, c6, c7);
+          tbody.appendChild(tr);
+        });
       } catch (err) {
         console.error('Table render error:', err);
         showToast('Table rendering failed', 'error');
@@ -255,6 +283,13 @@
     }
 
     function exportSimulation() {
+      if (STRICT_MODE) {
+        const evalData = getStorage('last-evaluation', null);
+        if (!evalData || !evalData.results || !evalData.results.length) {
+          showToast('Export blocked — no evidence-backed evaluation found', 'error');
+          return;
+        }
+      }
       const turnover = document.getElementById('turnoverSlider').value;
       const exp = document.getElementById('expSlider').value;
       const eligible = document.getElementById('eligibleCount').textContent;

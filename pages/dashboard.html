@@ -197,16 +197,19 @@
 
       // Audit trail
       const auditDiv = document.getElementById('auditTrail');
-      auditDiv.innerHTML = auditLog.slice(0, 8).map(log => `
-        <div class="audit-item">
-          <div class="audit-dot"></div>
-          <div class="audit-time">${log.time}</div>
-          <div>
-            <div class="audit-text">${log.action}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">${log.officer}</div>
-          </div>
-        </div>
-      `).join('');
+      auditDiv.textContent = '';
+      auditLog.slice(0, 8).forEach((log) => {
+        const item = document.createElement('div');
+        item.className = 'audit-item';
+        const dot = document.createElement('div'); dot.className = 'audit-dot';
+        const time = document.createElement('div'); time.className = 'audit-time'; time.textContent = log.time;
+        const wrap = document.createElement('div');
+        const text = document.createElement('div'); text.className = 'audit-text'; text.textContent = log.action;
+        const officer = document.createElement('div'); officer.style.fontSize = '11px'; officer.style.color = 'var(--text3)'; officer.style.marginTop = '3px'; officer.textContent = log.officer;
+        wrap.append(text, officer);
+        item.append(dot, time, wrap);
+        auditDiv.appendChild(item);
+      });
 
       } catch (err) {
         console.error('Dashboard load error:', err);
@@ -269,20 +272,29 @@
       const tbody = document.getElementById('tendersTable');
       if (!tbody) { console.warn('Tenders table element not found'); return; }
       if (!tenders || !tenders.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No matching tenders found</td></tr>';
+        tbody.textContent = '';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.className = 'table-empty';
+        td.textContent = 'No matching tenders found';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
         return;
       }
 
-      tbody.innerHTML = tenders.map(t => `
-        <tr>
-          <td><strong>${t.id}</strong></td>
-          <td>${t.title}</td>
-          <td>${t.vendors}</td>
-          <td><span class="badge badge-eligible">${t.eligible} ✓</span></td>
-          <td><span class="badge badge-review">${t.flagged} 🚩</span></td>
-          <td><span class="badge ${t.status === 'Completed' ? 'badge-eligible' : 'badge-review'}">${t.status}</span></td>
-        </tr>
-      `).join('');
+      tbody.textContent = '';
+      tenders.forEach((t) => {
+        const tr = document.createElement('tr');
+        const c1 = document.createElement('td'); const s = document.createElement('strong'); s.textContent = t.id; c1.appendChild(s);
+        const c2 = document.createElement('td'); c2.textContent = t.title;
+        const c3 = document.createElement('td'); c3.textContent = String(t.vendors);
+        const c4 = document.createElement('td'); c4.textContent = `${t.eligible} ✓`;
+        const c5 = document.createElement('td'); c5.textContent = `${t.flagged} 🚩`;
+        const c6 = document.createElement('td'); c6.textContent = t.status;
+        tr.append(c1, c2, c3, c4, c5, c6);
+        tbody.appendChild(tr);
+      });
     }
 
     function exportTendersToCSV() {

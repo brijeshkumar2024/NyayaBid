@@ -229,6 +229,26 @@ body.landing-body { display: block; }
 .badge-eligible { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
 .badge-ineligible { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
 .badge-review { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); animation: pulse 2s infinite; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .main { padding: 16px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .sim-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { width: 100%; position: static; height: auto; }
+  .main { margin-left: 0; width: 100%; }
+  .page-title { font-size: 24px; }
+  .btn-group { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .chart-box { min-height: 280px; }
+}
 .badge-high { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
 .badge-medium { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
 .badge-low { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
